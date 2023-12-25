@@ -7,7 +7,16 @@ import {
 } from "./types";
 let count = 0;
 
-const childrenScan = (node: ShareNode, parent?: any): any => {
+interface Parent {
+  id: string;
+  name: string;
+  type: NodeType;
+  data?: any;
+  children?: any;
+  parent?: any;
+}
+
+const childrenScan = async (node: ShareNode, parent?: Parent) => {
   // 기본 트리 구조 수집 로직
   // #region
   count += 1;
@@ -39,9 +48,16 @@ const childrenScan = (node: ShareNode, parent?: any): any => {
   }
 
   // children 추가
-  const array = node.children as Array<any>;
+  const array = node.children as Array<ShareNode>;
   if (Array.isArray(array)) {
-    const children = array.map((item) => childrenScan(item, result));
+    const isPromise = array.map((item) => childrenScan(item, result));
+    const promiseArray = await Promise.allSettled(isPromise);
+    const children = promiseArray.map((item) => {
+      if (item.status === "fulfilled") return item.value;
+      debugConsole(item.reason);
+      return item;
+    });
+
     append({
       children,
     });
@@ -54,6 +70,10 @@ const childrenScan = (node: ShareNode, parent?: any): any => {
     delete parentData.parent;
     append({ parent: parentData });
   }
+
+  // 스타일 추가
+  const css = await node.getCSSAsync();
+  append({ style: css });
 
   // #endregion
 
@@ -74,10 +94,10 @@ const childrenScan = (node: ShareNode, parent?: any): any => {
 };
 
 export default function () {
-  on<ScanHandler>("FULL_SCAN", () => {
+  on<ScanHandler>("FULL_SCAN", async () => {
     // const data = childrenScan(figma.root);
     count = 0;
-    const data = childrenScan(figma.currentPage);
+    const data = await childrenScan(figma.currentPage);
     console.log(data, "count :", count);
     console.log(JSON.stringify(data));
   });
