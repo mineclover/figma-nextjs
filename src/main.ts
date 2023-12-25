@@ -65,6 +65,7 @@ const childrenScan = (node: ShareNode, parent?: any): any => {
   if (type === "TEXT") {
     // type Text에 대한 처리
     putData({ characters: node.characters });
+    append({ name: "TEXT" });
   } else if ("characters" in node) {
     debugConsole("TEXT 가 아닌데 characters 가 있는 노드가 발견 됨");
   }
@@ -78,6 +79,7 @@ export default function () {
     count = 0;
     const data = childrenScan(figma.currentPage);
     console.log(data, "count :", count);
+    console.log(JSON.stringify(data));
   });
   once<CreateRectanglesHandler>("CREATE_RECTANGLES", function (count: number) {
     const nodes: Array<SceneNode> = [];
@@ -101,11 +103,8 @@ export default function () {
   once<CloseHandler>("CLOSE", function () {
     figma.closePlugin();
   });
-  showUI(
-    {
-      height: 500,
-      width: 240,
-    },
-    {}
-  );
+  showUI({
+    height: 500,
+    width: 240,
+  });
 }
