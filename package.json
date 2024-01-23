@@ -2,12 +2,16 @@
   "dependencies": {
     "@create-figma-plugin/ui": "^3.1.0",
     "@create-figma-plugin/utilities": "^3.1.0",
+    "@types/domhandler": "^2.4.5",
+    "dom-serializer": "^2.0.0",
+    "htmlparser2": "^9.1.0",
     "preact": ">=10"
   },
   "devDependencies": {
     "@create-figma-plugin/build": "^3.1.0",
     "@create-figma-plugin/tsconfig": "^3.1.0",
     "@figma/plugin-typings": "1.82.0",
+    "@types/node": "^20.11.5",
     "typescript": ">=5"
   },
   "scripts": {
@@ -18,9 +22,19 @@
     "editorType": [
       "figma"
     ],
-    "id": "preact-rectangles",
-    "name": "Preact Rectangles",
-    "main": "src/main.ts",
-    "ui": "src/ui.tsx"
+    "id": "Figma To Code",
+    "name": "Jigma",
+    "menu": [
+      {
+        "name": "Figma To Code",
+        "main": "src/layerExport/main.ts",
+        "ui": "src/layerExport/ui.tsx"
+      },
+      {
+        "name": "Set Frame Padding",
+        "main": "src/svgAssetExport/main.ts",
+        "ui": "src/svgAssetExport/ui.tsx"
+      }
+    ]
   }
 }
