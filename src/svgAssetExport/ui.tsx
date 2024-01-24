@@ -29,12 +29,8 @@ function Plugin() {
   const [duplicate, setDuplicate] = useState<string[]>([]);
   const [unsupportedKeys, setUnsupportedKeys] = useState<string[]>([]);
   const [ids, setIds] = useState<string[]>([]);
-  const handleButtonClick = () => emit<SvgSymbolHandler>("SVG_SYMBOL_CODE");
 
-  function handleValueInput(newValue: string) {
-    console.log(newValue);
-    setText(newValue);
-  }
+  function handleValueInput(newValue: string) {}
   const handleCloseButtonClick = useCallback(function () {
     emit<CloseHandler>("CLOSE");
   }, []);
@@ -50,31 +46,6 @@ function Plugin() {
 
   return (
     <Container space="medium">
-      <VerticalSpace space="large" />
-      <Text>
-        <Muted>duplicate name</Muted>
-      </Text>
-      <VerticalSpace space="small" />
-      {duplicate.map((item) => (
-        <Text>{item}</Text>
-      ))}
-      <VerticalSpace space="extraLarge" />
-      <Text>
-        <Muted>unsupportedKeys name</Muted>
-      </Text>
-      <VerticalSpace space="small" />
-      {unsupportedKeys.map((item) => (
-        <Text>{item}</Text>
-      ))}
-      <VerticalSpace space="extraLarge" />
-      <Columns space="extraSmall">
-        <Button fullWidth onClick={handleButtonClick}>
-          Create
-        </Button>
-        <Button fullWidth onClick={handleCloseButtonClick} secondary>
-          Close
-        </Button>
-      </Columns>
       <VerticalSpace space="extraLarge" />
       <Text>
         <Muted>Icon Code : {ids.length}</Muted>
@@ -91,21 +62,13 @@ function Plugin() {
         }}
         value={text}
       ></TextboxMultiline>
-      {/* <VerticalSpace space="extraLarge" />
-      <Text>
-        <Muted>test</Muted>
-      </Text>
-      <TextboxMultiline
-        onValueInput={handleValueInput}
-        onClick={(e) => {
-          console.log("copy");
-          document.execCommand("selectAll");
-          document.execCommand("copy");
-          emit<MessageHandler>("POST_MESSAGE", "복사 완료");
-        }}
-        value={text}
-      ></TextboxMultiline>
-      <VerticalSpace space="extraLarge" /> */}
+      <VerticalSpace space="large" />
+
+      <Columns space="extraSmall">
+        <Button fullWidth onClick={handleCloseButtonClick} secondary>
+          Close
+        </Button>
+      </Columns>
     </Container>
   );
 }

@@ -103,20 +103,6 @@ const toSvg = async (selection: readonly SceneNode[]) => {
 };
 
 export default function () {
-  on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {
-    const current = figma.currentPage.selection;
-
-    const { id, completed, duplicate, unsupportedKeys } = await toSvg(current);
-
-    const result = completed.filter((item) => item != null);
-    emit<ScanHandler>(
-      "FULL_SCAN",
-      result.join("\n"),
-      duplicate,
-      unsupportedKeys,
-      id
-    );
-  });
   once<CloseHandler>("CLOSE", function () {
     figma.closePlugin();
   });
@@ -148,7 +134,7 @@ export default function () {
     }
   });
   showUI({
-    height: 360,
+    height: 200,
     width: 240,
   });
 }

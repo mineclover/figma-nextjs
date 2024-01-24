@@ -22,21 +22,12 @@
   },
   "figma-plugin": {
     "editorType": [
-      "figma"
+      "figma",
+      "dev"
     ],
-    "name": "J gma",
-    "id": "1331810010782002781",
-    "menu": [
-      {
-        "name": "Figma To Code",
-        "main": "src/layerExport/main.ts",
-        "ui": "src/layerExport/ui.tsx"
-      },
-      {
-        "name": "SVG Asset Export",
-        "main": "src/svgAssetExport/main.ts",
-        "ui": "src/svgAssetExport/ui.tsx"
-      }
-    ]
+    "name": "SVG Asset Export",
+    "main": "src/svgAssetExport/main.ts",
+    "ui": "src/svgAssetExport/ui.tsx",
+    "id": "test"
   }
 }
