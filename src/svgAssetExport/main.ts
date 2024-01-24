@@ -25,7 +25,13 @@ const childrenScan = (node: Element): ErrorCase => {
   // "svg", "symbol" 에서 Fill 삭제 끝
   const ignore = ["svg", "symbol"];
   if (!ignore.includes(node.name)) {
-    node.attribs.fill = "currentcolor";
+    if (node.attribs.fill) {
+      node.attribs.fill = "currentcolor";
+    }
+
+    if (node.attribs.stroke) {
+      node.attribs.stroke = "currentcolor";
+    }
   }
 
   const unsupported = ["mask", "clip-path"];
@@ -45,62 +51,70 @@ const PromiseOpen = <T>(promiseArray: PromiseSettledResult<T>[]) => {
   });
 };
 
+const toSvg = async (selection: readonly SceneNode[]) => {
+  const unsupportedKeys = [] as string[];
+  const symbolKeys = [] as string[];
+  const inspection = {} as Inspection;
+  const duplicate = [] as string[];
+
+  const temp = selection.map(async (item) => {
+    const symbolID = rename(item.name);
+    const svg = await item.exportAsync({
+      format: "SVG_STRING",
+      svgSimplifyStroke: true,
+    });
+    const ast = parseDocument(svg).children.filter(
+      (item) => item.type === "tag"
+    )[0] as Element;
+    ast.name = "symbol";
+    ast.attribs.id = symbolID;
+    delete ast.attribs.width;
+    delete ast.attribs.height;
+    delete ast.attribs.xmlns;
+
+    if (symbolID in inspection) {
+      inspection[symbolID] += 1;
+      duplicate.push(symbolID);
+    } else {
+      inspection[symbolID] = 1;
+    }
+
+    const r = childrenScan(ast);
+
+    if (r === "unsupported") {
+      unsupportedKeys.push(symbolID);
+    }
+
+    if (symbolKeys.includes(symbolID)) {
+      return null;
+    }
+    symbolKeys.push(symbolID);
+    return render(ast);
+  });
+
+  const promise = await Promise.allSettled(temp);
+
+  return {
+    id: symbolKeys,
+    completed: PromiseOpen(promise),
+    duplicate,
+    unsupportedKeys,
+  };
+};
+
 export default function () {
   on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {
-    const unsupportedKeys = [] as string[];
-    const symbolKeys = [] as string[];
-    const inspection = {} as Inspection;
-    const duplicate = [] as string[];
     const current = figma.currentPage.selection;
-    const temp = current.map(async (item) => {
-      const symbolID = rename(item.name);
-      const svg = await item.exportAsync({
-        format: "SVG_STRING",
-        svgSimplifyStroke: true,
-      });
-      const ast = parseDocument(svg).children.filter(
-        (item) => item.type === "tag"
-      )[0] as Element;
 
-      // ast === parser result
-      // item === name
-      //  ast.name === tag
-      ast.name = "symbol";
-      ast.attribs.id = symbolID;
-      delete ast.attribs.width;
-      delete ast.attribs.height;
-      delete ast.attribs.xmlns;
+    const { id, completed, duplicate, unsupportedKeys } = await toSvg(current);
 
-      if (symbolID in inspection) {
-        inspection[symbolID] += 1;
-        duplicate.push(symbolID);
-      } else {
-        inspection[symbolID] = 1;
-      }
-
-      const r = childrenScan(ast);
-      console.log(r);
-      if (r === "unsupported") {
-        console.log("unsupported");
-        unsupportedKeys.push(symbolID);
-      }
-
-      // if (symbolKeys.includes(symbolID)) {
-      //   return null;
-      // }
-      symbolKeys.push(symbolID);
-      return render(ast);
-    });
-
-    const completed = await Promise.allSettled(temp);
-
-    console.log(completed);
-    const result = PromiseOpen(completed).filter((item) => item != null);
+    const result = completed.filter((item) => item != null);
     emit<ScanHandler>(
       "FULL_SCAN",
       result.join("\n"),
       duplicate,
-      unsupportedKeys
+      unsupportedKeys,
+      id
     );
   });
   once<CloseHandler>("CLOSE", function () {
@@ -116,6 +130,22 @@ export default function () {
         },
       },
     });
+  });
+  figma.on("selectionchange", async function () {
+    const current = figma.currentPage.selection;
+    if (current.length === 1) {
+      const { completed, duplicate, unsupportedKeys, id } = await toSvg(
+        current
+      );
+      const codeSnippet =
+        '<SvgUse src="/$1/asset.svg#$0" className="$1" alt="$0" />';
+      const $0 = id[0];
+      const $1 = "icon";
+
+      const result = codeSnippet.replace(/\$0/g, $0).replace(/\$1/g, $1);
+
+      emit<ScanHandler>("FULL_SCAN", result, duplicate, unsupportedKeys, id);
+    }
   });
   showUI({
     height: 360,

@@ -15,7 +15,8 @@ export interface ScanHandler extends EventHandler {
   handler: (
     result: string,
     duplicate: string[],
-    unsupportedKeys: string[]
+    unsupportedKeys: string[],
+    id: string[]
   ) => void;
 }
 

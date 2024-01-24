@@ -28,6 +28,7 @@ function Plugin() {
   const [text, setText] = useState("");
   const [duplicate, setDuplicate] = useState<string[]>([]);
   const [unsupportedKeys, setUnsupportedKeys] = useState<string[]>([]);
+  const [ids, setIds] = useState<string[]>([]);
   const handleButtonClick = () => emit<SvgSymbolHandler>("SVG_SYMBOL_CODE");
 
   function handleValueInput(newValue: string) {
@@ -39,10 +40,11 @@ function Plugin() {
   }, []);
 
   useEffect(() => {
-    on<ScanHandler>("FULL_SCAN", (result, dupl, unsup) => {
+    on<ScanHandler>("FULL_SCAN", (result, dupl, unsup, id) => {
       setText(result);
       setDuplicate(dupl);
       setUnsupportedKeys(unsup);
+      setIds(id);
     });
   }, []);
 
@@ -75,7 +77,7 @@ function Plugin() {
       </Columns>
       <VerticalSpace space="extraLarge" />
       <Text>
-        <Muted>Icon Code</Muted>
+        <Muted>Icon Code : {ids.length}</Muted>
       </Text>
       <VerticalSpace space="small" />
       <TextboxMultiline

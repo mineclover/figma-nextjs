@@ -3,8 +3,10 @@
     "@create-figma-plugin/ui": "^3.1.0",
     "@create-figma-plugin/utilities": "^3.1.0",
     "@types/domhandler": "^2.4.5",
+    "@types/lodash": "^4.14.202",
     "dom-serializer": "^2.0.0",
     "htmlparser2": "^9.1.0",
+    "lodash": "^4.17.21",
     "preact": ">=10"
   },
   "devDependencies": {
@@ -22,8 +24,8 @@
     "editorType": [
       "figma"
     ],
-    "id": "Figma To Code",
-    "name": "Jigma",
+    "name": "J gma",
+    "id": "1331810010782002781",
     "menu": [
       {
         "name": "Figma To Code",
@@ -31,7 +33,7 @@
         "ui": "src/layerExport/ui.tsx"
       },
       {
-        "name": "Set Frame Padding",
+        "name": "SVG Asset Export",
         "main": "src/svgAssetExport/main.ts",
         "ui": "src/svgAssetExport/ui.tsx"
       }
