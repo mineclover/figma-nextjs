@@ -1,22 +1,13 @@
-import { once, on, showUI, emit } from "@create-figma-plugin/utilities";
-// import { parser } from "posthtml-parser";
-import { parseDocument } from "htmlparser2";
-import { Element } from "domhandler";
 import render from "dom-serializer";
 import { rename } from "../utils/rename";
-import {
-  SvgSymbolHandler,
-  CloseHandler,
-  ScanHandler,
-  MessageHandler,
-} from "./types";
+import { parseDocument } from "htmlparser2";
+import { Element } from "domhandler";
+
+type ErrorCase = "unsupported" | "ignore" | null;
 
 type Inspection = {
   [key: string]: number;
 };
-
-type ErrorCase = "unsupported" | "ignore" | null;
-
 const childrenScan = (node: Element): ErrorCase => {
   const children = node.children.filter(
     (item) => item instanceof Element
@@ -43,7 +34,6 @@ const childrenScan = (node: Element): ErrorCase => {
   }
   return null;
 };
-
 const PromiseOpen = <T>(promiseArray: PromiseSettledResult<T>[]) => {
   return promiseArray.map((item) => {
     if (item.status === "fulfilled") return item.value;
@@ -51,7 +41,7 @@ const PromiseOpen = <T>(promiseArray: PromiseSettledResult<T>[]) => {
   });
 };
 
-const toSvg = async (selection: readonly SceneNode[]) => {
+export const toSvg = async (selection: readonly SceneNode[]) => {
   const unsupportedKeys = [] as string[];
   const symbolKeys = [] as string[];
   const inspection = {} as Inspection;
@@ -101,40 +91,3 @@ const toSvg = async (selection: readonly SceneNode[]) => {
     unsupportedKeys,
   };
 };
-
-export default function () {
-  once<CloseHandler>("CLOSE", function () {
-    figma.closePlugin();
-  });
-  on<MessageHandler>("POST_MESSAGE", function (text: string) {
-    const NotificationHandler = figma.notify(text, {
-      timeout: 2,
-      button: {
-        text: "x",
-        action: () => {
-          NotificationHandler.cancel();
-        },
-      },
-    });
-  });
-  figma.on("selectionchange", async function () {
-    const current = figma.currentPage.selection;
-    if (current.length === 1) {
-      const { completed, duplicate, unsupportedKeys, id } = await toSvg(
-        current
-      );
-      const codeSnippet =
-        '<SvgUse src="/$1/asset.svg#$0" className="$1" alt="$0" />';
-      const $0 = id[0];
-      const $1 = "icon";
-
-      const result = codeSnippet.replace(/\$0/g, $0).replace(/\$1/g, $1);
-
-      emit<ScanHandler>("FULL_SCAN", result, duplicate, unsupportedKeys, id);
-    }
-  });
-  showUI({
-    height: 200,
-    width: 240,
-  });
-}

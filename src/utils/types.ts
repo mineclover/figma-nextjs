@@ -24,3 +24,13 @@ export interface MessageHandler extends EventHandler {
   name: "POST_MESSAGE";
   handler: (text: string) => void;
 }
+
+export interface FormatHandler extends EventHandler {
+  name: "FORMAT";
+  handler: (props: CodegenResult) => void;
+}
+
+export interface FormatResultHandler extends EventHandler {
+  name: "FORMAT_RESULT";
+  handler: (props: CodegenResult) => void;
+}
