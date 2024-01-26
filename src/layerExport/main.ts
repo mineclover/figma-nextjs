@@ -128,39 +128,44 @@ const childrenScan = async (node: ShareNode, parent?: Parent) => {
 };
 
 export default function () {
-  on<ScanHandler>("FULL_SCAN", async () => {
-    // const data = childrenScan(figma.root);
-    count = 0;
-    // 현재 페이지를 전달함 > 만약 피그마 파일 전체를 순회한다면?
-    // const data = await childrenScan(figma.root);
-    const data = await childrenScan(figma.currentPage);
-    console.log(data, "count :", count);
-    console.log(JSON.stringify(data));
-  });
-  once<CreateRectanglesHandler>("CREATE_RECTANGLES", function (count: number) {
-    const nodes: Array<SceneNode> = [];
-    for (let i = 0; i < count; i++) {
-      const rect = figma.createRectangle();
-      rect.x = i * 200;
-      rect.fills = [
-        {
-          color: { b: 0.3, g: 0.5, r: 1 },
-          type: "SOLID",
-        },
-      ];
-      figma.currentPage.appendChild(rect);
-      nodes.push(rect);
-    }
-    console.log(figma);
-    figma.currentPage.selection = nodes;
-    figma.viewport.scrollAndZoomIntoView(nodes);
-    figma.closePlugin();
-  });
-  once<CloseHandler>("CLOSE", function () {
-    figma.closePlugin();
-  });
-  showUI({
-    height: 500,
-    width: 240,
-  });
+  if (figma.editorType === "figma") {
+    on<ScanHandler>("FULL_SCAN", async () => {
+      // const data = childrenScan(figma.root);
+      count = 0;
+      // 현재 페이지를 전달함 > 만약 피그마 파일 전체를 순회한다면?
+      // const data = await childrenScan(figma.root);
+      const data = await childrenScan(figma.currentPage);
+      console.log(data, "count :", count);
+      console.log(JSON.stringify(data));
+    });
+    once<CreateRectanglesHandler>(
+      "CREATE_RECTANGLES",
+      function (count: number) {
+        const nodes: Array<SceneNode> = [];
+        for (let i = 0; i < count; i++) {
+          const rect = figma.createRectangle();
+          rect.x = i * 200;
+          rect.fills = [
+            {
+              color: { b: 0.3, g: 0.5, r: 1 },
+              type: "SOLID",
+            },
+          ];
+          figma.currentPage.appendChild(rect);
+          nodes.push(rect);
+        }
+        console.log(figma);
+        figma.currentPage.selection = nodes;
+        figma.viewport.scrollAndZoomIntoView(nodes);
+        figma.closePlugin();
+      }
+    );
+    once<CloseHandler>("CLOSE", function () {
+      figma.closePlugin();
+    });
+    showUI({
+      height: 500,
+      width: 240,
+    });
+  }
 }
