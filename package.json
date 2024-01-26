@@ -22,15 +22,36 @@
     "watch": "build-figma-plugin --typecheck --watch"
   },
   "figma-plugin": {
+    "networkAccess": {
+      "allowedDomains": [
+        "https://api.open-meteo.com/"
+      ]
+    },
     "editorType": [
+      "figma",
       "dev"
     ],
-    "id": "CodeGen2",
-    "name": "CodeGen2",
-    "main": "src/CodeGen/main.ts",
-    "ui": "src/CodeGen/ui.tsx",
+    "name": "J gma",
+    "id": "1331810010782002781",
     "capabilities": [
       "codegen"
+    ],
+    "menu": [
+      {
+        "name": "Figma To Code",
+        "main": "src/layerExport/main.ts",
+        "ui": "src/layerExport/ui.tsx"
+      },
+      {
+        "name": "SVG Asset Export",
+        "main": "src/svgAssetExport/main.ts",
+        "ui": "src/svgAssetExport/ui.tsx"
+      },
+      {
+        "name": "CodeGen",
+        "main": "src/CodeGen/main.ts",
+        "ui": "src/CodeGen/ui.tsx"
+      }
     ]
   }
 }

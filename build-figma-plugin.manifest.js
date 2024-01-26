@@ -4,12 +4,11 @@ const dev = {
   codegenLanguages: [{ label: "JS", value: "js" }],
   codegenPreferences: [],
 };
-
-export default function (manifest) {
+module.exports = (manifest) => {
   console.log(manifest);
   return {
     ...manifest,
     ...dev,
     // ...
   };
-}
+};
