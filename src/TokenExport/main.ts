@@ -19,33 +19,14 @@ function readVariables() {
     console.log();
     const modes = collenction.modes;
     console.log("Modes::", modes);
-    const variableValues = collenction.variableIds.map((variableId) => {
-      // variableId 를 통해 variable 을 가져옴
-      const variable = figma.variables.getVariableById(variableId);
-      if (variable) {
-        console.log("variable ::", variable);
-        const temp: Temp = {
-          id: "",
-          name: "",
-          resolvedType: "STRING",
-          description: "",
-          valuesByMode: {},
-        };
-        // valueByMode는 modes 의 modeId 를 키로 가지는 구조로 되어있음
-        // x 축은 localCollections.name , ...modes 로 보면 된다
-        temp.id = variable.id;
-        temp.name = variable.name;
-        temp.description = variable.description;
-        temp.resolvedType = variable.resolvedType;
-        temp.valuesByMode = { ...variable.valuesByMode };
-        return temp;
-      }
-    });
+    const variableIds = collenction.variableIds.map((variableId) =>
+      figma.variables.getVariableById(variableId)
+    );
     return {
       id: collenction.id,
       name: collenction.name,
       modes,
-      variableValues,
+      variableIds,
     };
   });
 }
