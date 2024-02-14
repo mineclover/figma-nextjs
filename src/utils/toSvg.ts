@@ -42,17 +42,32 @@ const PromiseOpen = <T>(promiseArray: PromiseSettledResult<T>[]) => {
 };
 
 export const toSvg = async (selection: readonly SceneNode[]) => {
+  // 지원 안되는 심볼
   const unsupportedKeys = [] as string[];
+  // 전체 심볼 이름 리스트
   const symbolKeys = [] as string[];
+  // count 목적
   const inspection = {} as Inspection;
+  // 중복 체크
   const duplicate = [] as string[];
 
-  const temp = selection.map(async (item) => {
+  const temp = selection.map(async (item, index) => {
     const symbolID = rename(item.name);
-    const svg = await item.exportAsync({
-      format: "SVG_STRING",
-      svgSimplifyStroke: true,
-    });
+    console.log("start", item, index, symbolID);
+
+    let svg;
+    try {
+      svg = await item.exportAsync({
+        format: "SVG_STRING",
+        svgSimplifyStroke: true,
+      });
+    } catch (e) {
+      console.error(e);
+      svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>`;
+    }
+
+    console.log("end", item, index, svg, symbolID);
+
     const ast = parseDocument(svg).children.filter(
       (item) => item.type === "tag"
     )[0] as Element;
@@ -79,7 +94,8 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
       return null;
     }
     symbolKeys.push(symbolID);
-    return render(ast);
+    const rendering = render(ast);
+    return rendering;
   });
 
   const promise = await Promise.allSettled(temp);

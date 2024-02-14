@@ -45,7 +45,6 @@ export default function () {
 
       const { id, completed, duplicate, unsupportedKeys } =
         await toSvg(current);
-
       const result = completed
         .filter((item) => item != null)
         .join("\n")
@@ -71,6 +70,7 @@ export default function () {
       if (current.length === 1) {
         const { completed, duplicate, unsupportedKeys, id } =
           await toSvg(current);
+
         const codeSnippet =
           '<SvgUse src="/$1/asset.svg#$0" className="$1" alt="$0" />';
         const $0 = id[0];

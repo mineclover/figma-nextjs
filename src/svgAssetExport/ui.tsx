@@ -32,7 +32,6 @@ function Plugin() {
   const handleButtonClick = () => emit<SvgSymbolHandler>("SVG_SYMBOL_CODE");
 
   function handleValueInput(newValue: string) {
-    console.log(newValue);
     setText(newValue);
   }
   const handleCloseButtonClick = useCallback(function () {
@@ -41,7 +40,12 @@ function Plugin() {
 
   useEffect(() => {
     on<ScanHandler>("FULL_SCAN", (result, dupl, unsup, id) => {
-      setText(result);
+      setText(`<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    ${result}
+  </defs>
+</svg>`);
+
       setDuplicate(dupl);
       setUnsupportedKeys(unsup);
       setIds(id);
