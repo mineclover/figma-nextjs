@@ -2,6 +2,7 @@
   "dependencies": {
     "@create-figma-plugin/ui": "^3.1.0",
     "@create-figma-plugin/utilities": "^3.1.0",
+    "@fxts/core": "^0.24.0",
     "@types/domhandler": "^2.4.5",
     "@types/lodash": "^4.14.202",
     "dom-serializer": "^2.0.0",
@@ -13,13 +14,14 @@
   "devDependencies": {
     "@create-figma-plugin/build": "^3.1.0",
     "@create-figma-plugin/tsconfig": "^3.1.0",
-    "@figma/plugin-typings": "1.85.0",
-    "@types/node": "^20.11.17",
+    "@figma/plugin-typings": "1.88.0",
+    "@types/node": "^20.11.24",
     "typescript": ">=5"
   },
   "scripts": {
     "build": "build-figma-plugin --typecheck --minify",
-    "watch": "build-figma-plugin --typecheck --watch"
+    "watch": "build-figma-plugin --typecheck --watch",
+    "types": "npx openapi-typescript https://raw.githubusercontent.com/figma/rest-api-spec/main/openapi/openapi.yaml -o types/restApi.d.ts"
   },
   "figma-plugin": {
     "networkAccess": {
@@ -56,6 +58,11 @@
         "name": "Figma Token Export",
         "main": "src/TokenExport/main.ts",
         "ui": "src/TokenExport/ui.tsx"
+      },
+      {
+        "name": "Figma Fn",
+        "main": "src/Fn/main.ts",
+        "ui": "src/Fn/ui.tsx"
       }
     ]
   }
