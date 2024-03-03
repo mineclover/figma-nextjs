@@ -21,7 +21,8 @@
   "scripts": {
     "build": "build-figma-plugin --typecheck --minify",
     "watch": "build-figma-plugin --typecheck --watch",
-    "types": "npx openapi-typescript https://raw.githubusercontent.com/figma/rest-api-spec/main/openapi/openapi.yaml -o types/restApi.d.ts"
+    "types": "npx openapi-typescript https://raw.githubusercontent.com/figma/rest-api-spec/main/openapi/openapi.yaml -o types/restApi.d.ts",
+    "dev": "tsc ./src/Test/index.ts && node ./src/Test/index.js"
   },
   "figma-plugin": {
     "networkAccess": {

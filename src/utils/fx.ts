@@ -1,15 +1,27 @@
 export const log = console.log;
 
-export const curry =
+
+
+type AnyFn = (...args: any) => any
+
+// export const curryOrigin  =
+//   (f) =>
+//   (a, ..._) =>
+//     _.length ? f(a, ..._) : (..._) => f(a, ..._);
+export const curry: <T extends AnyFn>(
+  f: T
+) => (a:any ,...args: any) => any =
   (f) =>
   (a, ..._) =>
-    _.length ? f(a, ..._) : (..._) => f(a, ..._);
+    _.length ? f(a, ..._) : (..._: any) => f(a, ..._);
 
-export const isIterable = (a) => a && a[Symbol.iterator];
 
-export const go1 = (a, f) => (a instanceof Promise ? a.then(f) : f(a));
 
-export const reduceF = (acc, a, f) =>
+export const isIterable = (a: any) => a && a[Symbol.iterator];
+
+export const go1 = (a: any, f: AnyFn) => (a instanceof Promise ? a.then(f) : f(a));
+
+export const reduceF = (acc: any, a : any, f:AnyFn) =>
   a instanceof Promise
     ? a.then(
         (a) => f(acc, a),
@@ -17,11 +29,11 @@ export const reduceF = (acc, a, f) =>
       )
     : f(acc, a);
 
-export const head = (iter) => go1(take(1, iter), ([h]) => h);
+export const head = (iter: Iterable<any>) => go1(take(1, iter), ([h]) => h);
 
-export const reduce = curry((f, acc, iter) => {
+export const reduce = curry(
+  (f, acc, iter) => {
   if (!iter) return reduce(f, head((iter = acc[Symbol.iterator]())), iter);
-
   iter = iter[Symbol.iterator]();
   return go1(acc, function recur(acc) {
     let cur;
@@ -31,9 +43,10 @@ export const reduce = curry((f, acc, iter) => {
     }
     return acc;
   });
-});
+}
+);
 
-export const go = (...args) => reduce((a, f) => f(a), args);
+export const go: = (...args: any) => reduce((a, f) => f(a), args);
 
 export const pipe =
   (f, ...fs) =>
