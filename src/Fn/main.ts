@@ -104,27 +104,54 @@ const semanticFn = () => {
   let openTags = [] as string[];
   let data = "";
 
+  const closeFn = (astNode: Ast1) => {
+    if (prev) {
+      const { depth: PrevDepthTemp } = textPostion(prev);
+      const { len: currentLength } = textPostion(astNode);
+      const closeLoop = (PrevDepth: string[], close = ""): string => {
+        const prevLength = PrevDepth.length - 1;
+        if (prevLength < currentLength) return close;
+        else {
+          const closeTag = openTags.pop();
+          return closeLoop(
+            PrevDepth.slice(0, -1),
+            (close += `${tabText.repeat(prevLength)}</${closeTag}>
+`)
+          );
+        }
+      };
+      console.log("hello", [...PrevDepthTemp]);
+      return closeLoop([...PrevDepthTemp]);
+    }
+    return "";
+  };
+
+  const last = () => {
+    if (prev) {
+      const { depth: PrevDepthTemp } = textPostion(prev);
+      const currentLength = 0;
+      const closeLoop = (PrevDepth: string[], close = ""): string => {
+        const prevLength = PrevDepth.length - 1;
+        if (prevLength < currentLength) return close;
+        else {
+          const closeTag = openTags.pop();
+          return closeLoop(
+            PrevDepth.slice(0, -1),
+            (close += `${tabText.repeat(prevLength)}</${closeTag}>
+`)
+          );
+        }
+      };
+      console.log("hello", [...PrevDepthTemp]);
+      return closeLoop([...PrevDepthTemp]);
+    }
+    return "";
+  };
+
   return {
     FP: (astNode: Ast1) => {
       // 열린려있는 만큼 닫는 재귀
-      if (prev) {
-        const { depth: PrevDepthTemp } = textPostion(prev);
-        const { len: currentLength } = textPostion(astNode);
-        const closeLoop = (PrevDepth: string[], close = ""): string => {
-          const prevLength = PrevDepth.length - 1;
-          if (prevLength < currentLength) return close;
-          else {
-            const closeTag = openTags.pop();
-            return closeLoop(
-              PrevDepth.slice(0, -1),
-              (close += `${tabText.repeat(prevLength)}</${closeTag}>
-`)
-            );
-          }
-        };
-        const close = closeLoop([...PrevDepthTemp]);
-        data += close;
-      }
+      data += closeFn(astNode);
       const { len, tagName } = textPostion(astNode);
       const a = `${tabText.repeat(len)}<${tagName}>
 `;
@@ -134,6 +161,7 @@ const semanticFn = () => {
       return astNode;
     },
     getData: () => data,
+    last: last,
   };
 };
 
@@ -147,10 +175,11 @@ const ast = async (node: BaseNode) => {
     PromiseUnPack<Ast1>
   );
 
-  const { FP, getData } = semanticFn();
+  const { FP, getData, last } = semanticFn();
 
   const semantic = pipe(astTree, iterGenarator(FP));
-  console.log([...semantic]);
+  [...semantic];
+  console.log("semantic", last());
   console.log("data::", getData());
 };
 
