@@ -1,7 +1,7 @@
 import { once, on, showUI } from "@create-figma-plugin/utilities";
 import { peek, pipe, toAsync, curry, take, map, reduce } from "@fxts/core";
 import { CloseHandler, ScanHandler } from "./types";
-import { iter, iterGenarator } from "../utils/JF";
+import { iter, objectExtendIterGenarator } from "../utils/JF";
 
 let count = 0;
 const tapSpace = 2;
@@ -35,11 +35,11 @@ function* deepTraverse(node: BaseNode, path = "select"): Iterable<Tree> {
   }
 }
 
-const pathParse = iterGenarator((tree: Tree) => ({
+const pathParse = objectExtendIterGenarator((tree: Tree) => ({
   depth: tree.path.split(":"),
 }));
 
-const nodeParentOn = iterGenarator((input: Tree) => ({
+const nodeParentOn = objectExtendIterGenarator((input: Tree) => ({
   parent: input.node.parent,
 }));
 
@@ -99,10 +99,9 @@ const textPostion = (axisNode: Ast1) => {
   return { depth, len, tagName };
 };
 
-const semanticFn = () => {
+const semanticDFSFn = () => {
   let prev: Ast1;
   let openTags = [] as string[];
-  let data = "";
 
   const closeFn = (astNode: Ast1) => {
     if (prev) {
@@ -151,22 +150,21 @@ const semanticFn = () => {
   return {
     FP: (astNode: Ast1) => {
       // 열린려있는 만큼 닫는 재귀
-      data += closeFn(astNode);
+      let result = closeFn(astNode);
       const { len, tagName } = textPostion(astNode);
       const a = `${tabText.repeat(len)}<${tagName}>
 `;
-      data += a;
+      result += a;
       openTags.push(tagName);
       prev = astNode;
-      return astNode;
+      return result;
     },
-    getData: () => data,
     last: last,
   };
 };
 
 const ast = async (node: BaseNode) => {
-  const astTree = await pipe(
+  const astDFSTree = await pipe(
     deepTraverse(node, node.name),
     pathParse,
     nodeParentOn,
@@ -175,11 +173,16 @@ const ast = async (node: BaseNode) => {
     PromiseUnPack<Ast1>
   );
 
-  const { FP, getData, last } = semanticFn();
+  const { FP, last } = semanticDFSFn();
 
-  const semantic = pipe(astTree, iterGenarator(FP));
-  console.log("semantic", [...semantic], last());
-  console.log("data::", getData());
+  const semantic = pipe(
+    astDFSTree,
+    map(FP),
+    reduce((a, b) => a + b),
+    (a) => a + last()
+  );
+  console.log("semantic", semantic);
+  console.log("data::");
 };
 
 export default function () {

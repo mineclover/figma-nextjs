@@ -14,7 +14,7 @@ export function* iter<T>(iter: Iterable<T>) {
  * @param fn
  * @returns
  */
-export const iterGenarator = <T, P>(fn: (input: T) => P) => {
+export const objectExtendIterGenarator = <T, P>(fn: (input: T) => P) => {
   return function* (iter: Iterable<T>) {
     for (const value of iter) {
       yield {
