@@ -1,5 +1,5 @@
 import { once, on, showUI } from "@create-figma-plugin/utilities";
-import { peek, pipe, toAsync, curry, take, map } from "@fxts/core";
+import { peek, pipe, toAsync, curry, take, map, reduce } from "@fxts/core";
 import { CloseHandler, ScanHandler } from "./types";
 import { iter, iterGenarator } from "../utils/JF";
 
@@ -178,8 +178,7 @@ const ast = async (node: BaseNode) => {
   const { FP, getData, last } = semanticFn();
 
   const semantic = pipe(astTree, iterGenarator(FP));
-  [...semantic];
-  console.log("semantic", last());
+  console.log("semantic", [...semantic], last());
   console.log("data::", getData());
 };
 
