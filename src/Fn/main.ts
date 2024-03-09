@@ -3,6 +3,11 @@ import { peek, pipe, toAsync, curry, take, map, reduce } from "@fxts/core";
 import { CloseHandler, ScanHandler } from "./types";
 import { iter, objectExtendIterGenarator } from "../utils/JF";
 
+type GeneratorReturn<T extends Iterator<unknown>> = Exclude<
+  ReturnType<T["next"]>["value"],
+  void
+>;
+
 let count = 0;
 const tapSpace = 2;
 const tabText = " ".repeat(tapSpace);
@@ -35,12 +40,16 @@ function* deepTraverse(node: BaseNode, path = "select"): Iterable<Tree> {
   }
 }
 
-const pathParse = objectExtendIterGenarator((tree: Tree) => ({
+const pathParse = objectExtendIterGenarator(<T extends Tree>(tree: T) => ({
   depth: tree.path.split(":"),
 }));
 
-const nodeParentOn = objectExtendIterGenarator((input: Tree) => ({
+const nodeParentOn = objectExtendIterGenarator(<T extends Tree>(input: T) => ({
   parent: input.node.parent,
+}));
+
+const nodeId = objectExtendIterGenarator(<T extends Tree>(input: T) => ({
+  id: input.node.id,
 }));
 
 function* PromiseUnPack<T>(list: PromiseSettledResult<T>[]) {
@@ -51,35 +60,21 @@ function* PromiseUnPack<T>(list: PromiseSettledResult<T>[]) {
   }
 }
 
-// function* asyncIterGenarator(iter: Iterable<Tree>) {
-//   for (const value of iter) {
-//     const node = value.node;
-//     yield new Promise((resolve) => {
-//       (node as Exclude<BaseNode, DocumentNode>)
-//         .exportAsync({
-//           format: "JSON_REST_V1",
-//         })
-//         .then((json) =>
-//           resolve({
-//             ...value,
-//             json,
-//           })
-//         );
-//     });
-//   }
-// }
-
-function* asyncIterGenarator(iter: Iterable<Tree>) {
+function* asyncStyleExport<T extends Tree>(iter: Iterable<T>) {
   for (const value of iter) {
     const node = value.node;
-    yield (node as Exclude<BaseNode, DocumentNode>)
-      .exportAsync({
-        format: "JSON_REST_V1",
-      })
-      .then((data) => ({
-        ...value,
-        data,
-      }));
+    yield new Promise<T & Object>((resolve) => {
+      (node as Exclude<BaseNode, DocumentNode>)
+        .exportAsync({
+          format: "JSON_REST_V1",
+        })
+        .then((data) =>
+          resolve({
+            ...value,
+            data,
+          })
+        );
+    });
   }
 }
 
@@ -87,7 +82,7 @@ function* asyncIterGenarator(iter: Iterable<Tree>) {
 
 interface Ast1 extends Tree {
   depth: string[];
-  parent: BaseNode;
+  parent: BaseNode | null;
 }
 
 const allSettled = (x: any) => Promise.allSettled(x);
@@ -95,15 +90,15 @@ const allSettled = (x: any) => Promise.allSettled(x);
 const textPostion = (axisNode: Ast1) => {
   const depth = axisNode.depth;
   const len = depth.length - 1;
-  const tagName = axisNode.node.id;
+  const tagName = axisNode.node.type + axisNode.path;
   return { depth, len, tagName };
 };
 
-const semanticDFSFn = () => {
-  let prev: Ast1;
+const semanticDFSFn = <T extends Ast1>() => {
+  let prev: T;
   let openTags = [] as string[];
 
-  const closeFn = (astNode: Ast1) => {
+  const closeFn = (astNode: T) => {
     if (prev) {
       const { depth: PrevDepthTemp } = textPostion(prev);
       const { len: currentLength } = textPostion(astNode);
@@ -148,7 +143,7 @@ const semanticDFSFn = () => {
   };
 
   return {
-    FP: (astNode: Ast1) => {
+    FP: (astNode: T) => {
       // 열린려있는 만큼 닫는 재귀
       let result = closeFn(astNode);
       const { len, tagName } = textPostion(astNode);
@@ -164,19 +159,19 @@ const semanticDFSFn = () => {
 };
 
 const ast = async (node: BaseNode) => {
-  const astDFSTree = await pipe(
+  const astDFSTree = pipe(
     deepTraverse(node, node.name),
     pathParse,
     nodeParentOn,
-    asyncIterGenarator,
-    allSettled,
-    PromiseUnPack<Ast1>
+    nodeId,
+    asyncStyleExport
   );
+  const promiseAll = await Promise.allSettled([...astDFSTree]);
+  const unPack = PromiseUnPack(promiseAll);
 
-  const { FP, last } = semanticDFSFn();
-
+  const { FP, last } = semanticDFSFn<GeneratorReturn<typeof unPack>>();
   const semantic = pipe(
-    astDFSTree,
+    unPack,
     map(FP),
     reduce((a, b) => a + b),
     (a) => a + last()
