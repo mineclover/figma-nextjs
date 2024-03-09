@@ -1,7 +1,14 @@
 import { once, on, showUI } from "@create-figma-plugin/utilities";
 import { peek, pipe, toAsync, curry, take, map, reduce } from "@fxts/core";
 import { CloseHandler, ScanHandler } from "./types";
-import { iter, objectExtendIterGenarator } from "../utils/JF";
+
+import {
+  asyncFunctionIterGenarator,
+  iter,
+  isPromise,
+  objectExtendIterGenarator,
+  asyncIterGenarator,
+} from "../utils/JF";
 
 type GeneratorReturn<T extends Iterator<unknown>> = Exclude<
   ReturnType<T["next"]>["value"],
@@ -51,6 +58,21 @@ const nodeParentOn = objectExtendIterGenarator(<T extends Tree>(input: T) => ({
 const nodeId = objectExtendIterGenarator(<T extends Tree>(input: T) => ({
   id: input.node.id,
 }));
+
+const hello = asyncIterGenarator(<T extends Tree>(input: T) => {
+  return {
+    ...input,
+    hello: input.node.id,
+  };
+});
+
+const world = asyncIterGenarator(<T extends Tree>(input: T) => {
+  console.log(input);
+  return {
+    ...input,
+    hello2: input.node.id,
+  };
+});
 
 function* PromiseUnPack<T>(list: PromiseSettledResult<T>[]) {
   for (const item of list) {
@@ -164,7 +186,9 @@ const ast = async (node: BaseNode) => {
     pathParse,
     nodeParentOn,
     nodeId,
-    asyncStyleExport
+    asyncStyleExport,
+    hello,
+    world
   );
   const promiseAll = await Promise.allSettled([...astDFSTree]);
   const unPack = PromiseUnPack(promiseAll);
