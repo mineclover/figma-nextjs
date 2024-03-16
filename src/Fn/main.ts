@@ -3,14 +3,16 @@ import { peek, pipe, toAsync, curry, take, map, reduce } from "@fxts/core";
 import { CloseHandler, ScanHandler } from "./types";
 
 import {
-  asyncFunctionIterGenarator,
   iter,
   isPromise,
   objectExtendIterGenarator,
   asyncIterGenarator,
+  prevIter,
+  combinationIter,
+  objectIterGenarator,
 } from "../utils/JF";
 
-type GeneratorReturn<T extends Iterator<unknown>> = Exclude<
+type GeneratorReturn<T extends IterableIterator<unknown>> = Exclude<
   ReturnType<T["next"]>["value"],
   void
 >;
@@ -35,7 +37,27 @@ type Tree = {
   path: string;
 };
 
-function* deepTraverse(node: BaseNode, path = "select"): Iterable<Tree> {
+// 깊이 우선 탐색 후위 구조 순회
+function* deepTraverse(
+  node: BaseNode,
+  path = "select"
+): IterableIterator<Tree> {
+  // 현재 노드 방문
+  // 자식 노드가 존재하는 경우
+  if ("children" in node && node.children && node.children.length) {
+    // 자식 노드를 재귀적으로 탐색
+    for (let i = 0; i < node.children.length; i++) {
+      yield* deepTraverse(node.children[i], path + ":" + i);
+    }
+  }
+  yield { node, path };
+}
+
+// 깊이 우선 탐색
+function* deepTraverse2(
+  node: BaseNode,
+  path = "select"
+): IterableIterator<Tree> {
   // 현재 노드 방문
   yield { node, path };
   // 자식 노드가 존재하는 경우
@@ -58,7 +80,6 @@ const nodeParentOn = objectExtendIterGenarator(<T extends Tree>(input: T) => ({
 const nodeId = objectExtendIterGenarator(<T extends Tree>(input: T) => ({
   id: input.node.id,
 }));
-
 const hello = asyncIterGenarator(<T extends Tree>(input: T) => {
   return {
     ...input,
@@ -67,7 +88,7 @@ const hello = asyncIterGenarator(<T extends Tree>(input: T) => {
 });
 
 const world = asyncIterGenarator(<T extends Tree>(input: T) => {
-  console.log(input);
+  console.log("world", input);
   return {
     ...input,
     hello2: input.node.id,
@@ -136,7 +157,7 @@ const semanticDFSFn = <T extends Ast1>() => {
           );
         }
       };
-      console.log("hello", [...PrevDepthTemp]);
+      console.log("closeFn", [...PrevDepthTemp]);
       return closeLoop([...PrevDepthTemp]);
     }
     return "";
@@ -158,7 +179,7 @@ const semanticDFSFn = <T extends Ast1>() => {
           );
         }
       };
-      console.log("hello", [...PrevDepthTemp]);
+      console.log("last", [...PrevDepthTemp]);
       return closeLoop([...PrevDepthTemp]);
     }
     return "";
@@ -180,6 +201,11 @@ const semanticDFSFn = <T extends Ast1>() => {
   };
 };
 
+type Te = GeneratorReturn<ReturnType<typeof combinationIter>>;
+const combine = objectIterGenarator(<T extends Te>({ prev, current }: T) => {
+  console.log("combine", prev, current);
+});
+
 const ast = async (node: BaseNode) => {
   const astDFSTree = pipe(
     deepTraverse(node, node.name),
@@ -194,14 +220,16 @@ const ast = async (node: BaseNode) => {
   const unPack = PromiseUnPack(promiseAll);
 
   const { FP, last } = semanticDFSFn<GeneratorReturn<typeof unPack>>();
-  const semantic = pipe(
-    unPack,
-    map(FP),
-    reduce((a, b) => a + b),
-    (a) => a + last()
-  );
-  console.log("semantic", semantic);
-  console.log("data::");
+  const semantic = pipe(unPack, prevIter, combinationIter, combine);
+  console.log("semantic", [...semantic]);
+
+  // const semantic2 = pipe(
+  //   unPack,
+  //   map(FP),
+  //   reduce((a, b) => a + b),
+  //   (a) => a + last()
+  // );
+  // console.log("semantic2", semantic2);
 };
 
 export default function () {

@@ -7,9 +7,27 @@ import Tail from "@fxts/core/dist/types/types/Tail";
  * @param iter
  * @returns
  */
-export function* iter<T>(iter: Iterable<T>) {
+export function* iter<T>(iter: IterableIterator<T>) {
   for (const value of iter) {
     yield value;
+  }
+}
+
+export function* prevIter<T>(iter: IterableIterator<T>) {
+  yield "start";
+  for (const value of iter) {
+    yield value;
+    yield value;
+  }
+  yield "end";
+}
+
+export function* combinationIter<T>(iter: IterableIterator<T>) {
+  console.log("combinationIter", iter);
+  for (const prev of iter) {
+    // const start = iter[Symbol.iterator]().next();
+    const current = iter.next();
+    yield { prev, current: current.value };
   }
 }
 
@@ -19,7 +37,7 @@ export function* iter<T>(iter: Iterable<T>) {
  * @returns
  */
 export const objectExtendIterGenarator = <T, P>(fn: (input: T) => P) => {
-  return function* (iter: Iterable<T>) {
+  return function* (iter: IterableIterator<T>) {
     for (const value of iter) {
       yield {
         ...value,
@@ -29,10 +47,18 @@ export const objectExtendIterGenarator = <T, P>(fn: (input: T) => P) => {
   };
 };
 
+export const objectIterGenarator = <T, P>(fn: (input: T) => P) => {
+  return function* (iter: IterableIterator<T>) {
+    for (const value of iter) {
+      yield fn(value);
+    }
+  };
+};
+
 export const asyncFunctionIterGenarator = <T, P>(
   fn: (input: T) => Promise<P> | P
 ) => {
-  return async function* (iter: Iterable<T>) {
+  return async function* (iter: IterableIterator<T>) {
     for await (const value of iter) {
       let result = await fn(value);
       yield { ...value, ...result };
@@ -68,7 +94,7 @@ export const isPromise = <T>(a: T | Promise<T>): a is Promise<T> => {
 const values = Promise.all([]);
 
 export const asyncIterGenarator = <T, P>(fn: (input: T) => P) => {
-  return function* (iter: Iterable<Promise<T> | T>) {
+  return function* (iter: IterableIterator<Promise<T> | T>) {
     for (const value of iter) {
       console.log(value);
       yield isPromise(value) ? value.then((res) => fn(res)) : fn(value);
