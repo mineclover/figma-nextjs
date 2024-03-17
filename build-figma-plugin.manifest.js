@@ -1,5 +1,6 @@
 const dev = {
   capabilities: ["codegen"],
+  documentAccess: "dynamic-page",
 
   codegenLanguages: [{ label: "JS", value: "js" }],
   codegenPreferences: [],

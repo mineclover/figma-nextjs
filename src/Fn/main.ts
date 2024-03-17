@@ -10,6 +10,7 @@ import {
   head,
 } from "@fxts/core";
 import { CloseHandler, ScanHandler } from "./types";
+import { Welcome } from "../../types/figma";
 
 import {
   iter,
@@ -30,53 +31,49 @@ let count = 0;
 const tapSpace = 2;
 const tabText = " ".repeat(tapSpace);
 
-interface Parent {
-  id: string;
-  name: string;
-  type: NodeType;
-  data?: any;
-  children?: any;
-  parent?: any;
-  path?: string;
-  style?: any;
-}
-
 type Tree = {
-  node: BaseNode;
+  node: SceneNode;
   path: string;
 };
 
-// 깊이 우선 탐색 후위 구조 순회
+// 깊이 우선 탐색
+
+// 백터는 서치에서 빼는게 좋을 것 같음
+// 인스턴스는 쓸 수도 있어서 제외함
+// 아니면 세션이랑 컴포넌트만 서치하는 것도 괜찮음
+// 어짜피 그 외는 취급 안할꺼니까
+// "DOCUMENT","PAGE",를 뺀 건   figma.currentPage.selection 호환을 위해
+
+const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
+const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
 function* deepTraverse(
   node: BaseNode,
   path = "select"
 ): IterableIterator<Tree> {
   // 현재 노드 방문
+  if (selectType.includes(node.type))
+    yield { node, path } as { node: SceneNode; path: string };
   // 자식 노드가 존재하는 경우
   if ("children" in node && node.children && node.children.length) {
     // 자식 노드를 재귀적으로 탐색
-    for (let i = 0; i < node.children.length; i++) {
-      yield* deepTraverse(node.children[i], path + ":" + i);
+
+    if (!childrenIgnoreType.includes(node.type)) {
+      for (let i = 0; i < node.children.length; i++) {
+        yield* deepTraverse(node.children[i], path + ":" + i);
+      }
     }
   }
-  yield { node, path };
 }
 
-// 깊이 우선 탐색
-function* deepTraverse2(
-  node: BaseNode,
-  path = "select"
-): IterableIterator<Tree> {
-  // 현재 노드 방문
-  yield { node, path };
-  // 자식 노드가 존재하는 경우
-  if ("children" in node && node.children && node.children.length) {
-    // 자식 노드를 재귀적으로 탐색
-    for (let i = 0; i < node.children.length; i++) {
-      yield* deepTraverse(node.children[i], path + ":" + i);
-    }
-  }
-}
+// const treeMap = new Map()
+
+const depthMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+  return [tree.path, tree.node.id] as readonly [string, string];
+});
+
+const depthNodeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+  return [tree.path, tree.node];
+});
 
 const pathParse = objectExtendIterGenarator(<T extends Tree>(tree: T) => ({
   depth: tree.path.split(":"),
@@ -105,7 +102,7 @@ const world = asyncIterGenarator(<T extends Tree>(input: T) => {
 
 function* PromiseUnPack<T>(list: PromiseSettledResult<T>[]) {
   for (const item of list) {
-    if (item.status === "fulfilled") yield item.value;
+    if (item.status === "fulfilled" && item.value != null) yield item.value;
     else console.error(item, "PromiseUnPack error");
     // else yield item; reject을 제거
   }
@@ -276,35 +273,91 @@ ${tabText.repeat(len)}</${tagName}@@@@${current.node.id}>
   yield commponent;
 }
 
-const ast = async (node: BaseNode) => {
+const ast2 = async (node: BaseNode) => {
   const astDFSTree = pipe(
     deepTraverse(node, node.name),
     pathParse,
-    nodeParentOn,
-    nodeId,
-    asyncStyleExport,
-    hello,
-    world
+    nodeParentOn
   );
+
+  const DeepTreeMap = pipe(
+    deepTraverse(node, node.name),
+    pathParse,
+    nodeParentOn
+  );
+
   const promiseAll = await Promise.allSettled([...astDFSTree]);
   const unPack = PromiseUnPack(promiseAll);
-
-  const { FP, last } = semanticDFSFn<GeneratorReturn<typeof unPack>>();
-  const semantic = pipe(unPack, prevIter, combinationIter, combine, head);
-
-  if (semantic) {
-    console.log(semantic.join(""));
-    // Object.keys(semantic).forEach((e) => console.log(semantic[e]));
-  }
-
-  // const semantic2 = pipe(
-  //   unPack,
-  //   map(FP),
-  //   reduce((a, b) => a + b),
-  //   (a) => a + last()
-  // );
-  // console.log("semantic2", semantic2);
+  console.log(JSON.stringify([...unPack]));
 };
+
+const ast = async (node: BaseNode) => {
+  // depthMap
+  const deepTreeMap = pipe(deepTraverse(node, node.name), depthMap);
+  const a = new Map(deepTreeMap);
+
+  const b = [...a.entries()].map(([key, value], index) => {
+    return value;
+  });
+  const c = b.map((d) => figma.getNodeByIdAsync(d));
+  const promiseAll = await Promise.allSettled(c);
+  const e = PromiseUnPack(promiseAll);
+  console.log([...e]);
+
+  // component map
+  const getAll = async () => {
+    const result = [] as Welcome[];
+    const promise = figma.root.children.map(async (page) => {
+      // PageNodes are the only children of root
+      await page.loadAsync();
+      const data = (await page.exportAsync({
+        format: "JSON_REST_V1",
+      })) as Welcome;
+      // name은 나중에 preview나 tokens를 위해
+      result.push({ ...data, name: page.name });
+      return;
+    });
+    await Promise.allSettled(promise);
+    return result;
+  };
+
+  const all = await getAll();
+  console.log(JSON.stringify(all));
+
+  const commponentMap = (all: Welcome[]) => {
+    const allComponentSets = [] as [string, any][];
+    const allComponents = [] as [string, any][];
+    let setCount = 0;
+    let sCount = 0;
+
+    all.forEach((item) => {
+      const { componentSets, components } = item;
+      if (componentSets) {
+        Object.entries(componentSets).forEach((item) =>
+          allComponentSets.push(item)
+        );
+        setCount += Object.entries(componentSets).length;
+      }
+      if (components) {
+        Object.entries(components).forEach((item) => allComponents.push(item));
+        sCount += Object.entries(components).length;
+      }
+    });
+    const componentSetsMap = new Map(allComponentSets);
+    const componentsMap = new Map(allComponents);
+    console.log(
+      [...componentSetsMap.keys()],
+      [...componentsMap.keys()],
+      setCount,
+      sCount,
+      allComponentSets,
+      allComponents
+    );
+  };
+  commponentMap(all);
+};
+
+type Co = {};
 
 export default function () {
   if (figma.editorType === "figma") {
