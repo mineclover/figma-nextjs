@@ -27,7 +27,10 @@ export function* combinationIter<T>(iter: IterableIterator<T>) {
   for (const prev of iter) {
     // const start = iter[Symbol.iterator]().next();
     const current = iter.next();
-    yield { prev, current: current.value };
+    yield {
+      prev: prev as T,
+      current: current.value as T,
+    };
   }
 }
 
@@ -96,7 +99,6 @@ const values = Promise.all([]);
 export const asyncIterGenarator = <T, P>(fn: (input: T) => P) => {
   return function* (iter: IterableIterator<Promise<T> | T>) {
     for (const value of iter) {
-      console.log(value);
       yield isPromise(value) ? value.then((res) => fn(res)) : fn(value);
     }
   };

@@ -1,5 +1,14 @@
 import { once, on, showUI } from "@create-figma-plugin/utilities";
-import { peek, pipe, toAsync, curry, take, map, reduce } from "@fxts/core";
+import {
+  peek,
+  pipe,
+  toAsync,
+  curry,
+  take,
+  map,
+  reduce,
+  head,
+} from "@fxts/core";
 import { CloseHandler, ScanHandler } from "./types";
 
 import {
@@ -88,7 +97,6 @@ const hello = asyncIterGenarator(<T extends Tree>(input: T) => {
 });
 
 const world = asyncIterGenarator(<T extends Tree>(input: T) => {
-  console.log("world", input);
   return {
     ...input,
     hello2: input.node.id,
@@ -133,8 +141,10 @@ const allSettled = (x: any) => Promise.allSettled(x);
 const textPostion = (axisNode: Ast1) => {
   const depth = axisNode.depth;
   const len = depth.length - 1;
-  const tagName = axisNode.node.type + axisNode.path;
-  return { depth, len, tagName };
+  const tagName =
+    axisNode.node.type + ":" + axisNode.node.name + "%" + axisNode.path;
+  const id = axisNode.node.id;
+  return { depth, len, tagName, id };
 };
 
 const semanticDFSFn = <T extends Ast1>() => {
@@ -157,7 +167,7 @@ const semanticDFSFn = <T extends Ast1>() => {
           );
         }
       };
-      console.log("closeFn", [...PrevDepthTemp]);
+      // console.log("closeFn", [...PrevDepthTemp]);
       return closeLoop([...PrevDepthTemp]);
     }
     return "";
@@ -179,7 +189,7 @@ const semanticDFSFn = <T extends Ast1>() => {
           );
         }
       };
-      console.log("last", [...PrevDepthTemp]);
+      // console.log("last", [...PrevDepthTemp]);
       return closeLoop([...PrevDepthTemp]);
     }
     return "";
@@ -201,10 +211,56 @@ const semanticDFSFn = <T extends Ast1>() => {
   };
 };
 
-type Te = GeneratorReturn<ReturnType<typeof combinationIter>>;
-const combine = objectIterGenarator(<T extends Te>({ prev, current }: T) => {
-  console.log("combine", prev, current);
-});
+type Te = GeneratorReturn<ReturnType<typeof prevIter<Ast1>>>;
+type Tes = GeneratorReturn<ReturnType<typeof combinationIter<Te>>>;
+
+function* combine<T extends Tes>(iter: IterableIterator<T>) {
+  const skipType = [""];
+  const commponent = {} as { [key: string]: string[] };
+  let code = "";
+  for (const value of iter) {
+    const { prev, current } = value;
+
+    // 확인하고 싶은 것 , 동기성을 유지하는지
+    // 클로저를 유지하는지
+    if (typeof prev !== "string" && typeof current !== "string") {
+      // console.log("prev", textPostion(prev));
+      // console.log("current", textPostion(current));
+      // 2. 코드 추가 중에 닫히는 상황 발생 시 지금까지 작성한 코드를 감싸는 컴포넌트를 만든다
+      // 인스턴스 객체일 경우는 이전 검색에서 pass 여부를 넣어줘야한다
+      // 감싸진 객체는 특정 조건을 만족 할 때 까지 코드를 생성한다
+      // 조건이 만족되면 code를 commponent 로 선언한다?
+
+      const { len: prevLen, tagName: prevTagName } = textPostion(prev);
+      // 1. 여기서는 code를 추가한다
+      const { len: currentLen, tagName, id } = textPostion(current);
+
+      const diff = prevLen - currentLen;
+
+      if (diff > 0) {
+        console.log("diff", diff, code);
+        code = `${tabText.repeat(currentLen)}<${tagName}@@@@${current.node.id}>
+${code}
+${tabText.repeat(currentLen)}</${tagName}@@@@${current.node.id}>
+`;
+        if (!commponent[currentLen]) commponent[currentLen] = [];
+        commponent[currentLen].push(code);
+        code = "";
+      } else {
+        code += `${tabText.repeat(currentLen)}<${tagName}@@@@${current.node.id}>
+${commponent[currentLen + 1]?.join("")}
+${tabText.repeat(currentLen)}</${tagName}@@@@${current.node.id}>
+`;
+        commponent[currentLen + 1] = [];
+      }
+    } else if (prev === "start") {
+      const { len: currentLen, tagName } = textPostion(current as Ast1);
+      code += `${tabText.repeat(currentLen)}<${tagName}/${(current as Ast1).node.id}>
+`;
+    }
+  }
+  yield commponent;
+}
 
 const ast = async (node: BaseNode) => {
   const astDFSTree = pipe(
@@ -220,8 +276,12 @@ const ast = async (node: BaseNode) => {
   const unPack = PromiseUnPack(promiseAll);
 
   const { FP, last } = semanticDFSFn<GeneratorReturn<typeof unPack>>();
-  const semantic = pipe(unPack, prevIter, combinationIter, combine);
-  console.log("semantic", [...semantic]);
+  const semantic = pipe(unPack, prevIter, combinationIter, combine, head);
+
+  if (semantic) {
+    console.log(semantic);
+    Object.keys(semantic).forEach((e) => console.log(semantic[e]));
+  }
 
   // const semantic2 = pipe(
   //   unPack,
