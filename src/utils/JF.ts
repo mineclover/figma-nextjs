@@ -23,7 +23,6 @@ export function* prevIter<T>(iter: IterableIterator<T>) {
 }
 
 export function* combinationIter<T>(iter: IterableIterator<T>) {
-  console.log("combinationIter", iter);
   for (const prev of iter) {
     // const start = iter[Symbol.iterator]().next();
     const current = iter.next();

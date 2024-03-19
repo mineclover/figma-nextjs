@@ -46,6 +46,10 @@ type Tree = {
 
 const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
 const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
+/**
+ * 깊이우선 탐색
+ * "SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE" 만 탐색하고 자식은 탐색하지 않는 코드
+ */
 function* deepTraverse(
   node: BaseNode,
   path = "select"
@@ -67,6 +71,9 @@ function* deepTraverse(
 
 // const treeMap = new Map()
 
+/**
+ * [path, id]
+ */
 const depthMap = objectIterGenarator(<T extends Tree>(tree: T) => {
   return [tree.path, tree.node.id] as readonly [string, string];
 });
@@ -291,73 +298,79 @@ const ast2 = async (node: BaseNode) => {
   console.log(JSON.stringify([...unPack]));
 };
 
-const ast = async (node: BaseNode) => {
-  // depthMap
-  const deepTreeMap = pipe(deepTraverse(node, node.name), depthMap);
-  const a = new Map(deepTreeMap);
-
-  const b = [...a.entries()].map(([key, value], index) => {
-    return value;
-  });
-  const c = b.map((d) => figma.getNodeByIdAsync(d));
-  const promiseAll = await Promise.allSettled(c);
-  const e = PromiseUnPack(promiseAll);
-  console.log([...e]);
+const ast = async () => {
+  /**
+   * path , id 쌍
+   */
 
   // component map
   const getAll = async () => {
     const result = [] as Welcome[];
+    const pathToIdArray = [] as [string, string][];
+    const idToPathArray = [] as [string, string][];
     const promise = figma.root.children.map(async (page) => {
       // PageNodes are the only children of root
       await page.loadAsync();
       const data = (await page.exportAsync({
         format: "JSON_REST_V1",
       })) as Welcome;
+
+      const temp = pipe(deepTraverse(page, page.name), depthMap);
+      [...temp].forEach(([key, value]) => {
+        pathToIdArray.push([key, value]);
+        idToPathArray.push([value, key]);
+      });
+
       // name은 나중에 preview나 tokens를 위해
       result.push({ ...data, name: page.name });
       return;
     });
     await Promise.allSettled(promise);
-    return result;
+    const pathToId = Object.fromEntries(pathToIdArray);
+    const idToPath = Object.fromEntries(idToPathArray);
+    return { result, pathToId, idToPath };
   };
 
-  const all = await getAll();
-  console.log(JSON.stringify(all));
+  const { result: all, pathToId, idToPath } = await getAll();
 
+  /**
+   * 페이지 노드들에 exportAsync 하고 나온 컴포넌트들을 반환
+   * @param all
+   * @returns
+   */
   const commponentMap = (all: Welcome[]) => {
     const allComponentSets = [] as [string, any][];
     const allComponents = [] as [string, any][];
-    let setCount = 0;
-    let sCount = 0;
 
     all.forEach((item) => {
       const { componentSets, components } = item;
       if (componentSets) {
-        Object.entries(componentSets).forEach((item) =>
-          allComponentSets.push(item)
-        );
-        setCount += Object.entries(componentSets).length;
+        Object.entries(componentSets).forEach((item) => {
+          delete item[1].key;
+          delete item[1].remote;
+          delete item[1].documentationLinks;
+          allComponentSets.push(item);
+        });
       }
       if (components) {
-        Object.entries(components).forEach((item) => allComponents.push(item));
-        sCount += Object.entries(components).length;
+        Object.entries(components).forEach((item) => {
+          delete item[1].key;
+          delete item[1].remote;
+          delete item[1].documentationLinks;
+          allComponents.push(item);
+        });
       }
     });
-    const componentSetsMap = new Map(allComponentSets);
-    const componentsMap = new Map(allComponents);
-    console.log(
-      [...componentSetsMap.keys()],
-      [...componentsMap.keys()],
-      setCount,
-      sCount,
-      allComponentSets,
-      allComponents
-    );
-  };
-  commponentMap(all);
-};
 
-type Co = {};
+    return {
+      componentSets: Object.fromEntries(allComponentSets),
+      components: Object.fromEntries(allComponents),
+      idToPath,
+      pathToId,
+    };
+  };
+  return commponentMap(all);
+};
 
 export default function () {
   if (figma.editorType === "figma") {
@@ -366,7 +379,23 @@ export default function () {
       count = 0;
       // 현재 페이지를 전달함 > 만약 피그마 파일 전체를 순회한다면?
       // const data = await childrenScan(figma.root);
-      const data = await ast(figma.currentPage);
+      const data = await ast();
+      console.log(data);
+      Object.entries(data).forEach(([key, value]) => {
+        console.log(key, Object.entries(value).length);
+      });
+      const { componentSets, components, idToPath } = data;
+      const compId = [
+        ...Object.keys(componentSets),
+        ...Object.keys(components),
+      ];
+      const ids = [...Object.keys(idToPath)];
+
+      const instance = ids.filter((e) => !compId.includes(e));
+      console.log("instance", instance);
+      instance.forEach((e) =>
+        figma.getNodeByIdAsync(e).then((t) => console.log(t?.type))
+      );
     });
 
     once<CloseHandler>("CLOSE", function () {
