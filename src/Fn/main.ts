@@ -78,6 +78,22 @@ const depthMap = objectIterGenarator(<T extends Tree>(tree: T) => {
   return [tree.path, tree.node.id] as readonly [string, string];
 });
 
+type DepthData = {
+  id: string;
+  type: NodeType;
+};
+type PathData = { key: string; type: NodeType };
+
+const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+  return [
+    tree.path,
+    {
+      id: tree.node.id,
+      type: tree.node.type,
+    },
+  ] as readonly [string, DepthData];
+});
+
 const depthNodeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
   return [tree.path, tree.node];
 });
@@ -298,6 +314,10 @@ const ast2 = async (node: BaseNode) => {
   console.log(JSON.stringify([...unPack]));
 };
 
+/**
+ * 제어 대상이 될 객체를 얻는 함수
+ * @returns
+ */
 const ast = async () => {
   /**
    * path , id 쌍
@@ -306,8 +326,8 @@ const ast = async () => {
   // component map
   const getAll = async () => {
     const result = [] as Welcome[];
-    const pathToIdArray = [] as [string, string][];
-    const idToPathArray = [] as [string, string][];
+    const pathToIdArray = [] as [string, DepthData][];
+    const idToPathArray = [] as [string, PathData][];
     const promise = figma.root.children.map(async (page) => {
       // PageNodes are the only children of root
       await page.loadAsync();
@@ -315,10 +335,11 @@ const ast = async () => {
         format: "JSON_REST_V1",
       })) as Welcome;
 
-      const temp = pipe(deepTraverse(page, page.name), depthMap);
+      const temp = pipe(deepTraverse(page, page.name), depthTypeMap);
       [...temp].forEach(([key, value]) => {
         pathToIdArray.push([key, value]);
-        idToPathArray.push([value, key]);
+        idToPathArray.push([value.id, { key, type: value.type }]);
+        // 세션용 traverse가 필요한가?
       });
 
       // name은 나중에 preview나 tokens를 위해
@@ -335,7 +356,7 @@ const ast = async () => {
 
   /**
    * 페이지 노드들에 exportAsync 하고 나온 컴포넌트들을 반환
-   * @param all
+   * @param all 페이지 노드를 exportAsync 한 것들의 배열 Welcome.documents 에 전체 루프를 가지고 있음
    * @returns
    */
   const commponentMap = (all: Welcome[]) => {
@@ -362,7 +383,10 @@ const ast = async () => {
       }
     });
 
+    // id에는 이 섞여있는 상태임
+    // 디버깅을 위해 all result를 열어둔 상태
     return {
+      allResult: all,
       componentSets: Object.fromEntries(allComponentSets),
       components: Object.fromEntries(allComponents),
       idToPath,
@@ -384,18 +408,30 @@ export default function () {
       Object.entries(data).forEach(([key, value]) => {
         console.log(key, Object.entries(value).length);
       });
-      const { componentSets, components, idToPath } = data;
-      const compId = [
-        ...Object.keys(componentSets),
-        ...Object.keys(components),
-      ];
-      const ids = [...Object.keys(idToPath)];
+      const { allResult, componentSets, components, idToPath } = data;
+      console.log({ allResult, componentSets, components, idToPath });
 
-      const instance = ids.filter((e) => !compId.includes(e));
-      console.log("instance", instance);
-      instance.forEach((e) =>
-        figma.getNodeByIdAsync(e).then((t) => console.log(t?.type))
+      const rootComponentKey = Object.entries(components)
+        .filter(([key, value]) => !("componentSetId" in value))
+        .map(([key, value]) => key);
+      /**
+       * 컴포넌트와 컴포넌트 셋 리스트를 보여줌
+       * 그런데 컴포넌트가 컴포넌트 셋의 정보를 가지고 있으니 컴포넌트 셋은 있을 필요가 없지 않나 라는 생각중
+       */
+      const rootCompId = [...Object.keys(componentSets), ...rootComponentKey];
+      console.log("rootCompId", rootCompId);
+
+      const instances = Object.entries(idToPath).filter(
+        ([key, value]) => value.type === "INSTANCE"
       );
+      const sections = Object.entries(idToPath).filter(
+        ([key, value]) => value.type === "SECTION"
+      );
+
+      console.log(instances, sections);
+
+      // components 를 정의할 건데
+      // 컴포
     });
 
     once<CloseHandler>("CLOSE", function () {
