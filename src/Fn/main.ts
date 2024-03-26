@@ -23,6 +23,7 @@ import {
 import { sectionRename } from "./feature/section";
 import { ast } from "./feature/ast";
 import { Tree } from "./type";
+import { exportToJSON } from "./feature/exportVariables";
 
 type GeneratorReturn<T extends IterableIterator<unknown>> = Exclude<
   ReturnType<T["next"]>["value"],
@@ -329,11 +330,12 @@ export default function () {
 
       // 스타일 정보 가져오기
       const variables = await figma.variables.getLocalVariablesAsync();
-
       const variableCollections =
         await figma.variables.getLocalVariableCollectionsAsync();
       console.log(variables);
       console.log(variableCollections);
+
+      console.log(await exportToJSON());
 
       // const instances = Object.entries(idToPath).filter(
       //   ([key, value]) => value.type === "INSTANCE"
