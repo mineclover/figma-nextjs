@@ -360,8 +360,8 @@ const ast = async () => {
    * @returns
    */
   const commponentMap = (all: Welcome[]) => {
-    const allComponentSets = [] as [string, any][];
-    const allComponents = [] as [string, any][];
+    const allComponentSets = [] as [string, Object][];
+    const allComponents = [] as [string, Object][];
 
     all.forEach((item) => {
       const { componentSets, components } = item;
@@ -434,8 +434,34 @@ const sectionSearch = (node: BaseNode, name: string | string[]): string[] => {
   return [
     "error",
     "첫번째 노드를 제대로 넣었으면 ",
-    "무조건 재귀 돌다가 완전 탈출 되야한다",
+    "무조건 재귀 돌다가 완전 탈출 돼야한다",
   ];
+};
+
+/**
+ * 키를 기반으로 컴포넌트들의 이름을 수정
+ * @param components
+ * @param componentSets
+ */
+const sectionRename = (
+  components: Record<string, Object>,
+  componentSets: Record<string, Object>
+) => {
+  const rootComponentKey = Object.entries(components)
+    .filter(([key, value]) => !("componentSetId" in value))
+    .map(([key, value]) => key);
+
+  const rootCompId = [...Object.keys(componentSets), ...rootComponentKey];
+
+  rootCompId.map(async (key) => {
+    const target = await figma.getNodeByIdAsync(key);
+
+    if (target) {
+      let name = target.name;
+      const result = sectionSearch(target, name);
+      target.name = result.join("/");
+    }
+  });
 };
 
 export default function () {
@@ -445,41 +471,37 @@ export default function () {
       count = 0;
       // 현재 페이지를 전달함 > 만약 피그마 파일 전체를 순회한다면?
       // const data = await childrenScan(figma.root);
-      const data = await ast();
-      console.log(data);
-      Object.entries(data).forEach(([key, value]) => {
-        console.log(key, Object.entries(value).length);
-      });
-      const { allResult, componentSets, components, idToPath } = data;
-      console.log({ allResult, componentSets, components, idToPath });
 
-      const rootComponentKey = Object.entries(components)
-        .filter(([key, value]) => !("componentSetId" in value))
-        .map(([key, value]) => key);
+      // const data = await ast();
+      // console.log(data);
+      // Object.entries(data).forEach(([key, value]) => {
+      //   console.log(key, Object.entries(value).length);
+      // });
 
-      const rootCompId = [...Object.keys(componentSets), ...rootComponentKey];
-      console.log("rootCompId", rootCompId);
+      // // 세션 기반 이름 수정
+      // //#region
+      // const { allResult, componentSets, components, idToPath } = data;
+      // console.log({ allResult, componentSets, components, idToPath });
+      // sectionRename(components, componentSets);
 
-      rootCompId.map(async (key) => {
-        const target = await figma.getNodeByIdAsync(key);
+      //#endregion
 
-        if (target) {
-          let name = target.name;
-          const result = sectionSearch(target, name);
-          target.name = result.join("/");
-          const css = await target.getCSSAsync();
-          console.log("sectionSearch", result, css, target);
-        }
-      });
+      // 스타일 정보 가져오기
+      const variables = await figma.variables.getLocalVariablesAsync();
 
-      const instances = Object.entries(idToPath).filter(
-        ([key, value]) => value.type === "INSTANCE"
-      );
-      const sections = Object.entries(idToPath).filter(
-        ([key, value]) => value.type === "SECTION"
-      );
+      const variableCollections =
+        await figma.variables.getLocalVariableCollectionsAsync();
+      console.log(variables);
+      console.log(variableCollections);
 
-      console.log(instances, sections);
+      // const instances = Object.entries(idToPath).filter(
+      //   ([key, value]) => value.type === "INSTANCE"
+      // );
+      // const sections = Object.entries(idToPath).filter(
+      //   ([key, value]) => value.type === "SECTION"
+      // );
+
+      // console.log(instances, sections);
 
       // components 를 정의할 건데
       // 컴포

@@ -2,7 +2,7 @@
   "dependencies": {
     "@create-figma-plugin/ui": "^3.1.0",
     "@create-figma-plugin/utilities": "^3.1.0",
-    "@fxts/core": "^0.25.0",
+    "@fxts/core": "^0.28.0",
     "@types/domhandler": "^2.4.5",
     "@types/lodash": "^4.17.0",
     "dom-serializer": "^2.0.0",
@@ -15,7 +15,8 @@
     "@create-figma-plugin/build": "^3.1.0",
     "@create-figma-plugin/tsconfig": "^3.1.0",
     "@figma/plugin-typings": "1.88.0",
-    "@types/node": "^20.11.28",
+    "@figma/widget-typings": "^1.9.1",
+    "@types/node": "^20.11.30",
     "typescript": ">=5"
   },
   "scripts": {
