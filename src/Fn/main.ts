@@ -10,7 +10,6 @@ import {
   head,
 } from "@fxts/core";
 import { CloseHandler, ScanHandler } from "./types";
-import { Welcome } from "../../types/figma";
 
 import {
   iter,
@@ -21,6 +20,9 @@ import {
   combinationIter,
   objectIterGenarator,
 } from "../utils/JF";
+import { sectionRename } from "./feature/section";
+import { ast } from "./feature/ast";
+import { Tree } from "./type";
 
 type GeneratorReturn<T extends IterableIterator<unknown>> = Exclude<
   ReturnType<T["next"]>["value"],
@@ -31,43 +33,7 @@ let count = 0;
 const tapSpace = 2;
 const tabText = " ".repeat(tapSpace);
 
-type Tree = {
-  node: SceneNode;
-  path: string;
-};
-
 // 깊이 우선 탐색
-
-// 백터는 서치에서 빼는게 좋을 것 같음
-// 인스턴스는 쓸 수도 있어서 제외함
-// 아니면 세션이랑 컴포넌트만 서치하는 것도 괜찮음
-// 어짜피 그 외는 취급 안할꺼니까
-// "DOCUMENT","PAGE",를 뺀 건   figma.currentPage.selection 호환을 위해
-
-const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
-const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
-/**
- * 깊이우선 탐색
- * "SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE" 만 탐색하고 자식은 탐색하지 않는 코드
- */
-function* deepTraverse(
-  node: BaseNode,
-  path = "select"
-): IterableIterator<Tree> {
-  // 현재 노드 방문
-  if (selectType.includes(node.type))
-    yield { node, path } as { node: SceneNode; path: string };
-  // 자식 노드가 존재하는 경우
-  if ("children" in node && node.children && node.children.length) {
-    // 자식 노드를 재귀적으로 탐색
-
-    if (!childrenIgnoreType.includes(node.type)) {
-      for (let i = 0; i < node.children.length; i++) {
-        yield* deepTraverse(node.children[i], path + ":" + i);
-      }
-    }
-  }
-}
 
 // const treeMap = new Map()
 
@@ -231,9 +197,40 @@ const semanticDFSFn = <T extends Ast1>() => {
   };
 };
 
+// 백터는 서치에서 빼는게 좋을 것 같음
+// 인스턴스는 쓸 수도 있어서 제외함
+// 아니면 세션이랑 컴포넌트만 서치하는 것도 괜찮음
+// 어짜피 그 외는 취급 안할꺼니까
+// "DOCUMENT","PAGE",를 뺀 건   figma.currentPage.selection 호환을 위해
+const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
+const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
+/**
+ * 깊이우선 탐색
+ * "SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE" 만 탐색하고 자식은 탐색하지 않는 코드
+ */
+function* deepTraverse(
+  node: BaseNode,
+  path = "select"
+): IterableIterator<Tree> {
+  // 현재 노드 방문
+  if (selectType.includes(node.type))
+    yield { node, path } as { node: SceneNode; path: string };
+  // 자식 노드가 존재하는 경우
+  if ("children" in node && node.children && node.children.length) {
+    // 자식 노드를 재귀적으로 탐색
+
+    if (!childrenIgnoreType.includes(node.type)) {
+      for (let i = 0; i < node.children.length; i++) {
+        yield* deepTraverse(node.children[i], path + ":" + i);
+      }
+    }
+  }
+}
+
 type Te = GeneratorReturn<ReturnType<typeof prevIter<Ast1>>>;
 type Tes = GeneratorReturn<ReturnType<typeof combinationIter<Te>>>;
 
+// jsx 코드 생성
 function* combine<T extends Tes>(iter: IterableIterator<T>) {
   const skipType = [""];
   // const commponent = {} as { [key: string]: string[] };
@@ -314,156 +311,6 @@ const ast2 = async (node: BaseNode) => {
   console.log(JSON.stringify([...unPack]));
 };
 
-/**
- * 제어 대상이 될 객체를 얻는 함수
- * @returns
- */
-const ast = async () => {
-  /**
-   * path , id 쌍
-   */
-
-  // component map
-  const getAll = async () => {
-    const result = [] as Welcome[];
-    const pathToIdArray = [] as [string, DepthData][];
-    const idToPathArray = [] as [string, PathData][];
-    const promise = figma.root.children.map(async (page) => {
-      // PageNodes are the only children of root
-      await page.loadAsync();
-      const data = (await page.exportAsync({
-        format: "JSON_REST_V1",
-      })) as Welcome;
-
-      const temp = pipe(deepTraverse(page, page.name), depthTypeMap);
-      [...temp].forEach(([key, value]) => {
-        pathToIdArray.push([key, value]);
-        idToPathArray.push([value.id, { key, type: value.type }]);
-        // 세션용 traverse가 필요한가?
-      });
-
-      // name은 나중에 preview나 tokens를 위해
-      result.push({ ...data, name: page.name });
-      return;
-    });
-    await Promise.allSettled(promise);
-    const pathToId = Object.fromEntries(pathToIdArray);
-    const idToPath = Object.fromEntries(idToPathArray);
-    return { result, pathToId, idToPath };
-  };
-
-  const { result: all, pathToId, idToPath } = await getAll();
-
-  /**
-   * 페이지 노드들에 exportAsync 하고 나온 컴포넌트들을 반환
-   * @param all 페이지 노드를 exportAsync 한 것들의 배열 Welcome.documents 에 전체 루프를 가지고 있음
-   * @returns
-   */
-  const commponentMap = (all: Welcome[]) => {
-    const allComponentSets = [] as [string, Object][];
-    const allComponents = [] as [string, Object][];
-
-    all.forEach((item) => {
-      const { componentSets, components } = item;
-      if (componentSets) {
-        Object.entries(componentSets).forEach((item) => {
-          delete item[1].key;
-          delete item[1].remote;
-          delete item[1].documentationLinks;
-          allComponentSets.push(item);
-        });
-      }
-      if (components) {
-        Object.entries(components).forEach((item) => {
-          delete item[1].key;
-          delete item[1].remote;
-          delete item[1].documentationLinks;
-          allComponents.push(item);
-        });
-      }
-    });
-
-    // id에는 이 섞여있는 상태임
-    // 디버깅을 위해 all result를 열어둔 상태
-    return {
-      allResult: all,
-      componentSets: Object.fromEntries(allComponentSets),
-      components: Object.fromEntries(allComponents),
-      idToPath,
-      pathToId,
-    };
-  };
-  return commponentMap(all);
-};
-
-// 컴포넌트나 인스턴스 ,컴포넌트, page , document 를 만나기 전까지 올라갈거고
-// 세션을 만날 경우 이름을 추가할 것임
-// PAGE , DOCUMENT 빼고 나머지는 좀 애매하긴 함.. "COMPONENT", "COMPONENT_SET", "INSTANCE" 어짜피 안나올꺼라서..
-// 이유는 이건 이름 앞에 세션 경로를 붙이는 거고 세션이 나와서 이름이 추가 됬는데 다시 컴포넌트가 나올일은 없어야 정상임
-const breakPoint = ["PAGE", "DOCUMENT"];
-const checkPoint = ["SECTION"];
-/**
- * 컴포넌트에 맞는 이름 탐색 , name에는 현재 노드의 이름을 넣는 규칙
- * @param node
- * @param name
- * @returns
- */
-const sectionSearch = (node: BaseNode, name: string | string[]): string[] => {
-  const parent = node.parent;
-  if (typeof name === "string") {
-    const a = name.split("/").pop();
-    if (a) name = [a];
-    else name = [node.name];
-    console.log("split name", name);
-  }
-  if (parent) {
-    // 세션 정보 수집
-    if (parent.type === "SECTION") {
-      return sectionSearch(parent, [parent.name, ...name]);
-    }
-    // 이 조건에 맞으면 탐색 종료인데...
-    // 상위에 세션이 하나면 이름만, 완전히 없을 경우 빈 배열이 출력 됨 나는 이름이 필요하기 때문에 빈 배열일 떄 name을 출력하도록 함
-    else if (breakPoint.includes(parent.type)) {
-      return name.length === 1 ? name : name.slice(1);
-    }
-    // 조건이 안맞으면 맞을 때까지 위로
-    return sectionSearch(parent, name);
-  }
-  // 도큐먼트와 가장 가까운 section 이름은 제거함
-  // 이유는 세션 첫번째까지는 인식하기 때문인데 이 구조를..
-  return [
-    "error",
-    "첫번째 노드를 제대로 넣었으면 ",
-    "무조건 재귀 돌다가 완전 탈출 돼야한다",
-  ];
-};
-
-/**
- * 키를 기반으로 컴포넌트들의 이름을 수정
- * @param components
- * @param componentSets
- */
-const sectionRename = (
-  components: Record<string, Object>,
-  componentSets: Record<string, Object>
-) => {
-  const rootComponentKey = Object.entries(components)
-    .filter(([key, value]) => !("componentSetId" in value))
-    .map(([key, value]) => key);
-
-  const rootCompId = [...Object.keys(componentSets), ...rootComponentKey];
-
-  rootCompId.map(async (key) => {
-    const target = await figma.getNodeByIdAsync(key);
-
-    if (target) {
-      let name = target.name;
-      const result = sectionSearch(target, name);
-      target.name = result.join("/");
-    }
-  });
-};
-
 export default function () {
   if (figma.editorType === "figma") {
     on<ScanHandler>("FULL_SCAN", async () => {
@@ -472,17 +319,11 @@ export default function () {
       // 현재 페이지를 전달함 > 만약 피그마 파일 전체를 순회한다면?
       // const data = await childrenScan(figma.root);
 
-      // const data = await ast();
-      // console.log(data);
-      // Object.entries(data).forEach(([key, value]) => {
-      //   console.log(key, Object.entries(value).length);
-      // });
-
       // // 세션 기반 이름 수정
       // //#region
-      // const { allResult, componentSets, components, idToPath } = data;
-      // console.log({ allResult, componentSets, components, idToPath });
-      // sectionRename(components, componentSets);
+      const data = await ast();
+      const { allResult, componentSets, components, idToPath } = data;
+      sectionRename(components, componentSets);
 
       //#endregion
 
