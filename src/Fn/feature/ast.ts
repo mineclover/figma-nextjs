@@ -94,7 +94,7 @@ export const ast = async () => {
    * @param all 페이지 노드를 exportAsync 한 것들의 배열 Welcome.documents 에 전체 루프를 가지고 있음
    * @returns
    */
-  const commponentMap = (all: Welcome[]) => {
+  const componentMap = (all: Welcome[]) => {
     const allComponentSets = [] as [string, Object][];
     const allComponents = [] as [string, Object][];
 
@@ -128,5 +128,5 @@ export const ast = async () => {
       pathToId,
     };
   };
-  return commponentMap(all);
+  return componentMap(all);
 };

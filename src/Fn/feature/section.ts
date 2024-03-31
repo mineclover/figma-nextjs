@@ -19,7 +19,6 @@ export const sectionSearch = (
     const a = name.split("/").pop();
     if (a) name = [a];
     else name = [node.name];
-    console.log("split name", name);
   }
   if (parent) {
     // 세션 정보 수집
