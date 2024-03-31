@@ -295,18 +295,22 @@ export default function () {
       const data = await ast();
       console.log(data);
       const { allResult, componentSets, components, idToPath } = data;
-      sectionRename(components, componentSets);
+
+      const rootComponentKey = Object.entries(components)
+        .filter(([key, value]) => !("componentSetId" in value))
+        .map(([key, value]) => key);
+
+      const rootCompId = [...Object.keys(componentSets), ...rootComponentKey];
+      sectionRename(rootCompId);
 
       //#endregion
 
       // 스타일 정보 가져오기
-      const variables = await figma.variables.getLocalVariablesAsync();
-      const variableCollections =
-        await figma.variables.getLocalVariableCollectionsAsync();
-      console.log(variables);
-      console.log(variableCollections);
+      // const variables = await figma.variables.getLocalVariablesAsync();
+      // const variableCollections =
+      //   await figma.variables.getLocalVariableCollectionsAsync();
 
-      console.log(await exportToJSON());
+      const variableCollections = await exportToJSON();
 
       // const instances = Object.entries(idToPath).filter(
       //   ([key, value]) => value.type === "INSTANCE"

@@ -5,12 +5,15 @@ import { DepthData, PathData, Tree } from "../type";
 import { rootSectionSearch } from "./section";
 
 export const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+  const path = tree.path.split(":");
   return [
     tree.path,
     {
       id: tree.node.id,
       type: tree.node.type,
+      name: tree.node.name,
       rootSection: tree.rootSection,
+      pageName: path[0],
     },
   ] as readonly [string, DepthData];
 });
@@ -58,7 +61,7 @@ export const ast = async () => {
   // component map
   const getAll = async () => {
     const result = [] as Welcome[];
-    const pathToIdArray = [] as [string, DepthData][];
+    const pathToId = [] as PathData[];
     const idToPathArray = [] as [string, PathData][];
     const promise = figma.root.children.map(async (page) => {
       // PageNodes are the only children of root
@@ -67,13 +70,15 @@ export const ast = async () => {
         format: "JSON_REST_V1",
       })) as Welcome;
 
+      if (page.name.includes(":")) {
+        figma.notify("page 이름에 : 이 있을 경우 -로 대체 됩니다");
+        page.name = page.name.replace(/:/g, "-");
+      }
+
       const temp = pipe(deepTraverse(page, page.name), depthTypeMap);
       [...temp].forEach(([key, value]) => {
-        pathToIdArray.push([key, value]);
-        idToPathArray.push([
-          value.id,
-          { key, type: value.type, rootSection: value.rootSection },
-        ]);
+        pathToId.push({ key, ...value });
+        idToPathArray.push([value.id, { key, ...value }]);
         // 세션용 traverse가 필요한가?
       });
 
@@ -82,7 +87,6 @@ export const ast = async () => {
       return;
     });
     await Promise.allSettled(promise);
-    const pathToId = Object.fromEntries(pathToIdArray);
     const idToPath = Object.fromEntries(idToPathArray);
     return { result, pathToId, idToPath };
   };

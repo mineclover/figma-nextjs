@@ -4,13 +4,13 @@ export type Tree = {
   rootSection: string | undefined;
 };
 
-export type DepthData = {
+export interface DepthData {
   id: string;
+  name: string;
   type: NodeType;
   rootSection: string | undefined;
-};
-export type PathData = {
+  pageName: string;
+}
+export interface PathData extends DepthData {
   key: string;
-  type: NodeType;
-  rootSection: string | undefined;
-};
+}

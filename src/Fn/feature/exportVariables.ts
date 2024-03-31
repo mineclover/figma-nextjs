@@ -118,54 +118,80 @@ export const exportToJSON = async () => {
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
   const files = [];
   for (const collection of collections) {
-    files.push(...(await processCollection(collection)));
+    files.push(await processCollection(collection));
   }
   return files;
 };
 
-// type Collection = string;
-// type ModeId = string;
-// type Type = VariableResolvedDataType;
-// type Name = string;
-// type Value = string | number | boolean | RGB | RGBA | VariableAlias;
+const valueNormalize = <T extends Exclude<VariableValue, VariableAlias>>(
+  value: T
+) => (typeof value === "object" ? rgbToHex(value) : value);
 
+// 디자인 토큰을 export 하는 목적임
 async function processCollection(variableCollection: VariableCollection) {
-  const { name, modes, variableIds } = variableCollection;
-  const files = [];
+  const { name, modes, variableIds, remote, defaultModeId } =
+    variableCollection;
+  const files = { collectionName: name };
+  const file = {} as Record<string, any>;
+  const modeName = {} as Record<string, string>;
+
+  modes.forEach(({ name, modeId }) => {
+    modeName[modeId] = name;
+  });
+
   for (const mode of modes) {
-    const file = { fileName: `${name}.${mode.name}.tokens.json`, body: {} };
+    const currentModeId = mode.modeId;
+    file[currentModeId] = {} as Record<string, any>;
     for (const variableId of variableIds) {
       const temp = await figma.variables.getVariableByIdAsync(variableId);
       if (temp) {
-        const { name, resolvedType, valuesByMode } = temp;
-        const value = valuesByMode[mode.modeId];
-        if (value !== undefined && ["COLOR", "FLOAT"].includes(resolvedType)) {
+        const { name, resolvedType, valuesByMode, id } = temp;
+        const value = valuesByMode[currentModeId];
+        if (value) {
           // 참조 위치를 스플릿한 만큼 이동한다
-          let obj = file.body as Record<string, any>;
-          name.split("/").forEach((groupName: string | number) => {
-            // 확장하고
-            obj[groupName] = obj[groupName] || {};
-            // 포인터 이동하고
-            obj = obj[groupName];
-          });
-          obj.$type = resolvedType === "COLOR" ? "color" : "number";
+          let obj = file[currentModeId];
+          const saveKey = id;
+          obj[saveKey] = {};
+          obj = obj[saveKey];
+          obj.$id = id;
+          obj.$name = name;
+
           //   value.type === "VARIABLE_ALIAS"
+
           if (typeof value === "object" && "type" in value) {
-            const currentVar = await figma.variables.getVariableByIdAsync(
-              value.id
-            );
-            obj.$value = currentVar
-              ? `{${currentVar.name.replace(/\//g, ".")}}`
-              : "not find";
+            const findToken = async (
+              id: string
+            ): Promise<Exclude<VariableValue, VariableAlias>> => {
+              const currentNode =
+                await figma.variables.getVariableByIdAsync(id);
+              if (currentNode) {
+                const value2 = currentNode.valuesByMode[currentModeId];
+                obj.$resolvedAlias = currentNode.name;
+                obj.$firstAlias = obj.$firstAlias
+                  ? obj.$firstAlias
+                  : currentNode.name;
+                if (typeof value2 === "object" && "type" in value2) {
+                  return findToken(value2.id);
+                }
+                return value2;
+              }
+              return "not found";
+            };
+            const currentVar = await findToken(value.id);
+            obj.$type = "VARIABLE_ALIAS";
+            obj.$value = value.id;
+            obj.$resolvedValue = valueNormalize(currentVar);
+            obj.$resolvedType = resolvedType;
           } else {
-            obj.$value = typeof value === "object" ? rgbToHex(value) : value;
+            obj.$type = resolvedType;
+            obj.$value = valueNormalize(value);
           }
         }
       }
     }
-    files.push(file);
   }
-  return files;
+
+  return { ...files, ...file, modes, modeName, remote, defaultModeId };
 }
 
 type RGBAA = RGB & { a?: number };

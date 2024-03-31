@@ -44,19 +44,8 @@ export const sectionSearch = (
 
 /**
  * 키를 기반으로 컴포넌트들의 이름을 수정
- * @param components
- * @param componentSets
  */
-export const sectionRename = (
-  components: Record<string, Object>,
-  componentSets: Record<string, Object>
-) => {
-  const rootComponentKey = Object.entries(components)
-    .filter(([key, value]) => !("componentSetId" in value))
-    .map(([key, value]) => key);
-
-  const rootCompId = [...Object.keys(componentSets), ...rootComponentKey];
-
+export const sectionRename = (rootCompId: string[]) => {
   rootCompId.map(async (key) => {
     const target = await figma.getNodeByIdAsync(key);
 
