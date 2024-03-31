@@ -294,7 +294,13 @@ export default function () {
       // //#region
       const data = await ast();
       console.log(data);
-      const { allResult, componentSets, components, idToPath } = data;
+      const {
+        allResult,
+        componentSets,
+        components,
+        idToPath,
+        pathToId: targetNodes,
+      } = data;
 
       const rootComponentKey = Object.entries(components)
         .filter(([key, value]) => !("componentSetId" in value))
@@ -311,6 +317,14 @@ export default function () {
       //   await figma.variables.getLocalVariableCollectionsAsync();
 
       const variableCollections = await exportToJSON();
+
+      console.log({
+        rootCompId,
+        componentSets,
+        components,
+        targetNodes,
+        variableCollections,
+      });
 
       // const instances = Object.entries(idToPath).filter(
       //   ([key, value]) => value.type === "INSTANCE"
