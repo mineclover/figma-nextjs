@@ -68,3 +68,28 @@ export const sectionRename = (
     }
   });
 };
+
+/**
+ * 컴포넌트 최상단 세션 찾기 없으면 undefined
+ * @param node
+ * @param section
+ * @returns
+ */
+export const rootSectionSearch = (
+  node: BaseNode,
+  section?: string
+): string | undefined => {
+  const parent = node.parent;
+
+  if (parent) {
+    const name = parent.name;
+    if (parent.type === "SECTION") {
+      return rootSectionSearch(parent, name);
+    } else if (breakPoint.includes(parent.type)) {
+      return section;
+    }
+
+    return rootSectionSearch(parent, section);
+  }
+  return section;
+};

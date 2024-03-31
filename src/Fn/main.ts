@@ -21,7 +21,7 @@ import {
   objectIterGenarator,
 } from "../utils/JF";
 import { sectionRename } from "./feature/section";
-import { ast } from "./feature/ast";
+import { ast, deepTraverse } from "./feature/ast";
 import { Tree } from "./type";
 import { exportToJSON } from "./feature/exportVariables";
 
@@ -198,36 +198,6 @@ const semanticDFSFn = <T extends Ast1>() => {
   };
 };
 
-// 백터는 서치에서 빼는게 좋을 것 같음
-// 인스턴스는 쓸 수도 있어서 제외함
-// 아니면 세션이랑 컴포넌트만 서치하는 것도 괜찮음
-// 어짜피 그 외는 취급 안할꺼니까
-// "DOCUMENT","PAGE",를 뺀 건   figma.currentPage.selection 호환을 위해
-const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
-const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
-/**
- * 깊이우선 탐색
- * "SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE" 만 탐색하고 자식은 탐색하지 않는 코드
- */
-function* deepTraverse(
-  node: BaseNode,
-  path = "select"
-): IterableIterator<Tree> {
-  // 현재 노드 방문
-  if (selectType.includes(node.type))
-    yield { node, path } as { node: SceneNode; path: string };
-  // 자식 노드가 존재하는 경우
-  if ("children" in node && node.children && node.children.length) {
-    // 자식 노드를 재귀적으로 탐색
-
-    if (!childrenIgnoreType.includes(node.type)) {
-      for (let i = 0; i < node.children.length; i++) {
-        yield* deepTraverse(node.children[i], path + ":" + i);
-      }
-    }
-  }
-}
-
 type Te = GeneratorReturn<ReturnType<typeof prevIter<Ast1>>>;
 type Tes = GeneratorReturn<ReturnType<typeof combinationIter<Te>>>;
 
@@ -323,6 +293,7 @@ export default function () {
       // // 세션 기반 이름 수정
       // //#region
       const data = await ast();
+      console.log(data);
       const { allResult, componentSets, components, idToPath } = data;
       sectionRename(components, componentSets);
 

@@ -2,13 +2,15 @@ import { pipe } from "@fxts/core";
 import { Welcome } from "../../../types/figma";
 import { objectIterGenarator } from "../../utils/JF";
 import { DepthData, PathData, Tree } from "../type";
+import { rootSectionSearch } from "./section";
 
-const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+export const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
   return [
     tree.path,
     {
       id: tree.node.id,
       type: tree.node.type,
+      rootSection: tree.rootSection,
     },
   ] as readonly [string, DepthData];
 });
@@ -24,13 +26,17 @@ const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
  * 깊이우선 탐색
  * "SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE" 만 탐색하고 자식은 탐색하지 않는 코드
  */
-function* deepTraverse(
+export function* deepTraverse(
   node: BaseNode,
   path = "select"
 ): IterableIterator<Tree> {
   // 현재 노드 방문
   if (selectType.includes(node.type))
-    yield { node, path } as { node: SceneNode; path: string };
+    yield { node, path, rootSection: rootSectionSearch(node) } as {
+      node: SceneNode;
+      path: string;
+      rootSection: string | undefined;
+    };
   // 자식 노드가 존재하는 경우
   if ("children" in node && node.children && node.children.length) {
     // 자식 노드를 재귀적으로 탐색
@@ -64,7 +70,10 @@ export const ast = async () => {
       const temp = pipe(deepTraverse(page, page.name), depthTypeMap);
       [...temp].forEach(([key, value]) => {
         pathToIdArray.push([key, value]);
-        idToPathArray.push([value.id, { key, type: value.type }]);
+        idToPathArray.push([
+          value.id,
+          { key, type: value.type, rootSection: value.rootSection },
+        ]);
         // 세션용 traverse가 필요한가?
       });
 
