@@ -299,7 +299,7 @@ export default function () {
         componentSets,
         components,
         idToPath,
-        pathToId: targetNodes,
+        pathToId: NodeInfo,
       } = data;
 
       const rootComponentKey = Object.entries(components)
@@ -322,7 +322,7 @@ export default function () {
         rootCompId,
         componentSets,
         components,
-        targetNodes,
+        NodeInfo,
         variableCollections,
       });
 

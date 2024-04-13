@@ -127,21 +127,32 @@ const valueNormalize = <T extends Exclude<VariableValue, VariableAlias>>(
   value: T
 ) => (typeof value === "object" ? rgbToHex(value) : value);
 
+type VariableToken = {
+  $firstAlias?: string;
+  $id: string;
+  $name: string;
+  $resolvedAlias?: string;
+  $resolvedType?: string;
+  $resolvedValue?: VariableValue;
+  $type: string;
+  $value: VariableValue;
+};
 // 디자인 토큰을 export 하는 목적임
 async function processCollection(variableCollection: VariableCollection) {
-  const { name, modes, variableIds, remote, defaultModeId } =
+  console.log(variableCollection);
+  const { key, id, defaultModeId, name, modes, variableIds, remote } =
     variableCollection;
   const files = { collectionName: name };
-  const file = {} as Record<string, any>;
-  const modeName = {} as Record<string, string>;
+  const file = {} as Record<string, Record<string, VariableToken>>;
+  // const modeName = {} as Record<string, string>;
 
-  modes.forEach(({ name, modeId }) => {
-    modeName[modeId] = name;
-  });
+  // modes.forEach(({ name, modeId }) => {
+  //   modeName[modeId] = name;
+  // });
 
   for (const mode of modes) {
     const currentModeId = mode.modeId;
-    file[currentModeId] = {} as Record<string, any>;
+    file[currentModeId] = {} as Record<string, VariableToken>;
     for (const variableId of variableIds) {
       const temp = await figma.variables.getVariableByIdAsync(variableId);
       if (temp) {
@@ -151,10 +162,10 @@ async function processCollection(variableCollection: VariableCollection) {
           // 참조 위치를 스플릿한 만큼 이동한다
           let obj = file[currentModeId];
           const saveKey = id;
-          obj[saveKey] = {};
-          obj = obj[saveKey];
-          obj.$id = id;
-          obj.$name = name;
+          obj[saveKey] = {} as VariableToken;
+          const target = obj[saveKey];
+          target.$id = id;
+          target.$name = name;
 
           //   value.type === "VARIABLE_ALIAS"
 
@@ -166,9 +177,9 @@ async function processCollection(variableCollection: VariableCollection) {
                 await figma.variables.getVariableByIdAsync(id);
               if (currentNode) {
                 const value2 = currentNode.valuesByMode[currentModeId];
-                obj.$resolvedAlias = currentNode.name;
-                obj.$firstAlias = obj.$firstAlias
-                  ? obj.$firstAlias
+                target.$resolvedAlias = currentNode.name;
+                target.$firstAlias = target.$firstAlias
+                  ? target.$firstAlias
                   : currentNode.name;
                 if (typeof value2 === "object" && "type" in value2) {
                   return findToken(value2.id);
@@ -178,20 +189,30 @@ async function processCollection(variableCollection: VariableCollection) {
               return "not found";
             };
             const currentVar = await findToken(value.id);
-            obj.$type = "VARIABLE_ALIAS";
-            obj.$value = value.id;
-            obj.$resolvedValue = valueNormalize(currentVar);
-            obj.$resolvedType = resolvedType;
+            target.$type = "VARIABLE_ALIAS";
+            target.$value = value.id;
+            target.$resolvedValue = valueNormalize(currentVar);
+            target.$resolvedType = resolvedType;
           } else {
-            obj.$type = resolvedType;
-            obj.$value = valueNormalize(value);
+            target.$type = resolvedType;
+            target.$value = valueNormalize(value);
           }
         }
       }
     }
   }
 
-  return { ...files, ...file, modes, modeName, remote, defaultModeId };
+  return {
+    ...files,
+    ...file,
+    key,
+    id,
+    defaultModeId,
+    name,
+    modes,
+    variableIds,
+    remote,
+  };
 }
 
 type RGBAA = RGB & { a?: number };

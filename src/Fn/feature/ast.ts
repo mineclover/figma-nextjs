@@ -106,17 +106,15 @@ export const ast = async () => {
       const { componentSets, components } = item;
       if (componentSets) {
         Object.entries(componentSets).forEach((item) => {
-          delete item[1].key;
-          delete item[1].remote;
-          delete item[1].documentationLinks;
+          item[1].remote && delete item[1].remote;
+          item[1].documentationLinks && delete item[1].documentationLinks;
           allComponentSets.push(item);
         });
       }
       if (components) {
         Object.entries(components).forEach((item) => {
-          delete item[1].key;
-          delete item[1].remote;
-          delete item[1].documentationLinks;
+          item[1].remote && delete item[1].remote;
+          item[1].documentationLinks && delete item[1].documentationLinks;
           allComponents.push(item);
         });
       }
