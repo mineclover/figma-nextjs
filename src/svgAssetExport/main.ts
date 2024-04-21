@@ -45,10 +45,16 @@ export default function () {
 
       const { id, completed, duplicate, unsupportedKeys } =
         await toSvg(current);
-      const result = completed
+      const text = completed
         .filter((item) => item != null)
         .join("\n")
         .replace(/viewbox/g, "viewBox");
+
+      const result = `<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    ${text}
+  </defs>
+</svg>`;
       emit<ScanHandler>("FULL_SCAN", result, duplicate, unsupportedKeys, id);
     });
     once<CloseHandler>("CLOSE", function () {

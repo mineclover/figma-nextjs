@@ -40,11 +40,7 @@ function Plugin() {
 
   useEffect(() => {
     on<ScanHandler>("FULL_SCAN", (result, dupl, unsup, id) => {
-      setText(`<svg xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    ${result}
-  </defs>
-</svg>`);
+      setText(result);
 
       setDuplicate(dupl);
       setUnsupportedKeys(unsup);
@@ -95,21 +91,6 @@ function Plugin() {
         }}
         value={text}
       ></TextboxMultiline>
-      {/* <VerticalSpace space="extraLarge" />
-      <Text>
-        <Muted>test</Muted>
-      </Text>
-      <TextboxMultiline
-        onValueInput={handleValueInput}
-        onClick={(e) => {
-          console.log("copy");
-          document.execCommand("selectAll");
-          document.execCommand("copy");
-          emit<MessageHandler>("POST_MESSAGE", "복사 완료");
-        }}
-        value={text}
-      ></TextboxMultiline>
-      <VerticalSpace space="extraLarge" /> */}
     </Container>
   );
 }
