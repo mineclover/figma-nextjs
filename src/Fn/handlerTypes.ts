@@ -10,9 +10,14 @@ export interface CloseHandler extends EventHandler {
   handler: () => void;
 }
 
-export interface ScanHandler extends EventHandler {
-  name: "FULL_SCAN";
+export interface AssetRequestHandler extends EventHandler {
+  name: "ASSET_REQUEST";
   handler: () => void;
+}
+
+export interface CodeResponseHandler extends EventHandler {
+  name: "CODE_RESPONSE";
+  handler: (result: string) => void;
 }
 
 export interface ShareNode extends BaseNodeMixin {
@@ -21,4 +26,9 @@ export interface ShareNode extends BaseNodeMixin {
   children?: readonly ShareNode[];
   [key: string]: any;
   type: NodeType;
+}
+
+export interface MessageHandler extends EventHandler {
+  name: "POST_MESSAGE";
+  handler: (text: string) => void;
 }

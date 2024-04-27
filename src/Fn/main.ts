@@ -1,4 +1,4 @@
-import { once, on, showUI } from "@create-figma-plugin/utilities";
+import { once, on, showUI, emit } from "@create-figma-plugin/utilities";
 import {
   peek,
   pipe,
@@ -9,7 +9,12 @@ import {
   reduce,
   head,
 } from "@fxts/core";
-import { CloseHandler, ScanHandler } from "./types";
+import {
+  CloseHandler,
+  AssetRequestHandler,
+  CodeResponseHandler,
+  MessageHandler,
+} from "./handlerTypes";
 
 import {
   iter,
@@ -24,6 +29,7 @@ import { sectionRename } from "./feature/section";
 import { ast, deepTraverse } from "./feature/ast";
 import { Tree } from "./type";
 import { exportToJSON } from "./feature/exportVariables";
+import { QuoteType } from "htmlparser2";
 
 type GeneratorReturn<T extends IterableIterator<unknown>> = Exclude<
   ReturnType<T["next"]>["value"],
@@ -284,7 +290,7 @@ const ast2 = async (node: BaseNode) => {
 
 export default function () {
   if (figma.editorType === "figma") {
-    on<ScanHandler>("FULL_SCAN", async () => {
+    on<AssetRequestHandler>("ASSET_REQUEST", async () => {
       // const data = childrenScan(figma.root);
       count = 0;
       // 현재 페이지를 전달함 > 만약 피그마 파일 전체를 순회한다면?
@@ -341,6 +347,53 @@ export default function () {
 
     once<CloseHandler>("CLOSE", function () {
       figma.closePlugin();
+    });
+    on<MessageHandler>("POST_MESSAGE", function (text: string) {
+      const NotificationHandler = figma.notify(text, {
+        timeout: 2,
+        button: {
+          text: "x",
+          action: () => {
+            NotificationHandler.cancel();
+          },
+        },
+      });
+    });
+    figma.on("selectionchange", async function () {
+      const current = figma.currentPage.selection;
+      if (current.length === 1) {
+        const codeSnippet = `
+$import
+
+interface $componentTagName_Props extends HTMLAttributes<HTMLDivElement> {
+	$variableTypes
+	children?: React.ReactNode
+}
+
+
+/**
+* $description
+* $folderPath+ComponentTagName
+/*
+const $componentTagName = ({ $properties , $variables , ...props }:Props) => {
+  $usePropertiesStates
+  $variantsCase {
+    <div className={classComposer($folderPath+ComponentTagName,props.className)} {...props}>
+      $jsx($action, $className , $properties)
+    </div>
+  }
+}
+
+export default $componentTagName
+`;
+
+        const $0 = "";
+        const $1 = "icon";
+
+        const result = codeSnippet.replace(/\$0/g, $0).replace(/\$1/g, $1);
+
+        emit<CodeResponseHandler>("CODE_RESPONSE", result);
+      }
     });
     showUI({
       height: 500,

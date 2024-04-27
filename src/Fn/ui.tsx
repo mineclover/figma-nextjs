@@ -7,16 +7,15 @@ import {
   Text,
   TextboxNumeric,
   VerticalSpace,
-  FileUploadButton,
-  FileUploadDropzone,
-  Bold,
+  Code,
+  TextboxMultiline,
 } from "@create-figma-plugin/ui";
-import { emit } from "@create-figma-plugin/utilities";
+import { emit, on } from "@create-figma-plugin/utilities";
 import { h } from "preact";
-import { useCallback, useState } from "preact/hooks";
+import { useCallback, useState, useEffect } from "preact/hooks";
 import { EventHandler } from "@create-figma-plugin/ui";
 
-import { CloseHandler, CreateRectanglesHandler, ScanHandler } from "./types";
+import { CloseHandler, MessageHandler, CodeHandler } from "./handlerTypes";
 
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
@@ -25,63 +24,65 @@ const fn = async (files: Array<File>) => {
 };
 
 function Plugin() {
-  const [count, setCount] = useState<number | null>(5);
-  const [countString, setCountString] = useState("5");
-  const handleCreateRectanglesButtonClick = useCallback(
-    function () {
-      emit<ScanHandler>("FULL_SCAN");
-    },
-    [count]
-  );
+  const [text, setText] = useState("");
+  const [duplicate, setDuplicate] = useState<string[]>([]);
+  const [unsupportedKeys, setUnsupportedKeys] = useState<string[]>([]);
+  const [ids, setIds] = useState<string[]>([]);
+
+  function handleValueInput(newValue: string) {
+    setText(newValue);
+  }
   const handleCloseButtonClick = useCallback(function () {
     emit<CloseHandler>("CLOSE");
   }, []);
 
-  const acceptedFileTypes = ["application/json"];
-  function handleSelectedFiles(files?: Array<File>) {
-    if (files) fn(files);
-  }
+  useEffect(() => {
+    on<CodeHandler>("CODE_RESULT", (result) => {
+      setText(result);
+    });
+  }, []);
+
   return (
     <Container space="medium">
       <VerticalSpace space="large" />
       <Text>
-        <Muted>Count</Muted>
+        <Muted>duplicate name</Muted>
       </Text>
       <VerticalSpace space="small" />
-      <TextboxNumeric
-        onNumericValueInput={setCount}
-        onValueInput={setCountString}
-        value={countString}
-        variant="border"
-      />
+      {duplicate.map((item) => (
+        <Text>{item}</Text>
+      ))}
+      <VerticalSpace space="extraLarge" />
+      <Text>
+        <Muted>unsupportedKeys name</Muted>
+      </Text>
+      <VerticalSpace space="small" />
+      {unsupportedKeys.map((item) => (
+        <Text>{item}</Text>
+      ))}
       <VerticalSpace space="extraLarge" />
       <Columns space="extraSmall">
-        <Button fullWidth onClick={handleCreateRectanglesButtonClick}>
-          Create
-        </Button>
+        <Button fullWidth>Create</Button>
         <Button fullWidth onClick={handleCloseButtonClick} secondary>
           Close
         </Button>
       </Columns>
+      <VerticalSpace space="extraLarge" />
+      <Text>
+        <Muted>Icon Code : {ids.length}</Muted>
+      </Text>
       <VerticalSpace space="small" />
-
-      <FileUploadDropzone
-        acceptedFileTypes={acceptedFileTypes}
-        onSelectedFiles={handleSelectedFiles}
-      >
-        <Text align="center">
-          <Bold>Drop File here</Bold>
-        </Text>
-        <VerticalSpace space="small" />
-        <Text align="center">
-          <Muted>or</Muted>
-        </Text>
-        <VerticalSpace space="small" />
-
-        <Text align="center">
-          <Bold>Click and Choose</Bold>
-        </Text>
-      </FileUploadDropzone>
+      <TextboxMultiline
+        onValueInput={handleValueInput}
+        onClick={(e) => {
+          if (e.currentTarget.value.length > 10) {
+            document.execCommand("selectAll");
+            document.execCommand("copy");
+            emit<MessageHandler>("POST_MESSAGE", "복사 완료");
+          }
+        }}
+        value={text}
+      ></TextboxMultiline>
     </Container>
   );
 }
