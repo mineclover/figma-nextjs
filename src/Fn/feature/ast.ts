@@ -1,11 +1,10 @@
 import { pipe } from "@fxts/core";
 import { Welcome } from "../../../types/figma";
 import { objectIterGenarator } from "../../utils/JF";
-import { DepthData, PathData, Tree } from "../type";
-import { rootSectionSearch } from "./section";
+import { DepthData, JSXNode, PathData, Tree } from "../type";
+import { FileMetaSearch, rootSectionSearch } from "./section";
 
 export const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
-  const path = tree.path.split(":");
   return [
     tree.path,
     {
@@ -13,7 +12,8 @@ export const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
       type: tree.node.type,
       name: tree.node.name,
       rootSection: tree.rootSection,
-      pageName: path[0],
+      page: tree.page,
+      document: tree.document,
     },
   ] as readonly [string, DepthData];
 });
@@ -30,16 +30,26 @@ const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
  * "SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE" 만 탐색하고 자식은 탐색하지 않는 코드
  */
 export function* deepTraverse(
-  node: BaseNode,
+  node: BaseNode | JSXNode,
   path = "select"
 ): IterableIterator<Tree> {
   // 현재 노드 방문
-  if (selectType.includes(node.type))
-    yield { node, path, rootSection: rootSectionSearch(node) } as {
-      node: SceneNode;
+  if (selectType.includes(node.type)) {
+    const { page, document } = FileMetaSearch(node);
+    yield {
+      node,
+      path,
+      page,
+      document,
+      rootSection: rootSectionSearch(node),
+    } as {
+      node: JSXNode;
       path: string;
+      page: string;
+      document: string;
       rootSection: string | undefined;
     };
+  }
   // 자식 노드가 존재하는 경우
   if ("children" in node && node.children && node.children.length) {
     // 자식 노드를 재귀적으로 탐색
@@ -132,3 +142,32 @@ export const ast = async () => {
   };
   return componentMap(all);
 };
+
+/**
+ * 인스턴스 하위와 vector 하위 객체는 더 더 이상 탐색하지 않는다
+ */
+const assetIgnoreType = ["VECTOR", "INSTANCE", "SLICE"];
+
+/**
+ * 깊이우선 탐색
+ * "SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE" 만 탐색하고 자식은 탐색하지 않는 코드
+ */
+export function* deepTraverseDefine(
+  node: JSXNode,
+  path = "select"
+): IterableIterator<Tree> {
+  // 현재 노드 방문
+  if (selectType.includes(node.type)) {
+    const { page, document } = FileMetaSearch(node);
+    yield { node, path, page, document, rootSection: rootSectionSearch(node) };
+  }
+  // 자식 노드가 존재하는 경우
+  if ("children" in node && node.children && node.children.length) {
+    // 자식 노드를 재귀적으로 탐색
+    if (!assetIgnoreType.includes(node.type)) {
+      for (let i = 0; i < node.children.length; i++) {
+        yield* deepTraverseDefine(node.children[i], path + ":" + i);
+      }
+    }
+  }
+}

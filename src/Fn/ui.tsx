@@ -15,7 +15,12 @@ import { h } from "preact";
 import { useCallback, useState, useEffect } from "preact/hooks";
 import { EventHandler } from "@create-figma-plugin/ui";
 
-import { CloseHandler, MessageHandler, CodeHandler } from "./handlerTypes";
+import {
+  CloseHandler,
+  MessageHandler,
+  AssetRequestHandler,
+  CodeResponseHandler,
+} from "./handlerTypes";
 
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
@@ -32,12 +37,15 @@ function Plugin() {
   function handleValueInput(newValue: string) {
     setText(newValue);
   }
+  const AssetClick = useCallback(function () {
+    emit<AssetRequestHandler>("ASSET_REQUEST");
+  }, []);
   const handleCloseButtonClick = useCallback(function () {
     emit<CloseHandler>("CLOSE");
   }, []);
 
   useEffect(() => {
-    on<CodeHandler>("CODE_RESULT", (result) => {
+    on<CodeResponseHandler>("CODE_RESPONSE", (result) => {
       setText(result);
     });
   }, []);
@@ -62,7 +70,9 @@ function Plugin() {
       ))}
       <VerticalSpace space="extraLarge" />
       <Columns space="extraSmall">
-        <Button fullWidth>Create</Button>
+        <Button fullWidth onClick={AssetClick}>
+          Create
+        </Button>
         <Button fullWidth onClick={handleCloseButtonClick} secondary>
           Close
         </Button>

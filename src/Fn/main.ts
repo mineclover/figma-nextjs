@@ -30,6 +30,8 @@ import { ast, deepTraverse } from "./feature/ast";
 import { Tree } from "./type";
 import { exportToJSON } from "./feature/exportVariables";
 import { QuoteType } from "htmlparser2";
+import { componentDefine } from "./feature/compoentDefine";
+import { JSXTargetCheck } from "./typeChecker";
 
 type GeneratorReturn<T extends IterableIterator<unknown>> = Exclude<
   ReturnType<T["next"]>["value"],
@@ -108,7 +110,7 @@ function* asyncStyleExport<T extends Tree>(iter: Iterable<T>) {
   for (const value of iter) {
     const node = value.node;
     yield new Promise<T & Object>((resolve) => {
-      (node as Exclude<BaseNode, DocumentNode>)
+      node
         .exportAsync({
           format: "JSON_REST_V1",
         })
@@ -362,37 +364,12 @@ export default function () {
     figma.on("selectionchange", async function () {
       const current = figma.currentPage.selection;
       if (current.length === 1) {
-        const codeSnippet = `
-$import
+        const target = current[0];
+        const includeTypes = ["INSTANCE", "COMPONENT"];
 
-interface $componentTagName_Props extends HTMLAttributes<HTMLDivElement> {
-	$variableTypes
-	children?: React.ReactNode
-}
-
-
-/**
-* $description
-* $folderPath+ComponentTagName
-/*
-const $componentTagName = ({ $properties , $variables , ...props }:Props) => {
-  $usePropertiesStates
-  $variantsCase {
-    <div className={classComposer($folderPath+ComponentTagName,props.className)} {...props}>
-      $jsx($action, $className , $properties)
-    </div>
-  }
-}
-
-export default $componentTagName
-`;
-
-        const $0 = "";
-        const $1 = "icon";
-
-        const result = codeSnippet.replace(/\$0/g, $0).replace(/\$1/g, $1);
-
-        emit<CodeResponseHandler>("CODE_RESPONSE", result);
+        if (JSXTargetCheck(target)) {
+          componentDefine(target);
+        }
       }
     });
     showUI({
