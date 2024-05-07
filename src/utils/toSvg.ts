@@ -3,12 +3,25 @@ import { rename } from "../utils/rename";
 import { parseDocument } from "htmlparser2";
 import { Element } from "domhandler";
 
+const unsupported = [
+  "mask",
+  "clip-path",
+  "filter",
+  "g",
+  "feflood",
+  "fegaussianblur",
+  "fecomposite",
+  "feblend",
+  "defs",
+];
+
 type ErrorCase = "unsupported" | "ignore" | null;
 
 type Inspection = {
   [key: string]: number;
 };
-const childrenScan = (node: Element): ErrorCase => {
+export const childrenScan = (node: Element): ErrorCase => {
+  console.log("childrenScan", node);
   const children = node.children.filter(
     (item) => item instanceof Element
   ) as Element[];
@@ -25,12 +38,18 @@ const childrenScan = (node: Element): ErrorCase => {
     }
   }
 
-  const unsupported = ["mask", "clip-path"];
   if (unsupported.includes(node.name)) {
+    console.log("unsupported", node.name);
     return "unsupported";
   }
   if (Array.isArray(children)) {
-    return children.map((item) => childrenScan(item))[0];
+    console.log(
+      "helo",
+      children.map((item) => childrenScan(item))
+    );
+    return children
+      .map((item) => childrenScan(item))
+      .filter((text) => text === "unsupported")[0];
   }
   return null;
 };
@@ -53,7 +72,6 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
 
   const temp = selection.map(async (item, index) => {
     const symbolID = rename(item.name);
-    console.log("start", item, index, symbolID);
 
     let svg;
     try {
@@ -66,7 +84,15 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
       svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>`;
     }
 
-    console.log("end", item, index, svg, symbolID);
+    console.log(
+      "end",
+      item,
+      item.componentPropertyReferences,
+      item.boundVariables,
+      index,
+      svg,
+      symbolID
+    );
 
     const ast = parseDocument(svg).children.filter(
       (item) => item.type === "tag"
@@ -85,6 +111,7 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
     }
 
     const r = childrenScan(ast);
+    console.log("childrenScanResult", r);
 
     if (r === "unsupported") {
       unsupportedKeys.push(symbolID);

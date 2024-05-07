@@ -11,38 +11,11 @@ import { toSvg } from "../utils/toSvg";
 
 type ErrorCase = "unsupported" | "ignore" | null;
 
-const childrenScan = (node: Element): ErrorCase => {
-  const children = node.children.filter(
-    (item) => item instanceof Element
-  ) as Element[];
-
-  // "svg", "symbol" 에서 Fill 삭제 끝
-  const ignore = ["svg", "symbol"];
-  if (!ignore.includes(node.name)) {
-    if (node.attribs.fill) {
-      node.attribs.fill = "currentcolor";
-    }
-
-    if (node.attribs.stroke) {
-      node.attribs.stroke = "currentcolor";
-    }
-  }
-
-  const unsupported = ["mask", "clip-path"];
-  if (unsupported.includes(node.name)) {
-    return "unsupported";
-  }
-  if (Array.isArray(children)) {
-    return children.map((item) => childrenScan(item))[0];
-  }
-  return null;
-};
-
 export default function () {
   if (figma.editorType === "figma") {
     on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {
       const current = figma.currentPage.selection;
-
+      console.log("current", current);
       const { id, completed, duplicate, unsupportedKeys } =
         await toSvg(current);
       const text = completed
