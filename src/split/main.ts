@@ -28,13 +28,12 @@ export default function () {
         height: rect.height,
       }));
 
-      console.log(slices);
       const zeroPrefix = (num: number, text: string) => {
         const prefix = num > 0 ? text : "";
         return prefix + num + "px";
       };
 
-      const getStyle = (vector: Rect) => {
+      const getStyle = (vector: Rect, index: number) => {
         // 초과되서 짤려야하는 것
 
         // 어느 방향이 짤리는가
@@ -52,30 +51,31 @@ export default function () {
         const height = vector.y < 0 ? vector.height + vector.y : vector.height;
 
         const jsConvention = {
-          backgroundSize: String(root.width) + " " + String(root.height),
+          backgroundSize:
+            zeroPrefix(root.width, "") + " " + zeroPrefix(root.height, ""),
           backgroundPosition: zeroPrefix(x, "-") + " " + zeroPrefix(y, "-"),
           width: width - overX + "px",
           height: height - overY + "px",
           display: "block",
-          position: "absolute",
+
           backgroundRepeat: "no-repeat",
           flexShrink: 0,
         };
-        const cssConvention = `
-background-size: ${root.width} ${root.height};
-background-position: ${zeroPrefix(x, "-")} ${zeroPrefix(y, "-")};
-width: ${width - overX}px;
-height: ${height - overY}px;
-display: block;
-position: absolute;
-background-repeat: no-repeat;
-flex-shrink: 0;
-`;
+        const cssConvention = `.${current[0].name.replace(/ /g, "")}_${String(index).padEnd(2, "0")} {
+  background-size: ${root.width}px ${root.height}px;
+  background-position: ${zeroPrefix(x, "-")} ${zeroPrefix(y, "-")};
+  width: ${width - overX}px;
+  height: ${height - overY}px;
+  display: block;
+
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+}`;
 
         return { jsConvention, cssConvention };
       };
 
-      const slicesStyle = slices.map(getStyle);
+      const slicesStyle = slices.map((slic, index) => getStyle(slic, index));
 
       const cssSlices = slicesStyle.map((item) => item.cssConvention);
 
