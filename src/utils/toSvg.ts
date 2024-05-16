@@ -20,20 +20,23 @@ type ErrorCase = "unsupported" | "ignore" | null;
 type Inspection = {
   [key: string]: number;
 };
+
+const currentOverrideOption = false;
+
 export const childrenScan = (node: Element): ErrorCase => {
   console.log("childrenScan", node);
   const children = node.children.filter(
     (item) => item instanceof Element
   ) as Element[];
 
-  // "svg", "symbol" 에서 Fill 삭제 끝
+  // "svg", "symbol" 에서 Fill 삭제 하지 않음
   const ignore = ["svg", "symbol"];
-  if (!ignore.includes(node.name)) {
+  if (currentOverrideOption && !ignore.includes(node.name)) {
     if (node.attribs.fill) {
       node.attribs.fill = "currentcolor";
     }
 
-    if (node.attribs.stroke) {
+    if (currentOverrideOption && node.attribs.stroke) {
       node.attribs.stroke = "currentcolor";
     }
   }
@@ -43,10 +46,6 @@ export const childrenScan = (node: Element): ErrorCase => {
     return "unsupported";
   }
   if (Array.isArray(children)) {
-    console.log(
-      "helo",
-      children.map((item) => childrenScan(item))
-    );
     return children
       .map((item) => childrenScan(item))
       .filter((text) => text === "unsupported")[0];

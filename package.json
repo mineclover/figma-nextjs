@@ -62,6 +62,11 @@
         "ui": "src/TokenExport/ui.tsx"
       },
       {
+        "name": "Figma image Export",
+        "main": "src/split/main.ts",
+        "ui": "src/split/ui.tsx"
+      },
+      {
         "name": "Figma Fn",
         "main": "src/Fn/main.ts",
         "ui": "src/Fn/ui.tsx"

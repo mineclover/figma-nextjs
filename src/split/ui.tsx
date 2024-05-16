@@ -26,9 +26,7 @@ const fn = async (files: Array<File>) => {
 
 function Plugin() {
   const [text, setText] = useState("");
-  const [duplicate, setDuplicate] = useState<string[]>([]);
-  const [unsupportedKeys, setUnsupportedKeys] = useState<string[]>([]);
-  const [ids, setIds] = useState<string[]>([]);
+
   const handleButtonClick = () => emit<SvgSymbolHandler>("SVG_SYMBOL_CODE");
 
   function handleValueInput(newValue: string) {
@@ -39,31 +37,24 @@ function Plugin() {
   }, []);
 
   useEffect(() => {
-    on<ScanHandler>("FULL_SCAN", (result, dupl, unsup, id) => {
+    on<ScanHandler>("TEXT_RESULT", (result) => {
       setText(result);
-
-      setDuplicate(dupl);
-      setUnsupportedKeys(unsup);
-      setIds(id);
-      console.log(id);
     });
   }, []);
 
   return (
     <Container space="medium">
       <VerticalSpace space="large" />
-
+      <Text>
+        <Muted>duplicate name</Muted>
+      </Text>
       <VerticalSpace space="small" />
-      {duplicate.map((item) => (
-        <Text>{item}</Text>
-      ))}
-      <VerticalSpace space="extraLarge" />
 
+      <Text>
+        <Muted>unsupportedKeys name</Muted>
+      </Text>
       <VerticalSpace space="small" />
-      {unsupportedKeys.map((item) => (
-        <Text>{item}</Text>
-      ))}
-      <VerticalSpace space="extraLarge" />
+
       <Columns space="extraSmall">
         <Button fullWidth onClick={handleButtonClick}>
           Create
@@ -73,10 +64,7 @@ function Plugin() {
         </Button>
       </Columns>
       <VerticalSpace space="extraLarge" />
-      <Text>
-        <Muted>Icon Code : {ids.length}</Muted>
-      </Text>
-      <VerticalSpace space="small" />
+
       <TextboxMultiline
         onValueInput={handleValueInput}
         onClick={(e) => {
