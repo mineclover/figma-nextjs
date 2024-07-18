@@ -2,22 +2,23 @@
   "dependencies": {
     "@create-figma-plugin/ui": "^3.2.0",
     "@create-figma-plugin/utilities": "^3.2.0",
-    "@fxts/core": "^0.28.1",
+    "@fxts/core": "^1.0.1",
     "@types/domhandler": "^2.4.5",
-    "@types/lodash": "^4.17.0",
+    "@types/lodash": "^4.17.7",
     "dom-serializer": "^2.0.0",
     "htmlparser2": "^9.1.0",
     "lodash": "^4.17.21",
-    "preact": ">=10",
-    "prettier": "^3.2.5"
+    "preact": "^10.22.1",
+    "prettier": "^3.3.3"
   },
   "devDependencies": {
     "@create-figma-plugin/build": "^3.2.0",
     "@create-figma-plugin/tsconfig": "^3.2.0",
-    "@figma/plugin-typings": "1.91.0",
+    "@figma/plugin-typings": "1.97.0",
     "@figma/widget-typings": "^1.9.1",
-    "@types/node": "^20.12.7",
-    "typescript": ">=5"
+    "@types/node": "^20.14.11",
+    "@types/react": "^18.3.3",
+    "typescript": "^5.5.3"
   },
   "scripts": {
     "build": "build-figma-plugin --typecheck --minify",
@@ -70,6 +71,11 @@
         "name": "Figma Fn",
         "main": "src/Fn/main.ts",
         "ui": "src/Fn/ui.tsx"
+      },
+      {
+        "name": "Figma Fn2",
+        "main": "src/Fn2/main.ts",
+        "ui": "src/Fn2/ui.tsx"
       }
     ]
   }

@@ -292,7 +292,7 @@ const ast2 = async (node: BaseNode) => {
 
 export default function () {
   if (figma.editorType === "figma") {
-    on<AssetRequestHandler>("ASSET_REQUEST", async () => {
+    on<AssetRequestHandler>("CREATE_REQUEST", async () => {
       // const data = childrenScan(figma.root);
       count = 0;
       // 현재 페이지를 전달함 > 만약 피그마 파일 전체를 순회한다면?

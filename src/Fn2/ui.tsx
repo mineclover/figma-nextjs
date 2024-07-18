@@ -18,7 +18,7 @@ import { EventHandler } from "@create-figma-plugin/ui";
 import {
   CloseHandler,
   MessageHandler,
-  AssetRequestHandler,
+  CreateRequestHandler,
   CodeResponseHandler,
 } from "./handlerTypes";
 
@@ -38,7 +38,7 @@ function Plugin() {
     setText(newValue);
   }
   const AssetClick = useCallback(function () {
-    emit<AssetRequestHandler>("CREATE_REQUEST");
+    emit<CreateRequestHandler>("CREATE_REQUEST");
   }, []);
   const handleCloseButtonClick = useCallback(function () {
     emit<CloseHandler>("CLOSE");

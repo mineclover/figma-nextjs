@@ -10,7 +10,7 @@ export interface CloseHandler extends EventHandler {
   handler: () => void;
 }
 
-export interface AssetRequestHandler extends EventHandler {
+export interface CreateRequestHandler extends EventHandler {
   name: "CREATE_REQUEST";
   handler: () => void;
 }
