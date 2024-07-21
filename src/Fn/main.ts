@@ -19,14 +19,14 @@ import {
 import {
   iter,
   isPromise,
-  objectExtendIterGenarator,
-  asyncIterGenarator,
+  objectExtendIterGenerator,
+  asyncIterGenerator,
   prevIter,
   combinationIter,
-  objectIterGenarator,
+  objectIterGenerator,
 } from "../utils/JF";
 import { sectionRename } from "./feature/section";
-import { ast, deepTraverse } from "./feature/ast";
+import { ast, ComponentDeepTraverse } from "./feature/ast";
 import { Tree } from "./type";
 import { exportToJSON } from "./feature/exportVariables";
 import { QuoteType } from "htmlparser2";
@@ -49,7 +49,7 @@ const tabText = " ".repeat(tapSpace);
 /**
  * [path, id]
  */
-const depthMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+const depthMap = objectIterGenerator(<T extends Tree>(tree: T) => {
   return [tree.path, tree.node.id] as readonly [string, string];
 });
 
@@ -59,7 +59,7 @@ type DepthData = {
 };
 type PathData = { key: string; type: NodeType };
 
-const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+const depthTypeMap = objectIterGenerator(<T extends Tree>(tree: T) => {
   return [
     tree.path,
     {
@@ -69,29 +69,29 @@ const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
   ] as readonly [string, DepthData];
 });
 
-const depthNodeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+const depthNodeMap = objectIterGenerator(<T extends Tree>(tree: T) => {
   return [tree.path, tree.node];
 });
 
-const pathParse = objectExtendIterGenarator(<T extends Tree>(tree: T) => ({
+const pathParse = objectExtendIterGenerator(<T extends Tree>(tree: T) => ({
   depth: tree.path.split(":"),
 }));
 
-const nodeParentOn = objectExtendIterGenarator(<T extends Tree>(input: T) => ({
+const nodeParentOn = objectExtendIterGenerator(<T extends Tree>(input: T) => ({
   parent: input.node.parent,
 }));
 
-const nodeId = objectExtendIterGenarator(<T extends Tree>(input: T) => ({
+const nodeId = objectExtendIterGenerator(<T extends Tree>(input: T) => ({
   id: input.node.id,
 }));
-const hello = asyncIterGenarator(<T extends Tree>(input: T) => {
+const hello = asyncIterGenerator(<T extends Tree>(input: T) => {
   return {
     ...input,
     hello: input.node.id,
   };
 });
 
-const world = asyncIterGenarator(<T extends Tree>(input: T) => {
+const world = asyncIterGenerator(<T extends Tree>(input: T) => {
   return {
     ...input,
     hello2: input.node.id,
@@ -274,13 +274,13 @@ ${tabText.repeat(len)}</${tagName}@@@@${current.node.id}>
 
 const ast2 = async (node: BaseNode) => {
   const astDFSTree = pipe(
-    deepTraverse(node, node.name),
+    ComponentDeepTraverse(node, node.name),
     pathParse,
     nodeParentOn
   );
 
   const DeepTreeMap = pipe(
-    deepTraverse(node, node.name),
+    ComponentDeepTraverse(node, node.name),
     pathParse,
     nodeParentOn
   );

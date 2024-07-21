@@ -7,9 +7,20 @@ import {
   MessageHandler,
 } from "./handlerTypes";
 
+import { pipe, take } from "@fxts/core";
+import {
+  asyncIter,
+  iter,
+  objectIterGenerator,
+  objectIterGenerator2,
+  processAsyncIter,
+} from "../utils/JF";
+
 import { JSXTargetCheck } from "../utils/typeChecker";
-import { notify, RecursiveFigmaNode } from "../FigmaPluginUtils";
+import { RecursiveFigmaNode, notify } from "../FigmaPluginUtils";
 import { RecursiveNodeType } from "../../types/NodeBase";
+import { getAll, getAll2, PathDeepTraverse } from "../utils/JsonParse";
+import { takeAll, reduce } from "../utils/fx";
 
 // figma api 실행하는 곳임
 // ui에서의 트리거들을 분기로 기능들을 실행할 수 있음
@@ -41,6 +52,14 @@ const test: RecursiveFigmaNode<NodeType> = {
   setDevResourcePreviewAsync: asdf,
 };
 
+const testFn = objectIterGenerator2((input) => {
+  console.log("input", input);
+  return input;
+});
+const testFn2 = objectIterGenerator((input) => {
+  console.log("input", input);
+});
+
 export default function () {
   if (figma.editorType === "figma") {
     on<CreateRequestHandler>("CREATE_REQUEST", async () => {
@@ -59,6 +78,16 @@ export default function () {
         const target = current[0];
         const includeTypes = ["INSTANCE", "COMPONENT"];
         console.log("현재 선택된 타겟", target);
+
+        // const a = pipe(
+        //   PathDeepTraverse({ node: target, path: target.name }),
+        //   testFn
+        // );
+        const a = pipe(getAll2(), testFn, take(Infinity));
+
+        for await (const value of processAsyncIter(a)) {
+          console.log(value);
+        }
       }
     });
     showUI({

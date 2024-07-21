@@ -38,7 +38,7 @@ export function* combinationIter<T>(iter: IterableIterator<T>) {
  * @param fn
  * @returns
  */
-export const objectExtendIterGenarator = <T, P>(fn: (input: T) => P) => {
+export const objectExtendIterGenerator = <T, P>(fn: (input: T) => P) => {
   return function* (iter: IterableIterator<T>) {
     for (const value of iter) {
       yield {
@@ -49,7 +49,10 @@ export const objectExtendIterGenarator = <T, P>(fn: (input: T) => P) => {
   };
 };
 
-export const objectIterGenarator = <T, P>(fn: (input: T) => P) => {
+/**
+ * 실행된 함수의 결과만 반환하는 함수를 만드는 커링
+ */
+export const objectIterGenerator = <T, P>(fn: (input: T) => P) => {
   return function* (iter: IterableIterator<T>) {
     for (const value of iter) {
       yield fn(value);
@@ -57,7 +60,23 @@ export const objectIterGenarator = <T, P>(fn: (input: T) => P) => {
   };
 };
 
-export const asyncFunctionIterGenarator = <T, P>(
+/** async 을 쓸때 주의할 것은 */
+export const objectIterGenerator2 = <T, P>(
+  fn: (input: T) => Promise<P> | P
+) => {
+  return async function* (
+    iter: AsyncIterableIterator<T> | IterableIterator<T>
+  ): AsyncGenerator<P, void, unknown> {
+    for await (const value of iter) {
+      yield await fn(value);
+    }
+  };
+};
+
+/**
+ * 실행된 함수의 결과만
+ */
+export const asyncFunctionIterGenerator = <T, P>(
   fn: (input: T) => Promise<P> | P
 ) => {
   return async function* (iter: IterableIterator<T>) {
@@ -81,7 +100,7 @@ export const isPromise = <T>(a: T | Promise<T>): a is Promise<T> => {
   }
 
   if (
-    a !== null &&
+    a != null &&
     typeof a === "object" &&
     //@ts-ignore
     typeof a.then === "function" &&
@@ -95,7 +114,36 @@ export const isPromise = <T>(a: T | Promise<T>): a is Promise<T> => {
 
 const values = Promise.all([]);
 
-export const asyncIterGenarator = <T, P>(fn: (input: T) => P) => {
+export async function* asyncIter<T>(
+  iter: AsyncIterableIterator<T> | AsyncIterable<T>
+): AsyncGenerator<T, void, unknown> {
+  for await (const value of iter) {
+    yield value;
+  }
+}
+
+// Helper function to check if a value is a Promise
+// function isPromise<T>(value: any): value is Promise<T> {
+//   return value && typeof value.then === 'function';
+// }
+
+// Usage example
+export async function* processAsyncIter<T>(
+  iter: AsyncIterableIterator<Promise<T> | T>
+): AsyncGenerator<T, void, unknown> {
+  for await (const value of asyncIter(iter)) {
+    yield isPromise(value) ? await value : value;
+  }
+}
+
+// processAsyncIter 사용 예시
+// const a = pipe(getAll2(), testFn, take(Infinity));
+
+// for await (const value of processAsyncIter(a)) {
+//   console.log(value);
+// }
+
+export const asyncIterGenerator = <T, P>(fn: (input: T) => P) => {
   return function* (iter: IterableIterator<Promise<T> | T>) {
     for (const value of iter) {
       yield isPromise(value) ? value.then((res) => fn(res)) : fn(value);
@@ -103,7 +151,7 @@ export const asyncIterGenarator = <T, P>(fn: (input: T) => P) => {
   };
 };
 
-// export const asyncObjectExtendIterGenarator = <T, P>(fn: (input: T) => P) => {
+// export const asyncObjectExtendIterGenerator = <T, P>(fn: (input: T) => P) => {
 //   return function* (iter: Iterable<Promise<T>>) {
 //     for (const value of iter) {
 //       console.log(typeof value);

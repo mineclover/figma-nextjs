@@ -13,9 +13,10 @@ export const notify = (message: string, closeLabel: string) => {
   });
 };
 
-type 참조 = BaseNodeMixin;
+type 참조 = Prettify<BaseNodeMixin>;
 
-export interface RecursiveFigmaNode<T extends BaseNode["type"]> {
+export interface RecursiveFigmaNode<T extends BaseNode["type"]>
+  extends BaseNodeMixin {
   type: T;
   children: RecursiveFigmaNode<T>[];
 }
@@ -42,11 +43,7 @@ export interface RecursiveFigmaNode<T extends BaseNode["type"]> {
 // deleteDevResourceAsync: asdf,
 // setDevResourcePreviewAsync: asdf,
 
-type TestNode = Prettify<BaseNodeMixin>;
+// type TestNode = Prettify<BaseNodeMixin>;
 let temp: TestNode = null as any;
 
-export interface RecursiveFigmaNode<T extends BaseNode["type"]>
-  extends Omit<BaseNodeMixin, "children"> {
-  type: T;
-  children: RecursiveFigmaNode<T>[];
-}
+type TestNode = Prettify<BaseNodeMixin>;

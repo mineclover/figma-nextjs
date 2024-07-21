@@ -1,10 +1,10 @@
 import { pipe } from "@fxts/core";
 import { Welcome } from "../../../types/figma";
-import { objectIterGenarator } from "../../utils/JF";
+import { objectIterGenerator } from "../../utils/JF";
 import { DepthData, JSXNode, PathData, Tree } from "../type";
 import { FileMetaSearch, rootSectionSearch } from "./section";
 
-export const depthTypeMap = objectIterGenarator(<T extends Tree>(tree: T) => {
+export const depthTypeMap = objectIterGenerator(<T extends Tree>(tree: T) => {
   return [
     tree.path,
     {
@@ -29,7 +29,7 @@ const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
  * 깊이우선 탐색
  * "SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE" 만 탐색하고 자식은 탐색하지 않는 코드
  */
-export function* deepTraverse(
+export function* ComponentDeepTraverse(
   node: BaseNode | JSXNode,
   path = "select"
 ): IterableIterator<Tree> {
@@ -56,7 +56,7 @@ export function* deepTraverse(
 
     if (!childrenIgnoreType.includes(node.type)) {
       for (let i = 0; i < node.children.length; i++) {
-        yield* deepTraverse(node.children[i], path + ":" + i);
+        yield* ComponentDeepTraverse(node.children[i], path + ":" + i);
       }
     }
   }
@@ -85,7 +85,7 @@ export const ast = async () => {
         page.name = page.name.replace(/:/g, "-");
       }
 
-      const temp = pipe(deepTraverse(page, page.name), depthTypeMap);
+      const temp = pipe(ComponentDeepTraverse(page, page.name), depthTypeMap);
       [...temp].forEach(([key, value]) => {
         pathToId.push({ key, ...value });
         idToPathArray.push([value.id, { key, ...value }]);
