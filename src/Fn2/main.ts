@@ -19,7 +19,7 @@ import {
 import { JSXTargetCheck } from "../utils/typeChecker";
 import { RecursiveFigmaNode, notify } from "../FigmaPluginUtils";
 import { RecursiveNodeType } from "../../types/NodeBase";
-import { getAll, getAll2, PathDeepTraverse } from "../utils/JsonParse";
+import { getAll2, Pages, PathDeepTraverse } from "../utils/JsonParse";
 import { takeAll, reduce } from "../utils/fx";
 
 // figma api 실행하는 곳임
@@ -52,12 +52,10 @@ const test: RecursiveFigmaNode<NodeType> = {
   setDevResourcePreviewAsync: asdf,
 };
 
-const testFn = objectIterGenerator2((input) => {
+const testFn = objectIterGenerator2<Pages, Pages>((input) => {
   console.log("input", input);
+
   return input;
-});
-const testFn2 = objectIterGenerator((input) => {
-  console.log("input", input);
 });
 
 export default function () {
@@ -78,7 +76,6 @@ export default function () {
         const target = current[0];
         const includeTypes = ["INSTANCE", "COMPONENT"];
         console.log("현재 선택된 타겟", target);
-
         // const a = pipe(
         //   PathDeepTraverse({ node: target, path: target.name }),
         //   testFn

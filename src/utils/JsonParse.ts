@@ -51,34 +51,12 @@ export function* PathDeepTraverse({
 // pipe in pipe 를 구축 가능한가?
 // promise pipe 를 넣을 수 있나
 
-// 파이프에 넣고 싶었는데 out of memory 뜸
-export const getAll = () => {
-  const promise = figma.root.children.map(async (page) => {
-    // PageNodes are the only children of root
-    await page.loadAsync();
-    console.log("page", page);
-    if (page.name.includes(":")) {
-      figma.notify("page 이름에 : 이 있을 경우 -로 대체 됩니다");
-      page.name = page.name.replace(/:/g, "-");
-    }
-    return { node: page, path: page.name };
-    // const data = (await page.exportAsync({
-    //   format: "JSON_REST_V1",
-    // })) ;
-  });
-  return asyncIter(promise);
+export type Pages = {
+  node: PageNode;
+  path: string;
 };
 
-// 문법 오류 코드
-// export function* getAll2() {
-//   figma.root.children.forEach((page) => {
-//     page.loadAsync().then(() => {
-//       yield({ node: page, path: page.name });
-//     });
-//   });
-// }
-
-export async function* getAll2() {
+export async function* getAll2(): AsyncGenerator<Pages> {
   for (const page of figma.root.children) {
     await page.loadAsync();
     yield { node: page, path: page.name };
