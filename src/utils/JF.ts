@@ -7,13 +7,13 @@ import Tail from "@fxts/core/dist/types/types/Tail";
  * @param iter
  * @returns
  */
-export function* iter<T>(iter: IterableIterator<T>) {
+export function* iter<T>(iter: T[] | IterableIterator<T>) {
   for (const value of iter) {
     yield value;
   }
 }
 
-export function* prevIter<T>(iter: IterableIterator<T>) {
+export function* prevIter<T>(iter: T[] | IterableIterator<T>) {
   yield "start";
   for (const value of iter) {
     yield value;
@@ -69,6 +69,40 @@ export const objectIterGenerator2 = <T, P>(
   ): AsyncGenerator<P, void, unknown> {
     for await (const value of iter) {
       yield await fn(value);
+    }
+  };
+};
+// Helper functions
+function isAsyncIterable(obj: any): obj is AsyncIterable<any> {
+  return obj && typeof obj[Symbol.asyncIterator] === "function";
+}
+
+function isIterable(obj: any): obj is Iterable<any> {
+  return obj && typeof obj[Symbol.iterator] === "function";
+}
+
+/** Generator to Generator */
+export const objectIterGenerator3 = <T, P>(
+  fn: (
+    input: T
+  ) =>
+    | AsyncGenerator<P, void, undefined>
+    | Generator<P, void, undefined>
+    | AsyncIterableIterator<P>
+    | IterableIterator<P>
+    | Promise<P>
+    | P
+) => {
+  return async function* (
+    iter: AsyncIterableIterator<T> | IterableIterator<T>
+  ): AsyncGenerator<P, void, undefined> {
+    for await (const value of iter) {
+      const result = await fn(value);
+      if (isAsyncIterable(result) || isIterable(result)) {
+        yield* result as AsyncIterable<P>;
+      } else {
+        yield result;
+      }
     }
   };
 };

@@ -6,10 +6,11 @@ const dev = {
   codegenPreferences: [],
 };
 module.exports = (manifest) => {
-  console.log(manifest);
+  console.log("manifest:", manifest);
   return {
     ...manifest,
     ...dev,
     // ...
+    menu: [...manifest.menu, ...dev.menu],
   };
 };

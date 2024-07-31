@@ -1,5 +1,5 @@
 import render from "dom-serializer";
-import { rename } from "../utils/rename";
+// import { rename } from "../utils/rename";
 import { parseDocument } from "htmlparser2";
 import { Element } from "domhandler";
 
@@ -70,7 +70,8 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
   const duplicate = [] as string[];
 
   const temp = selection.map(async (item, index) => {
-    const symbolID = rename(item.name);
+    const symbolID = item.name;
+    // const symbolID = rename(item.name);
 
     let svg;
     try {

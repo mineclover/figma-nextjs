@@ -11,6 +11,7 @@ import { sliceDeepTraverse } from "../utils/imageSplit";
 
 type ErrorCase = "unsupported" | "ignore" | null;
 
+// 스프라이트 이미지 만들 때 쓰려했던 것
 export default function () {
   if (figma.editorType === "figma") {
     on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {

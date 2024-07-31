@@ -9,10 +9,28 @@ import { asyncIter, asyncIterGenerator, iter } from "./JF";
 const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
 const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
 
-export type DeepNode = { node: BaseNode; path: string };
+// figmaID, realName, documentPath, path
+type DetailPaths = {
+  /** 피그마 아이디로 구성 */
+  figmaID: string;
+  /** 실제 이름 */
+  realName: string;
+  /** 도큐먼트 용 이름 > 공백 제거 */
+  documentPath: string;
+  /** 실제 경로 > 공백 변형 */
+  path: string;
+};
+export type DeepNode = { node: BaseNode; path: DetailPaths };
 /** 오로지 내부 식별용 유니크한 구분자 */
 export const testSymbol = "\u25AA";
 // 좀 더 모듈화 해봄
+
+export const symbolJoin = (...args: string[]) => {
+  const arr = args.filter((text) => text != null || text === "");
+
+  return arr.join(testSymbol);
+};
+
 /**
  * 대상 객체 내부 순회
  */
@@ -31,10 +49,44 @@ export function* PathDeepTraverse({
     for (let i = 0; i < node.children.length; i++) {
       yield* PathDeepTraverse({
         node: node.children[i],
-        path: path + testSymbol + i,
+        path: detailPathExtend(node, path, i),
+        // path: path + testSymbol + i,
       });
     }
   }
+}
+
+const detailPathExtend = (
+  node: BaseNode,
+  path?: DetailPaths,
+  index?: number
+): DetailPaths => {
+  const indexValue = typeof index === "number" ? String(index) : "0";
+  const current = {
+    figmaID: node.id,
+    /** 실제 이름 */
+    realName: node.name,
+    /** 도큐먼트 용 이름 > 공백 제거 > 수정 중 */
+    documentPath: node.name,
+    /** 실제 경로 > 공백 변형 */
+    path: indexValue,
+  };
+
+  if (path)
+    return {
+      figmaID: symbolJoin(path.figmaID, current.figmaID),
+      /** 실제 이름 */
+      realName: symbolJoin(path.realName, current.realName),
+      /** 도큐먼트 용 이름 > 공백 제거 */
+      documentPath: symbolJoin(path.documentPath, current.documentPath),
+      /** 실제 경로 > 공백 변형 */
+      path: symbolJoin(path.path, indexValue),
+    };
+  return current;
+};
+
+export async function* getThis(node: BaseNode): AsyncGenerator<DeepNode> {
+  yield { node, path: detailPathExtend(node) };
 }
 
 // 이터러블을 실행하는 pipe
@@ -59,6 +111,7 @@ export type Pages = {
 export async function* getAll2(): AsyncGenerator<Pages> {
   for (const page of figma.root.children) {
     await page.loadAsync();
+
     yield { node: page, path: page.name };
   }
 }

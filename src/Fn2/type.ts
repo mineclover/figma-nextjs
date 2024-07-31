@@ -26,3 +26,11 @@ export type Tree = {
   page: string;
   document: string;
 };
+
+type Color = string | RGBA | RGB;
+type Variable = Color | number | string | boolean;
+type Variables = {
+  [collection: string]: {
+    [key: string]: Variable;
+  }[];
+};
