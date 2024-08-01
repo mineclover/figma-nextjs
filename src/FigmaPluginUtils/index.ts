@@ -19,7 +19,6 @@ export const figmaProgress = (name: string, reset?: boolean) => {
   if (reset) notifyMap[name] = 0;
   if (notifyMap[name] == null) notifyMap[name] = 0;
   notifyMap[name] = notifyMap[name] + 1;
-
   notify(name, String(notifyMap[name]), 1000);
 };
 

@@ -3,7 +3,7 @@
 // 아니면 세션이랑 컴포넌트만 서치하는 것도 괜찮음
 // 어짜피 그 외는 취급 안할꺼니까
 
-import { figmaProgress } from "../FigmaPluginUtils";
+import { figmaProgress, notify } from "../FigmaPluginUtils";
 import { asyncIter, asyncIterGenerator, iter } from "./JF";
 import { sleep } from "./promise";
 
@@ -12,7 +12,7 @@ const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
 const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
 
 // figmaID, realName, documentPath, path
-type DetailPaths = {
+export type DetailPaths = {
   /** 피그마 아이디로 구성 */
   figmaID: string;
   /** 실제 이름 */
@@ -22,6 +22,17 @@ type DetailPaths = {
   /** 실제 경로 > 공백 변형 */
   path: string;
 };
+
+const nullPaths = {
+  /** 피그마 아이디로 구성 */
+  figmaID: "",
+  /** 실제 이름 */
+  realName: "",
+  /** 도큐먼트 용 이름 > 공백 제거 */
+  documentPath: "",
+  /** 실제 경로 > 공백 변형 */
+  path: "",
+};
 export type DeepNode = { node: BaseNode; path: DetailPaths };
 /** 오로지 내부 식별용 유니크한 구분자 */
 export const testSymbol = "\u25AA";
@@ -29,14 +40,22 @@ export const testSymbol = "\u25AA";
 
 export const symbolJoin = (...args: string[]) => {
   const arr = args.filter((text) => text != null || text === "");
-
   return arr.join(testSymbol);
 };
 
+export const pathJoin = (...args: string[]) => {
+  const arr = args.filter((text) => {
+    return text != null && text !== "";
+  });
+  const result = arr.join("/");
+
+  return result;
+};
+
 /**
- * 대상 객체 내부 순회
+ * 대상 객체 내부 순회 1초 딜레이
  */
-export async function* pathDeepTraverse({
+export async function* delayPathDeepTraverse({
   node,
   path,
 }: DeepNode): AsyncIterableIterator<DeepNode> {
@@ -52,14 +71,77 @@ export async function* pathDeepTraverse({
   if ("children" in node && node.children && node.children.length) {
     // 자식 노드를 재귀적으로 탐색
     for (let i = 0; i < node.children.length; i++) {
-      yield* pathDeepTraverse({
+      yield* delayPathDeepTraverse({
         node: node.children[i],
-        path: detailPathExtend(node, path, i),
+        path: detailPathExtend(node.children[i], path, i),
         // path: path + testSymbol + i,
       });
     }
   }
 }
+
+export function* pathDeepTraverse({
+  node,
+  path,
+}: DeepNode): IterableIterator<DeepNode> {
+  yield {
+    node,
+    path,
+  };
+  // 자식 노드가 존재하는 경우
+  if ("children" in node && node.children && node.children.length) {
+    // 자식 노드를 재귀적으로 탐색
+    for (let i = 0; i < node.children.length; i++) {
+      yield* pathDeepTraverse({
+        node: node.children[i],
+        path: detailPathExtend(node.children[i], path, i),
+        // path: path + testSymbol + i,
+      });
+    }
+  }
+}
+
+/**
+ * 이름 저장 규칙, page, section, 이거나 이름에 # 붙였거나
+ * @param node
+ * @returns
+ */
+const documentValid = (node: BaseNode) => {
+  const type = node.type;
+
+  // 섹션 페이지 도큐먼트는 이름을 그대로 씀
+  if (type === "SECTION" || type === "PAGE" || type === "DOCUMENT") {
+    return node.name;
+  } else {
+    const name = node.name.trim();
+
+    // 그냥 접두사 # 거나 / 면
+
+    if (name.startsWith("#") || name.startsWith("/")) {
+      return name;
+      // 괄호 쳐져 있으면
+    } else if (
+      name.startsWith("_") ||
+      (name.startsWith("(") && name.startsWith(")"))
+    ) {
+      return "";
+    } else {
+      notify("#으로 지칭하는 이름은 하나만", "x");
+      return "";
+    }
+  }
+};
+
+/** 경로 파싱 */
+const upTraverse = (node: BaseNode, path: string) => {
+  const parent = node.parent;
+  console.log(path);
+  if (parent) {
+    const name = documentValid(parent);
+    return upTraverse(parent, pathJoin(name, path));
+  }
+  return path;
+};
 
 const detailPathExtend = (
   node: BaseNode,
@@ -67,27 +149,84 @@ const detailPathExtend = (
   index?: number
 ): DetailPaths => {
   const indexValue = typeof index === "number" ? String(index) : "0";
+
+  const documentPath = documentValid(node);
+
   const current = {
     figmaID: node.id,
     /** 실제 이름 */
     realName: node.name,
     /** 도큐먼트 용 이름 > 공백 제거 > 수정 중 */
-    documentPath: node.name,
+    documentPath: documentPath,
     /** 실제 경로 > 공백 변형 */
     path: indexValue,
   };
 
-  if (path)
+  if (path) {
+    // const next = pathJoin(path.documentPath, current.documentPath);
+    const up = upTraverse(node, current.documentPath);
     return {
       figmaID: symbolJoin(path.figmaID, current.figmaID),
       /** 실제 이름 */
       realName: symbolJoin(path.realName, current.realName),
       /** 도큐먼트 용 이름 > 공백 제거 */
-      documentPath: symbolJoin(path.documentPath, current.documentPath),
+      documentPath: up,
       /** 실제 경로 > 공백 변형 */
       path: symbolJoin(path.path, indexValue),
     };
+  }
   return current;
+};
+
+export type Relative = {
+  parent?: string;
+  children?: string[];
+};
+
+/** node 1 depth near nodes */
+export const relativeExtend = (node: BaseNode) => {
+  const { parent, children } = node as {
+    parent?: BaseNode;
+    children?: BaseNode[];
+  };
+
+  console.log("parent:", parent, children);
+  const result = {} as Relative;
+
+  if (children) {
+    if (children.length === 0) delete result.children;
+    else result["children"] = children.map((node) => node.id);
+  }
+
+  if (parent) {
+    if (parent == null) delete result.parent;
+    else result["parent"] = parent.id;
+  }
+
+  return result;
+};
+
+/** node 1 depth near nodes */
+export const stylesExtend = (node: BaseNode) => {
+  const { parent, children } = node as {
+    parent?: BaseNode;
+    children?: BaseNode[];
+  };
+
+  console.log("parent:", parent, children);
+  const result = {} as Relative;
+
+  if (children) {
+    if (children.length === 0) delete result.children;
+    else result["children"] = children.map((node) => node.id);
+  }
+
+  if (parent) {
+    if (parent == null) delete result.parent;
+    else result["parent"] = parent.id;
+  }
+
+  return result;
 };
 
 export async function* getThis(node: BaseNode): AsyncGenerator<DeepNode> {
@@ -110,13 +249,14 @@ export async function* getThis(node: BaseNode): AsyncGenerator<DeepNode> {
 
 export type Pages = {
   node: PageNode;
-  path: string;
+  path: DetailPaths;
 };
 
 export async function* getAll2(): AsyncGenerator<Pages> {
-  for (const page of figma.root.children) {
+  for (let i = 0; i < figma.root.children.length; i++) {
+    const page = figma.root.children[i];
     await page.loadAsync();
 
-    yield { node: page, path: page.name };
+    yield { node: page, path: detailPathExtend(page, nullPaths, i) };
   }
 }

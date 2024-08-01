@@ -25,8 +25,11 @@ import {
   getAll2,
   getThis,
   Pages,
-  pathDeepTraverse,
+  delayPathDeepTraverse,
   symbolJoin,
+  DetailPaths,
+  relativeExtend,
+  Relative,
 } from "../utils/JsonParse";
 import { takeAll, reduce } from "../utils/fx";
 
@@ -51,9 +54,21 @@ const oneLayerTraverse = objectIterGenerator3<DeepNode, DeepNode>(
   }
 );
 
+// 인터페이스
 const PathDeepTraverseWrapper = objectIterGenerator3<DeepNode, DeepNode>(
   (input) => {
-    return pathDeepTraverse(input);
+    return delayPathDeepTraverse(input);
+  }
+);
+
+export type RelativeNode = {
+  node: BaseNode;
+  path: DetailPaths;
+  relative: Relative;
+};
+const relativeTraverseWrapper = objectIterGenerator3<DeepNode, RelativeNode>(
+  (input) => {
+    return { ...input, relative: relativeExtend(input.node) };
   }
 );
 
@@ -83,14 +98,13 @@ const test: RecursiveFigmaNode<NodeType> = {
 };
 
 const testFn = objectIterGenerator2<DeepNode, DeepNode>((input) => {
-  console.log("input", input);
+  console.log("input", input, input.path.documentPath);
 
   return input;
 });
 
 const testFn2 = objectIterGenerator2<DeepNode, DeepNode>((input) => {
   console.log("input", input);
-
   return input;
 });
 
@@ -121,12 +135,12 @@ export default function () {
         const a = pipe(
           getThis(target),
           PathDeepTraverseWrapper,
+          relativeTraverseWrapper,
           testFn,
           take(Infinity)
         );
 
         for await (const value of processAsyncIter(a)) {
-          console.log(value);
         }
       }
     });
