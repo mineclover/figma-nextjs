@@ -30,6 +30,7 @@ import {
   DetailPaths,
   relativeExtend,
   Relative,
+  detailPathExtend,
 } from "../utils/JsonParse";
 import { takeAll, reduce } from "../utils/fx";
 
@@ -98,13 +99,12 @@ const test: RecursiveFigmaNode<NodeType> = {
 };
 
 const testFn = objectIterGenerator2<DeepNode, DeepNode>((input) => {
-  console.log("input", input, input.path.documentPath);
+  console.log("objectIterGenerator2", input, input.path.documentPath);
 
   return input;
 });
 
 const testFn2 = objectIterGenerator2<DeepNode, DeepNode>((input) => {
-  console.log("input", input);
   return input;
 });
 
@@ -149,25 +149,4 @@ export default function () {
       height: 300,
     });
   }
-}
-function detailPathExtend(
-  node:
-    | DocumentNode
-    | PageNode
-    | FrameNode
-    | GroupNode
-    | ComponentSetNode
-    | ComponentNode
-    | InstanceNode
-    | BooleanOperationNode
-    | SectionNode,
-  path: {
-    figmaID: string;
-    realName: string;
-    documentPath: string;
-    path: string;
-  },
-  i: number
-): never {
-  throw new Error("Function not implemented.");
 }

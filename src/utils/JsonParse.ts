@@ -18,7 +18,10 @@ export type DetailPaths = {
   /** 실제 이름 */
   realName: string;
   /** 도큐먼트 용 이름 > 공백 제거 */
-  documentPath: string;
+  documentPath: {
+    origin: string;
+    path: string;
+  };
   /** 실제 경로 > 공백 변형 */
   path: string;
 };
@@ -29,18 +32,23 @@ const nullPaths = {
   /** 실제 이름 */
   realName: "",
   /** 도큐먼트 용 이름 > 공백 제거 */
-  documentPath: "",
+  documentPath: {
+    path: "",
+    origin: "",
+  },
   /** 실제 경로 > 공백 변형 */
   path: "",
 };
 export type DeepNode = { node: BaseNode; path: DetailPaths };
 /** 오로지 내부 식별용 유니크한 구분자 */
-export const testSymbol = "\u25AA";
+export const slashSymbol = "\u25AA";
+export const sectionSymbol = "\u203D";
+
 // 좀 더 모듈화 해봄
 
 export const symbolJoin = (...args: string[]) => {
   const arr = args.filter((text) => text != null || text === "");
-  return arr.join(testSymbol);
+  return arr.join(slashSymbol);
 };
 
 export const pathJoin = (...args: string[]) => {
@@ -102,48 +110,93 @@ export function* pathDeepTraverse({
 }
 
 /**
- * 이름 저장 규칙, page, section, 이거나 이름에 # 붙였거나
+ * 이름 저장 규칙, page, section, 이거나 이름에 # 붙였으면 파싱함
  * @param node
  * @returns
  */
 const documentValid = (node: BaseNode) => {
   const type = node.type;
-
+  const name = node.name.trim();
   // 섹션 페이지 도큐먼트는 이름을 그대로 씀
-  if (type === "SECTION" || type === "PAGE" || type === "DOCUMENT") {
-    return node.name;
-  } else {
-    const name = node.name.trim();
-
-    // 그냥 접두사 # 거나 / 면
-
-    if (name.startsWith("#") || name.startsWith("/")) {
-      return name;
-      // 괄호 쳐져 있으면
-    } else if (
-      name.startsWith("_") ||
-      (name.startsWith("(") && name.startsWith(")"))
-    ) {
-      return "";
-    } else {
-      notify("#으로 지칭하는 이름은 하나만", "x");
-      return "";
-    }
+  if (type === "DOCUMENT") {
+    return name;
   }
+
+  if (type === "PAGE") {
+    return name;
+  }
+  if (type === "SECTION") {
+    return sectionSymbol + name;
+  }
+
+  // 그냥 접두사 # 거나 / 면
+  if (name.startsWith("#") || name.startsWith("/")) {
+    return name;
+  }
+  // 괄호 쳐져 있으거나 언더바가 앞에 있으면
+  //  원래  처리해야하는데 그러려면 section에도 둬야해서 분리하기로 함
+  // else if (
+  //   name.startsWith("_") ||
+  //   (name.startsWith("(") && name.endsWith(")"))
+  // ) {
+  //   return "";
+  // }
+  return "";
+};
+
+/**
+ * 1. 괄호 치거나 앞에 _ 넣으면 생략하기로 했는데 그 컨벤션을 쓰는 경우가 종종 있긴 해서 ( 괄호는 써도 되는걸로 )
+ * 2. _ 하나는 있을 수도 있으니
+ * @param path
+ * @returns
+ */
+const pathValid = (path: string) => {
+  const temp1 = path.split(slashSymbol).map((t) => {
+    const temp11 = t.trim();
+    const temp12 = temp11.replace(/\s/g, "-").toLowerCase();
+    return temp12;
+  });
+
+  const temp2 = temp1
+    .filter(
+      // _로 시작하거나 괄호가 감싸져 있으면 false
+      (t) => {
+        if (t.startsWith("__")) {
+          return false;
+        }
+        // if (t.startsWith("(") && t.endsWith(")")) {
+        //   return false;
+        // }
+        if (t === "") return false;
+        return true;
+      }
+    )
+    .join("/");
+
+  console.log(temp1, temp2);
+  return temp2;
 };
 
 /** 경로 파싱 */
 const upTraverse = (node: BaseNode, path: string) => {
   const parent = node.parent;
-  console.log(path);
   if (parent) {
     const name = documentValid(parent);
-    return upTraverse(parent, pathJoin(name, path));
+    return upTraverse(parent, symbolJoin(name, path));
   }
   return path;
 };
 
-const detailPathExtend = (
+/** origin parser */
+const originClear = (path: string) => {
+  return path
+    .split(slashSymbol)
+    .map((t) => t.trim())
+    .filter((t) => t !== "")
+    .join(slashSymbol);
+};
+
+export const detailPathExtend = (
   node: BaseNode,
   path?: DetailPaths,
   index?: number
@@ -157,20 +210,34 @@ const detailPathExtend = (
     /** 실제 이름 */
     realName: node.name,
     /** 도큐먼트 용 이름 > 공백 제거 > 수정 중 */
-    documentPath: documentPath,
+    documentPath: {
+      path: "",
+      origin: "",
+    },
     /** 실제 경로 > 공백 변형 */
     path: indexValue,
   };
+  const up = upTraverse(node, current.documentPath.path);
+  console.log(up, {
+    path: pathValid(up),
+    origin: originClear(up),
+  });
 
   if (path) {
     // const next = pathJoin(path.documentPath, current.documentPath);
-    const up = upTraverse(node, current.documentPath);
+    const up = upTraverse(node, current.documentPath.path);
     return {
       figmaID: symbolJoin(path.figmaID, current.figmaID),
       /** 실제 이름 */
       realName: symbolJoin(path.realName, current.realName),
       /** 도큐먼트 용 이름 > 공백 제거 */
-      documentPath: up,
+      documentPath: {
+        //TODO: origin은 차후 피그마 경로를 위한 세션 경로 파싱 후 컴포넌트 이름 적용에 쓰여야 됨
+        // 섹션 한계층을 무시하는 속성 때문에
+
+        path: pathValid(up),
+        origin: originClear(up),
+      },
       /** 실제 경로 > 공백 변형 */
       path: symbolJoin(path.path, indexValue),
     };
