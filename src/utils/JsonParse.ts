@@ -41,8 +41,12 @@ const nullPaths = {
 };
 export type DeepNode = { node: BaseNode; path: DetailPaths };
 /** 오로지 내부 식별용 유니크한 구분자 */
+
 export const slashSymbol = "\u25AA";
+
 export const sectionSymbol = "\u203D";
+// 🔄
+export const syncSymbol = "\u{1F504}";
 
 // 좀 더 모듈화 해봄
 
@@ -178,11 +182,20 @@ const pathValid = (path: string) => {
 };
 
 /** 경로 파싱 */
-const upTraverse = (node: BaseNode, path: string) => {
+const upPathTraverse = (node: BaseNode, path: string) => {
   const parent = node.parent;
   if (parent) {
     const name = documentValid(parent);
-    return upTraverse(parent, symbolJoin(name, path));
+    return upPathTraverse(parent, symbolJoin(name, path));
+  }
+  return path;
+};
+
+const upIdTraverse = (node: BaseNode, path: string) => {
+  const parent = node.parent;
+  if (parent) {
+    const name = parent.id;
+    return upIdTraverse(parent, symbolJoin(name, path));
   }
   return path;
 };
@@ -204,41 +217,43 @@ export const detailPathExtend = (
   const indexValue = typeof index === "number" ? String(index) : "0";
 
   const documentPath = documentValid(node);
-
+  const up = upPathTraverse(node, documentPath);
+  const upId = upIdTraverse(node, node.id);
   const current = {
-    figmaID: node.id,
-    /** 실제 이름 */
+    figmaID: upId,
+    /** 경로로 앞이 채워지기 전 이름을 얻을 수 있어야됨
+     * 현재 이름에 상위 경로 이름 제거하면 됨
+     * TODO: ㅇㅇ
+     * 이건 상위 이름만 받는 함수로 만들어서 이름에 상위 이름을 때는 구조로 해야함
+     *
+     */
     realName: node.name,
-    /** 도큐먼트 용 이름 > 공백 제거 > 수정 중 */
+    /** 도큐먼트 용 이름 > origin: 컴포넌트용, path: 문서용
+     * 자잘한거 무시하고 section이랑 이름으로 경로를 판단하므로 지금 방식이 맞다
+     */
     documentPath: {
-      path: "",
-      origin: "",
+      path: pathValid(up),
+      origin: originClear(up),
     },
     /** 실제 경로 > 공백 변형 */
     path: indexValue,
   };
-  const up = upTraverse(node, current.documentPath.path);
-  console.log(up, {
-    path: pathValid(up),
-    origin: originClear(up),
-  });
 
   if (path) {
     // const next = pathJoin(path.documentPath, current.documentPath);
-    const up = upTraverse(node, current.documentPath.path);
+
     return {
-      figmaID: symbolJoin(path.figmaID, current.figmaID),
+      figmaID: upId,
       /** 실제 이름 */
       realName: symbolJoin(path.realName, current.realName),
       /** 도큐먼트 용 이름 > 공백 제거 */
       documentPath: {
         //TODO: origin은 차후 피그마 경로를 위한 세션 경로 파싱 후 컴포넌트 이름 적용에 쓰여야 됨
         // 섹션 한계층을 무시하는 속성 때문에
-
         path: pathValid(up),
         origin: originClear(up),
       },
-      /** 실제 경로 > 공백 변형 */
+      /** 실제 상대 경로 > 공백 변형 > 재귀 탐색용 */
       path: symbolJoin(path.path, indexValue),
     };
   }

@@ -134,7 +134,7 @@ export default function () {
         // const a = pipe(getAll2(), testFn, take(Infinity));
         const a = pipe(
           getThis(target),
-          PathDeepTraverseWrapper,
+          // PathDeepTraverseWrapper,
           relativeTraverseWrapper,
           testFn,
           take(Infinity)
