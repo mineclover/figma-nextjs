@@ -1,9 +1,9 @@
 import { Prettify } from "../../types/utilType";
 import { FigmaNodeType, FigmaNodeTypeMapping } from "./FigmaNodes";
 
-export const notify = (message: string, closeLabel: string) => {
+export const notify = (message: string, closeLabel: string, timeout = 2000) => {
   const NotificationHandler = figma.notify(message, {
-    timeout: 3000,
+    timeout: timeout,
     button: {
       text: closeLabel,
       action: () => {
@@ -11,6 +11,16 @@ export const notify = (message: string, closeLabel: string) => {
       },
     },
   });
+};
+
+const notifyMap = {} as Record<string, number>;
+/** progress 생성 */
+export const figmaProgress = (name: string, reset?: boolean) => {
+  if (reset) notifyMap[name] = 0;
+  if (notifyMap[name] == null) notifyMap[name] = 0;
+  notifyMap[name] = notifyMap[name] + 1;
+
+  notify(name, String(notifyMap[name]), 1000);
 };
 
 type 참조 = Prettify<BaseNodeMixin>;

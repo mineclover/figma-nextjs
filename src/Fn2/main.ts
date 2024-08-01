@@ -18,14 +18,14 @@ import {
 } from "../utils/JF";
 
 import { JSXTargetCheck } from "../utils/typeChecker";
-import { RecursiveFigmaNode, notify } from "../FigmaPluginUtils";
+import { RecursiveFigmaNode, figmaProgress, notify } from "../FigmaPluginUtils";
 import { RecursiveNodeType } from "../../types/NodeBase";
 import {
   DeepNode,
   getAll2,
   getThis,
   Pages,
-  PathDeepTraverse,
+  pathDeepTraverse,
   symbolJoin,
 } from "../utils/JsonParse";
 import { takeAll, reduce } from "../utils/fx";
@@ -53,7 +53,7 @@ const oneLayerTraverse = objectIterGenerator3<DeepNode, DeepNode>(
 
 const PathDeepTraverseWrapper = objectIterGenerator3<DeepNode, DeepNode>(
   (input) => {
-    return PathDeepTraverse(input);
+    return pathDeepTraverse(input);
   }
 );
 

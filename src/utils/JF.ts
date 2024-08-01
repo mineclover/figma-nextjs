@@ -81,7 +81,8 @@ function isIterable(obj: any): obj is Iterable<any> {
   return obj && typeof obj[Symbol.iterator] === "function";
 }
 
-/** Generator to Generator */
+/** Generator to Generator
+ *  async 을 포함해서 처리 */
 export const objectIterGenerator3 = <T, P>(
   fn: (
     input: T

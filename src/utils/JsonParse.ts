@@ -3,7 +3,9 @@
 // 아니면 세션이랑 컴포넌트만 서치하는 것도 괜찮음
 // 어짜피 그 외는 취급 안할꺼니까
 
+import { figmaProgress } from "../FigmaPluginUtils";
 import { asyncIter, asyncIterGenerator, iter } from "./JF";
+import { sleep } from "./promise";
 
 // "DOCUMENT","PAGE",를 뺀 건   figma.currentPage.selection 호환을 위해
 const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
@@ -34,11 +36,14 @@ export const symbolJoin = (...args: string[]) => {
 /**
  * 대상 객체 내부 순회
  */
-export function* PathDeepTraverse({
+export async function* pathDeepTraverse({
   node,
   path,
-}: DeepNode): IterableIterator<DeepNode> {
+}: DeepNode): AsyncIterableIterator<DeepNode> {
+  // }: DeepNode): IterableIterator<DeepNode> {
   // 현재 노드 방문
+  figmaProgress("pathDeepTraverse");
+  await sleep(1001);
   yield {
     node,
     path,
@@ -47,7 +52,7 @@ export function* PathDeepTraverse({
   if ("children" in node && node.children && node.children.length) {
     // 자식 노드를 재귀적으로 탐색
     for (let i = 0; i < node.children.length; i++) {
-      yield* PathDeepTraverse({
+      yield* pathDeepTraverse({
         node: node.children[i],
         path: detailPathExtend(node, path, i),
         // path: path + testSymbol + i,
