@@ -6,10 +6,5 @@
     "typeRoots": ["node_modules/@figma", "node_modules/@types"]
   },
 
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/layerExport/ui.tsx",
-    "types/utilType.d.ts"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "types/**.d.ts", "types/**/*.tsx"]
 }

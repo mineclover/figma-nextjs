@@ -8,7 +8,7 @@ import {
   TextboxNumeric,
   VerticalSpace,
   Code,
-  TextboxMultiline,
+  TextboxMultiline
 } from "@create-figma-plugin/ui";
 import { emit, on } from "@create-figma-plugin/utilities";
 import { h } from "preact";
@@ -17,10 +17,10 @@ import { EventHandler } from "@create-figma-plugin/ui";
 
 import {
   CloseHandler,
+  SvgSymbolHandler,
   MessageHandler,
-  AssetRequestHandler,
-  CodeResponseHandler,
-} from "./handlerTypes";
+  ScanHandler
+} from "../types";
 
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
@@ -33,44 +33,43 @@ function Plugin() {
   const [duplicate, setDuplicate] = useState<string[]>([]);
   const [unsupportedKeys, setUnsupportedKeys] = useState<string[]>([]);
   const [ids, setIds] = useState<string[]>([]);
+  const handleButtonClick = () => emit<SvgSymbolHandler>("SVG_SYMBOL_CODE");
 
   function handleValueInput(newValue: string) {
     setText(newValue);
   }
-  const AssetClick = useCallback(function () {
-    emit<AssetRequestHandler>("CREATE_REQUEST");
-  }, []);
   const handleCloseButtonClick = useCallback(function () {
     emit<CloseHandler>("CLOSE");
   }, []);
 
   useEffect(() => {
-    on<CodeResponseHandler>("CODE_RESPONSE", (result) => {
+    on<ScanHandler>("FULL_SCAN", (result, dupl, unsup, id) => {
       setText(result);
+
+      setDuplicate(dupl);
+      setUnsupportedKeys(unsup);
+      setIds(id);
+      console.log(id);
     });
   }, []);
 
   return (
     <Container space="medium">
       <VerticalSpace space="large" />
-      <Text>
-        <Muted>duplicate name</Muted>
-      </Text>
+
       <VerticalSpace space="small" />
       {duplicate.map((item) => (
         <Text>{item}</Text>
       ))}
       <VerticalSpace space="extraLarge" />
-      <Text>
-        <Muted>unsupportedKeys name</Muted>
-      </Text>
+
       <VerticalSpace space="small" />
       {unsupportedKeys.map((item) => (
         <Text>{item}</Text>
       ))}
       <VerticalSpace space="extraLarge" />
       <Columns space="extraSmall">
-        <Button fullWidth onClick={AssetClick}>
+        <Button fullWidth onClick={handleButtonClick}>
           Create
         </Button>
         <Button fullWidth onClick={handleCloseButtonClick} secondary>
@@ -97,4 +96,4 @@ function Plugin() {
   );
 }
 
-export default render(Plugin);
+export default Plugin;

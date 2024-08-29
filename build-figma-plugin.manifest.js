@@ -1,16 +1,13 @@
 const dev = {
-  capabilities: ["codegen"],
   documentAccess: "dynamic-page",
 
   codegenLanguages: [{ label: "JS", value: "js" }],
-  codegenPreferences: [],
+  codegenPreferences: []
 };
 module.exports = (manifest) => {
-  console.log("manifest:", manifest);
   return {
     ...manifest,
-    ...dev,
+    ...dev
     // ...
-    menu: [...manifest.menu, ...dev.menu],
   };
 };

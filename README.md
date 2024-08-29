@@ -7,6 +7,8 @@ pipe와 호환되게해주는 iterGenerator 를 많이 쓴다
 "containsWidget": true
 ```
 
+https://claude.ai/project/04af6dc1-0e9a-40c3-8130-8d4ee8737029
+
 타입 별로 모듈화 하자
 핵심 로직은 전체 순회를 해서, 필요한 데이터를 수집해서 result에 저장하는 것
 

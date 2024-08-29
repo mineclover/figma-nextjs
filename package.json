@@ -8,16 +8,16 @@
     "dom-serializer": "^2.0.0",
     "htmlparser2": "^9.1.0",
     "lodash": "^4.17.21",
-    "preact": "^10.23.1",
+    "preact": "^10.23.2",
     "prettier": "^3.3.3"
   },
   "devDependencies": {
     "@create-figma-plugin/build": "^3.2.0",
     "@create-figma-plugin/tsconfig": "^3.2.0",
-    "@figma/plugin-typings": "1.97.0",
+    "@figma/plugin-typings": "1.99.0",
     "@figma/widget-typings": "^1.9.1",
-    "@types/node": "^22.0.0",
-    "@types/react": "^18.3.3",
+    "@types/node": "^20.16.2",
+    "@types/react": "^18.3.4",
     "typescript": "^5.5.4"
   },
   "scripts": {
@@ -33,50 +33,15 @@
       ]
     },
     "editorType": [
-      "figma",
       "dev"
     ],
-    "name": "J gma",
     "id": "1331810010782002781",
     "capabilities": [
+      "inspect",
       "codegen"
     ],
-    "menu": [
-      {
-        "name": "Figma To Code",
-        "main": "src/layerExport/main.ts",
-        "ui": "src/layerExport/ui.tsx"
-      },
-      {
-        "name": "SVG Asset Export",
-        "main": "src/svgAssetExport/main.ts",
-        "ui": "src/svgAssetExport/ui.tsx"
-      },
-      {
-        "name": "CodeGen",
-        "main": "src/CodeGen/main.ts",
-        "ui": "src/CodeGen/ui.tsx"
-      },
-      {
-        "name": "Figma Token Export",
-        "main": "src/TokenExport/main.ts",
-        "ui": "src/TokenExport/ui.tsx"
-      },
-      {
-        "name": "Figma image Export",
-        "main": "src/split/main.ts",
-        "ui": "src/split/ui.tsx"
-      },
-      {
-        "name": "Figma Fn",
-        "main": "src/Fn/main.ts",
-        "ui": "src/Fn/ui.tsx"
-      },
-      {
-        "name": "Figma Fn2",
-        "main": "src/Fn2/main.ts",
-        "ui": "src/Fn2/ui.tsx"
-      }
-    ]
+    "name": "CodeGen",
+    "main": "src/CodeGen/main.ts",
+    "ui": "src/CodeGen/ui.tsx"
   }
 }
