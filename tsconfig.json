@@ -3,6 +3,12 @@
 
   "compilerOptions": {
     "target": "ES6",
+    "paths": {
+      "react": ["./node_modules/preact/compat"],
+      "react-dom": ["./node_modules/preact/compat"]
+    },
+    "skipLibCheck": true,
+
     "typeRoots": ["node_modules/@figma", "node_modules/@types"]
   },
 
