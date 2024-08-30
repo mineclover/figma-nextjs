@@ -10,12 +10,38 @@ import {
 } from "./types";
 import { FileMetaSearch, findMainComponent } from "../FigmaPluginUtils";
 
+/**
+ * 전송할 노드 선택
+ */
+const responseNode = (target: SceneNode) => {
+  const docs = FileMetaSearch(target);
+  if (docs) {
+    return emit<SectionSelectMainResponseHandler>(
+      "SECTION_SELECT_UI_RESPONSE",
+      {
+        id: target.id,
+        name: target.name,
+        pageId: docs.page.id,
+        pageName: docs.page.name,
+      }
+    );
+  } else {
+    return emit<SectionSelectMainResponseHandler>(
+      "SECTION_SELECT_UI_RESPONSE",
+      {
+        id: target.id,
+        name: target.name,
+        pageId: "",
+        pageName: "",
+      }
+    );
+  }
+};
+
 export default function () {
-  console.log("hello::", figma);
   if (figma.editorType === "dev") {
     figma.on("selectionchange", async () => {
       const current = figma.currentPage.selection;
-      console.log(current);
     });
 
     on<SectionSelectUiRequestHandler>("SECTION_SELECT_UI_REQUEST", async () => {
@@ -25,21 +51,14 @@ export default function () {
         return figma.notify("선택된 노드가 없습니다");
       }
 
-      const agree = ["SECTION", "FRAME"];
-      if (agree.includes(current[0].type)) {
+      const area = ["SECTION", "COMPONENT_SET"];
+      const single = ["FRAME", "INSTANCE", "GROUP", "COMPONENT"];
+      // 하위에 그룹이 있으면 문제가 되는거지 프레임이 그룹이면 문제는 없음
+      // export svg 했을 때 괜찮으면 ok
+
+      if ([...area, ...single].includes(current[0].type)) {
         const target = current[0] as SectionNode;
-        const docs = FileMetaSearch(target);
-        if (docs) {
-          return emit<SectionSelectMainResponseHandler>(
-            "SECTION_SELECT_UI_RESPONSE",
-            {
-              id: target.id,
-              name: target.name,
-              pageId: docs.page.id,
-              pageName: docs.page.name,
-            }
-          );
-        }
+        responseNode(target);
       }
 
       if (current[0].type === "INSTANCE") {
@@ -47,21 +66,14 @@ export default function () {
         if (mainComponent) {
           if (mainComponent.remote) {
             figma.notify(
-              "이 인스턴스의 메인 컴포넌트는 현재 프로젝트 외부 라이브러리입니다."
+              "이 인스턴스의 메인 컴포넌트는 현재 프로젝트 외부 라이브러리입니다. 문서화 시 찾기 어려워질 확률이 높음"
             );
+
+            responseNode(current[0]);
           } else {
-            const docs = FileMetaSearch(mainComponent);
-            if (docs) {
-              figma.ui.postMessage({
-                type: "SECTION_SELECT_UI_RESPONSE",
-                data: {
-                  id: mainComponent.id,
-                  name: mainComponent.name,
-                  pageId: docs.page.id,
-                  pageName: docs.page.name,
-                },
-              });
-            }
+            // 메인 컴포넌트인데 remote가 아닐 경우 조회 하는데 page가 다르면 데이터를 읽지 못하나?
+            // table, memory 모두 리부팅 하면 해결 되긴 함
+            responseNode(mainComponent);
           }
         }
       }
@@ -74,7 +86,6 @@ export default function () {
           (node) => node.id === pageId && node.type === "PAGE"
         ) as PageNode | null;
 
-        console.log("page", page);
         if (!page) {
           return;
         }
@@ -96,7 +107,7 @@ export default function () {
 
     on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {
       const current = figma.currentPage.selection;
-      console.log("current", current);
+
       const { id, completed, duplicate, unsupportedKeys } =
         await toSvg(current);
       const text = completed

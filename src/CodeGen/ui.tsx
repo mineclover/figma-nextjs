@@ -8,7 +8,6 @@ import { NonNullableComponentTypeExtract } from "../../types/utilType";
 
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
-  console.log(files[0].name, JSON.parse(text));
 };
 
 function Plugin() {

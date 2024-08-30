@@ -11,7 +11,7 @@ export const FileMetaSearch = (
 ): { page: PageNode; document: DocumentNode } | undefined => {
   const parent = node.parent;
 
-  if (parent) {
+  if (parent != null) {
     if (parent.type === "PAGE") {
       const name = parent;
       return FileMetaSearch(parent, name);
@@ -55,8 +55,6 @@ export async function findMainComponent(instance: InstanceNode) {
   while (instance.type === "INSTANCE") {
     const main = await instance.getMainComponentAsync();
     if (main) {
-      console.log(main);
-
       return main;
     }
     return null; // 메인 컴포넌트를 찾지 못한 경우

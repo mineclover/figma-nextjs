@@ -177,7 +177,6 @@ const pathValid = (path: string) => {
     )
     .join("/");
 
-  console.log(temp1, temp2);
   return temp2;
 };
 
@@ -271,8 +270,6 @@ export const relativeExtend = (node: BaseNode) => {
     parent?: BaseNode;
     children?: BaseNode[];
   };
-
-  console.log("parent:", parent, children);
   const result = {} as Relative;
 
   if (children) {
@@ -295,7 +292,6 @@ export const stylesExtend = (node: BaseNode) => {
     children?: BaseNode[];
   };
 
-  console.log("parent:", parent, children);
   const result = {} as Relative;
 
   if (children) {

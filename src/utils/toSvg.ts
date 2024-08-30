@@ -24,7 +24,6 @@ type Inspection = {
 const currentOverrideOption = false;
 
 export const childrenScan = (node: Element): ErrorCase => {
-  console.log("childrenScan", node);
   const children = node.children.filter(
     (item) => item instanceof Element
   ) as Element[];
@@ -42,7 +41,6 @@ export const childrenScan = (node: Element): ErrorCase => {
   }
 
   if (unsupported.includes(node.name)) {
-    console.log("unsupported", node.name);
     return "unsupported";
   }
   if (Array.isArray(children)) {
@@ -84,16 +82,6 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
       svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>`;
     }
 
-    console.log(
-      "end",
-      item,
-      item.componentPropertyReferences,
-      item.boundVariables,
-      index,
-      svg,
-      symbolID
-    );
-
     const ast = parseDocument(svg).children.filter(
       (item) => item.type === "tag"
     )[0] as Element;
@@ -111,7 +99,6 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
     }
 
     const r = childrenScan(ast);
-    console.log("childrenScanResult", r);
 
     if (r === "unsupported") {
       unsupportedKeys.push(symbolID);

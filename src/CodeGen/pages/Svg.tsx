@@ -41,12 +41,6 @@ import {
   JsonToArray,
 } from "../../utils/jsonFile";
 
-const fn = async (files: Array<File>) => {
-  const text = await files[0].text();
-  console.log(files[0].name, JSON.parse(text));
-  // console.log(files[0].name, JSON.parse(text));
-};
-
 /**
  *
  * @param text
@@ -72,7 +66,6 @@ function Plugin() {
   const [sections, setSections] = useState<SelectList[]>([]);
   const [x, update] = useState(0);
 
-  console.log("sections::", x, sections);
   const handleButtonClick = () => {
     emit<SvgSymbolHandler>("SVG_SYMBOL_CODE");
   };
@@ -82,7 +75,6 @@ function Plugin() {
   }
 
   useEffect(() => {
-    console.log("effect");
     on<ScanHandler>("FULL_SCAN", (result, dupl, unsup, id) => {
       setText(result);
       update((x) => x + 1);
@@ -126,7 +118,7 @@ function Plugin() {
                 key={id}
                 description={pageName}
                 icon={<IconTarget16 />}
-                onMouseDown={() => {
+                onClick={() => {
                   emit<SelectNodeByIdUiHandler>(
                     "SELECT_NODE_BY_ID_UI",
                     id,
@@ -153,16 +145,17 @@ function Plugin() {
       ></div>
       <Columns space="extraSmall">
         <Button fullWidth onClick={handleButtonClick}>
+          {/* 만드는 중 */}
           Export SVG
         </Button>
         <Button
           fullWidth
           onClick={() => {
+            // export json
             handleJSONExportButtonClick(JSON.stringify(sections));
           }}
           secondary
         >
-          {/* <Button fullWidth onClick={(handleCloseButtonClick)} secondary> */}
           Export JSON
         </Button>
       </Columns>
@@ -176,7 +169,7 @@ function Plugin() {
         }}
       >
         <Text align="center">
-          <Muted>Text</Muted>
+          <Muted>import section data json</Muted>
         </Text>
       </FileUploadDropzone>
       ;
