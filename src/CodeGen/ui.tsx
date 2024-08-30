@@ -17,16 +17,16 @@ function Plugin() {
   const options: Array<TabsOption> = [
     {
       children: <Svg />,
-      value: nav[0]
+      value: nav[0],
     },
     {
       children: <div>Bar</div>,
-      value: nav[1]
+      value: nav[1],
     },
     {
       children: <div>Baz</div>,
-      value: nav[2]
-    }
+      value: nav[2],
+    },
   ] as const;
   const [value, setValue] = useState<string>("SVG 생성기");
 

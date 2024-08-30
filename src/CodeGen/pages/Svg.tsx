@@ -17,6 +17,7 @@ import {
   Textbox,
   Layer,
   Disclosure,
+  FileUploadDropzone,
 } from "@create-figma-plugin/ui";
 import { emit, on } from "@create-figma-plugin/utilities";
 import { h } from "preact";
@@ -33,12 +34,35 @@ import {
   SelectList,
   SelectNodeByIdUiHandler,
 } from "../types";
+import {
+  addUniqueSectionCurry,
+  downloadJsonFile,
+  handleFileInput,
+  JsonToArray,
+} from "../../utils/jsonFile";
 
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
   console.log(files[0].name, JSON.parse(text));
   // console.log(files[0].name, JSON.parse(text));
 };
+
+/**
+ *
+ * @param text
+ * @param fileName .json 확장자 생략가능
+ */
+const handleJSONExportButtonClick = (text: string) => {
+  downloadJsonFile(text);
+};
+
+const addUniqueSection = addUniqueSectionCurry<SelectList>(
+  (item, index, array) => {
+    return (
+      index === array.findIndex((t) => t.id === item.id && t.name === item.name)
+    );
+  }
+);
 
 //event: h.JSX.TargetedMouseEvent<HTMLInputElement>
 
@@ -56,9 +80,6 @@ function Plugin() {
   function handleValueInput(newValue: string) {
     setText(newValue);
   }
-  const handleCloseButtonClick = useCallback(function () {
-    emit<CloseHandler>("CLOSE");
-  }, []);
 
   useEffect(() => {
     console.log("effect");
@@ -70,13 +91,7 @@ function Plugin() {
     on<SectionSelectMainResponseHandler>(
       "SECTION_SELECT_UI_RESPONSE",
       (data) => {
-        setSections((array) =>
-          [...array, data].filter(
-            (item, index, self) =>
-              index ===
-              self.findIndex((t) => t.id === item.id && t.name === item.name)
-          )
-        );
+        setSections((array) => addUniqueSection(array, data));
       }
     );
   }, []);
@@ -126,7 +141,6 @@ function Plugin() {
           })}
         </Container>
       </Disclosure>
-
       <div
         style={{
           display: "flex",
@@ -139,13 +153,33 @@ function Plugin() {
       ></div>
       <Columns space="extraSmall">
         <Button fullWidth onClick={handleButtonClick}>
-          Create
+          Export SVG
         </Button>
-        <Button fullWidth onClick={handleCloseButtonClick} secondary>
+        <Button
+          fullWidth
+          onClick={() => {
+            handleJSONExportButtonClick(JSON.stringify(sections));
+          }}
+          secondary
+        >
           {/* <Button fullWidth onClick={(handleCloseButtonClick)} secondary> */}
-          Close
+          Export JSON
         </Button>
       </Columns>
+      <FileUploadDropzone
+        onSelectedFiles={async (e) => {
+          // 중복 아이디 삭제하면서 여러 json 추가 가능
+          const data = await JsonToArray(e);
+          data.forEach((item) => {
+            setSections((array) => addUniqueSection(array, item));
+          });
+        }}
+      >
+        <Text align="center">
+          <Muted>Text</Muted>
+        </Text>
+      </FileUploadDropzone>
+      ;
       <VerticalSpace space="small" />
       <TextboxMultiline
         onValueInput={handleValueInput}

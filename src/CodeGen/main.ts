@@ -47,7 +47,7 @@ export default function () {
         if (mainComponent) {
           if (mainComponent.remote) {
             figma.notify(
-              "이 인스턴스의 메인 컴포넌트는 현재 프로젝트 프로젝트 외부 라이브러리입니다."
+              "이 인스턴스의 메인 컴포넌트는 현재 프로젝트 외부 라이브러리입니다."
             );
           } else {
             const docs = FileMetaSearch(mainComponent);
