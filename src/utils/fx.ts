@@ -1,5 +1,5 @@
 //@ts-nocheck
-export const log = console.log;
+export const log = log;
 
 type AnyFn = (...args: any) => any;
 

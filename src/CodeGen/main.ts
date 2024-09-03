@@ -1,14 +1,32 @@
 import { once, on, showUI, emit } from "@create-figma-plugin/utilities";
 
-import { toSvg } from "../utils/toSvg";
+import { toSingleSvg, toSvg } from "../utils/toSvg";
 import {
   ScanHandler,
   SectionSelectUiRequestHandler,
   SectionSelectMainResponseHandler,
   SvgSymbolHandler,
-  SelectNodeByIdUiHandler,
+  SelectNodeByIdZoomHandler,
+  MessageHandler,
+  SectionSelectSvgUiRequestHandler,
 } from "./types";
-import { FileMetaSearch, findMainComponent } from "../FigmaPluginUtils";
+import {
+  FileMetaSearch,
+  FilePathSearch,
+  FilterTypeIndex,
+  findMainComponent,
+} from "../FigmaPluginUtils";
+import { LLog } from "../utils/console";
+
+/** 하위 객체 탐색 필요 대상 */
+const area = ["SECTION", "COMPONENT_SET"];
+const areaInclude = (
+  node: SceneNode
+): node is SectionNode | ComponentSetNode => {
+  return area.includes(node.type);
+};
+/** 그 자체가 svg화 되야하는 대상 */
+const single = ["FRAME", "INSTANCE", "GROUP", "COMPONENT"];
 
 /**
  * 전송할 노드 선택
@@ -51,8 +69,6 @@ export default function () {
         return figma.notify("선택된 노드가 없습니다");
       }
 
-      const area = ["SECTION", "COMPONENT_SET"];
-      const single = ["FRAME", "INSTANCE", "GROUP", "COMPONENT"];
       // 하위에 그룹이 있으면 문제가 되는거지 프레임이 그룹이면 문제는 없음
       // export svg 했을 때 괜찮으면 ok
 
@@ -79,8 +95,8 @@ export default function () {
       }
     });
 
-    on<SelectNodeByIdUiHandler>(
-      "SELECT_NODE_BY_ID_UI",
+    on<SelectNodeByIdZoomHandler>(
+      "SELECT_NODE_BY_ID_ZOOM",
       async (nodeId, pageId) => {
         const page = figma.root.findChild(
           (node) => node.id === pageId && node.type === "PAGE"
@@ -89,9 +105,9 @@ export default function () {
         if (!page) {
           return;
         }
+        //
         await figma.setCurrentPageAsync(page);
         // 현재 페이지를 찾은 페이지로 설정
-
         // figma 내에서 노드 찾기
         const node = page.findOne((n) => n.id === nodeId);
 
@@ -102,6 +118,107 @@ export default function () {
 
           figma.notify(`${page.name}  /  ${node.name}`);
         }
+      }
+    );
+
+    on<SectionSelectSvgUiRequestHandler>(
+      "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
+      async (sections, filter) => {
+        const nodes = []; // 노드를 저장할 배열 추가
+        for (const section of sections) {
+          // for...of 루프 사용
+          const { pageId, id } = section;
+
+          const page = figma.root.findChild(
+            (node) => node.id === pageId && node.type === "PAGE"
+          ) as PageNode | null;
+
+          if (!page) {
+            continue; // 다음 섹션으로 넘어감
+          }
+          await figma.setCurrentPageAsync(page);
+          // 현재 페이지를 찾은 페이지로 설정
+
+          // figma 내에서 노드 찾기
+          const node = page.findOne((n) => n.id === id);
+          if (node) nodes.push(node); // 찾은 노드 추가
+        }
+
+        /**
+         *  접근 방법 두 개임
+         * 1. flat 한 다음 부모에 접근해서 이름을 얻는다
+         * 2. 부모 정보 저장하고 그 아래에 자식 순회해서 이름 부여한다
+         *  - 이 경우에는 부모가 area 에 속하면 가져오는 개념
+         * # 이름 중복 문제가 있음
+         *  - 파일 이름 > 페이지 > 섹션 > 섹션 > 컴포넌트 셋 > 컴포넌트
+         *  - 다 쓰면 중복 안될 가능성이 높음
+         *  - 소속을 나타내는 데이터는 전부 수집한다
+         */
+        const flatNodes = nodes.flatMap((node) => {
+          if (areaInclude(node)) return node.children;
+          return node;
+        });
+
+        console.log("flatNodes::", flatNodes);
+
+        // nodes 배열을 사용하여 후속 작업 수행
+        // 각 노드 > svg 대상
+
+        const svgs = [] as {
+          name: string;
+          node: SceneNode;
+        }[];
+
+        for (const node of flatNodes) {
+          // 패스 작업
+          const paths = FilePathSearch(node, []).filter((path) => {
+            // 의도적 결합도
+            if (FilterTypeIndex(path.type) === 1) return filter.DOCUMENT;
+            if (FilterTypeIndex(path.type) === 2) return filter.PAGE;
+            if (FilterTypeIndex(path.type) === 3) return filter.SECTION;
+            if (FilterTypeIndex(path.type) === 4) return filter.COMPONENT_SET;
+            if (FilterTypeIndex(path.type) === 5) return filter.COMPONENT;
+            return false;
+          });
+          // property 구분
+
+          let currentNode = paths[paths.length - 1] as SceneNode;
+
+          if (currentNode && !(FilterTypeIndex(currentNode.type) === 5)) {
+            currentNode = node;
+          } else if (currentNode && FilterTypeIndex(currentNode.type) === 5) {
+            paths.pop();
+          }
+          const names = currentNode.name.split(", ");
+          const name = names.map((t) => t.split("=")[1]).join("_");
+          const path = paths
+            .map((item) => item.name.replace(/[^a-zA-Z0-9_]/g, "").trim())
+            .map((t, index) =>
+              t !== "" ? t : FilterTypeIndex(paths[index].type) + "😎"
+            )
+            .join("_");
+
+          const result =
+            path + "__" + name.replace(/ /g, "").replace(/-/g, "_");
+
+          let svg;
+          await toSingleSvg(node);
+
+          // const parser = new DOMParser();
+          // const svgDom = parser.parseFromString(svg, "image/svg+xml");
+          // console.log("dom:", svgDom);
+          svgs.push({
+            node: node,
+            name: result,
+          });
+          // 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
+
+          // 선택된 값들에 대한 섹션 아이디가 있고
+          // 결과물로 svg 아이디가 있고 , Node 아이디가 있음
+        }
+        console.log(sections, filter, svgs);
+
+        // svg export
       }
     );
 
@@ -122,6 +239,19 @@ export default function () {
 </svg>`;
       emit<ScanHandler>("FULL_SCAN", result, duplicate, unsupportedKeys, id);
     });
+
+    on<MessageHandler>("POST_MESSAGE", function (text: string) {
+      const NotificationHandler = figma.notify(text, {
+        timeout: 200,
+        button: {
+          text: "x",
+          action: () => {
+            NotificationHandler.cancel();
+          },
+        },
+      });
+    });
+
     showUI({});
   }
   // 코드 제너레이터 코드를 넣을 수 있음

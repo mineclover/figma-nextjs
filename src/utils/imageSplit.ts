@@ -1,3 +1,5 @@
+import { LLog } from "./console";
+
 const selectType = ["SLICE"];
 
 export function* sliceDeepTraverse(
@@ -7,7 +9,7 @@ export function* sliceDeepTraverse(
   // 현재 노드 방문
   if (selectType.includes(node.type)) {
     const data = (node as SliceNode).absoluteBoundingBox;
-    console.log(node);
+    LLog(node);
 
     if (data) yield data;
   }

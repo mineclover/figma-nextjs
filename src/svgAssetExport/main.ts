@@ -8,6 +8,7 @@ import {
   MessageHandler,
 } from "./types";
 import { toSvg } from "../utils/toSvg";
+import { LLog } from "../utils/console";
 
 type ErrorCase = "unsupported" | "ignore" | null;
 
@@ -15,7 +16,7 @@ export default function () {
   if (figma.editorType === "figma") {
     on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {
       const current = figma.currentPage.selection;
-      console.log("current", current);
+      LLog("current", current);
       const { id, completed, duplicate, unsupportedKeys } =
         await toSvg(current);
       const text = completed
@@ -44,6 +45,7 @@ export default function () {
         },
       });
     });
+
     figma.on("selectionchange", async function () {
       const current = figma.currentPage.selection;
       if (current.length === 1) {

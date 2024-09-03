@@ -1,3 +1,5 @@
+import { LLog } from "./console";
+
 /**
  * JSON 텍스트를 파일로 만들어 브라우저에서 다운로드합니다.
  * @param {string} text - JSON 형식의 문자열
@@ -57,7 +59,7 @@ export const handleFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
     return JsonToArray(fileArray);
   } else {
     // 파일이 선택되지 않은 경우 처리
-    console.log("파일이 선택되지 않았습니다.");
+    LLog("파일이 선택되지 않았습니다.");
   }
 };
 

@@ -1,6 +1,7 @@
 import { TuplifyUnion } from "@fxts/core/dist/types/types/ExcludeObject";
 import Head from "@fxts/core/dist/types/types/Head";
 import Tail from "@fxts/core/dist/types/types/Tail";
+import { LLog } from "./console";
 
 /**
  * 이터러블 뽑는 코드
@@ -175,7 +176,7 @@ export async function* processAsyncIter<T>(
 // const a = pipe(getAll2(), testFn, take(Infinity));
 
 // for await (const value of processAsyncIter(a)) {
-//   console.log(value);
+// log(value);
 // }
 
 export const asyncIterGenerator = <T, P>(fn: (input: T) => P) => {
@@ -189,7 +190,7 @@ export const asyncIterGenerator = <T, P>(fn: (input: T) => P) => {
 // export const asyncObjectExtendIterGenerator = <T, P>(fn: (input: T) => P) => {
 //   return function* (iter: Iterable<Promise<T>>) {
 //     for (const value of iter) {
-//       console.log(typeof value);
+//       log(typeof value);
 //       yield value.then((res) => fn(res));
 //     }
 //   };

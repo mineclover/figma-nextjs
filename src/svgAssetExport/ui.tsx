@@ -17,11 +17,12 @@ import { EventHandler } from "@create-figma-plugin/ui";
 
 import { CloseHandler, SvgSymbolHandler, MessageHandler } from "./types";
 import { ScanHandler } from "./types";
-
+import "figma-kit/styles.css";
+import { LLog } from "../utils/console";
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
-  console.log(files[0].name, JSON.parse(text));
-  // console.log(files[0].name, JSON.parse(text));
+  LLog(files[0].name, JSON.parse(text));
+  // log(files[0].name, JSON.parse(text));
 };
 
 function Plugin() {
@@ -45,7 +46,7 @@ function Plugin() {
       setDuplicate(dupl);
       setUnsupportedKeys(unsup);
       setIds(id);
-      console.log(id);
+      LLog(id);
     });
   }, []);
 

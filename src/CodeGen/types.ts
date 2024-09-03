@@ -1,4 +1,5 @@
 import { EventHandler } from "@create-figma-plugin/utilities";
+import { FilterType } from "../FigmaPluginUtils";
 
 export type SelectList = {
   id: string;
@@ -43,7 +44,12 @@ export interface SectionSelectMainResponseHandler extends EventHandler {
   handler: (data: SelectList) => void;
 }
 
-export interface SelectNodeByIdUiHandler extends EventHandler {
-  name: "SELECT_NODE_BY_ID_UI";
+export interface SelectNodeByIdZoomHandler extends EventHandler {
+  name: "SELECT_NODE_BY_ID_ZOOM";
   handler: (id: string, pageId: string) => void;
+}
+
+export interface SectionSelectSvgUiRequestHandler extends EventHandler {
+  name: "SECTION_SELECT_SVG_UI_GENERATE_REQUEST";
+  handler: (selectedSections: SelectList[], filter: FilterType) => void;
 }

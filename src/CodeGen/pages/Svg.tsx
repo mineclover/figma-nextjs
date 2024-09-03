@@ -18,11 +18,13 @@ import {
   Layer,
   Disclosure,
   FileUploadDropzone,
+  Checkbox,
 } from "@create-figma-plugin/ui";
 import { emit, on } from "@create-figma-plugin/utilities";
 import { h } from "preact";
 import { useCallback, useState, useEffect, useReducer } from "preact/hooks";
 import { EventHandler } from "@create-figma-plugin/ui";
+import styles from "./svg.module.css";
 
 import {
   CloseHandler,
@@ -32,7 +34,8 @@ import {
   SectionSelectUiRequestHandler,
   SectionSelectMainResponseHandler,
   SelectList,
-  SelectNodeByIdUiHandler,
+  SelectNodeByIdZoomHandler,
+  SectionSelectSvgUiRequestHandler,
 } from "../types";
 import {
   addUniqueSectionCurry,
@@ -40,6 +43,9 @@ import {
   handleFileInput,
   JsonToArray,
 } from "../../utils/jsonFile";
+import DragLayer from "../../components/DragLayer";
+import { LLog } from "../../utils/console";
+import { FilterType, pathNodeType } from "../../FigmaPluginUtils";
 
 /**
  *
@@ -65,9 +71,20 @@ function Plugin() {
   const [open, setOpen] = useState<boolean>(true);
   const [sections, setSections] = useState<SelectList[]>([]);
   const [x, update] = useState(0);
+  const [filter, setFilter] = useState<FilterType>({
+    DOCUMENT: true,
+    PAGE: true,
+    SECTION: true,
+    COMPONENT_SET: true,
+    COMPONENT: true,
+  });
 
   const handleButtonClick = () => {
-    emit<SvgSymbolHandler>("SVG_SYMBOL_CODE");
+    emit<SectionSelectSvgUiRequestHandler>(
+      "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
+      sections,
+      filter
+    );
   };
 
   function handleValueInput(newValue: string) {
@@ -87,6 +104,25 @@ function Plugin() {
       }
     );
   }, []);
+
+  const deleteSection = (id: string) => {
+    const newArray = sections.filter((selectList) => {
+      return !(selectList.id === id);
+    });
+    setSections(newArray);
+  };
+
+  const filterActionCurry = (keyName: keyof FilterType) => {
+    return {
+      value: filter[keyName],
+      onChange: (e: h.JSX.TargetedEvent<HTMLInputElement, Event>) => {
+        const value = e.currentTarget.checked;
+        setFilter((data) => {
+          return { ...data, [keyName]: value };
+        });
+      },
+    };
+  };
 
   return (
     <Container space="medium">
@@ -108,27 +144,30 @@ function Plugin() {
         open={open}
         title="Select List"
       >
-        <Container
-          space="extraSmall"
-          style={{ maxHeight: 150, overflow: "auto" }}
-        >
+        <Container space="extraSmall" className={styles.extra}>
           {sections.map(({ id, name, pageName, pageId }) => {
             return (
-              <Layer
+              <DragLayer
+                right={() => {
+                  deleteSection(id);
+                }}
+                left={() => {
+                  deleteSection(id);
+                }}
+                limit={80}
                 key={id}
                 description={pageName}
                 icon={<IconTarget16 />}
                 onClick={() => {
-                  emit<SelectNodeByIdUiHandler>(
-                    "SELECT_NODE_BY_ID_UI",
+                  emit<SelectNodeByIdZoomHandler>(
+                    "SELECT_NODE_BY_ID_ZOOM",
                     id,
                     pageId
                   );
                 }}
-                value={false}
               >
                 {name}
-              </Layer>
+              </DragLayer>
             );
           })}
         </Container>
@@ -144,7 +183,12 @@ function Plugin() {
         }}
       ></div>
       <Columns space="extraSmall">
-        <Button fullWidth onClick={handleButtonClick}>
+        <Button
+          fullWidth
+          onClick={() => {
+            handleButtonClick();
+          }}
+        >
           {/* 만드는 중 */}
           Export SVG
         </Button>
@@ -159,6 +203,29 @@ function Plugin() {
           Export JSON
         </Button>
       </Columns>
+      <VerticalSpace space="extraSmall"></VerticalSpace>
+      <Disclosure
+        onClick={(event) => {
+          setOpen(!(open === true));
+        }}
+        open={open}
+        title="SVG Name Compose Option"
+      >
+        <div className={styles.svgNameWrap}>
+          {pathNodeType.map((key, index) => {
+            return (
+              <div key={key} className={styles.svgNameFilter}>
+                <Checkbox {...filterActionCurry(key)}>
+                  <Text>
+                    {index + 1}. {key}
+                  </Text>
+                </Checkbox>
+              </div>
+            );
+          })}{" "}
+        </div>
+      </Disclosure>
+
       <FileUploadDropzone
         onSelectedFiles={async (e) => {
           // 중복 아이디 삭제하면서 여러 json 추가 가능
@@ -172,7 +239,7 @@ function Plugin() {
           <Muted>import section data json</Muted>
         </Text>
       </FileUploadDropzone>
-      ;
+
       <VerticalSpace space="small" />
       <TextboxMultiline
         onValueInput={handleValueInput}

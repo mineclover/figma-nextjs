@@ -8,6 +8,7 @@
     "dom-serializer": "^2.0.0",
     "htmlparser2": "^9.1.0",
     "lodash": "^4.17.21",
+    "parse5": "^7.1.2",
     "preact": "^10.23.2",
     "prettier": "^3.3.3"
   },

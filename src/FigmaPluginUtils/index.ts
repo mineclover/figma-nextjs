@@ -26,6 +26,40 @@ export const FileMetaSearch = (
   return undefined;
 };
 
+/**
+ * 컴포넌트 상위에 path 영향 줄 수 있는 이름 전체 조회
+ * @param node
+ * @param section
+ * @returns
+ */
+export const FilePathSearch = (
+  node: BaseNode,
+  pathNode: PathNodeinfo[]
+): PathNodeinfo[] => {
+  const parent = node.parent;
+
+  if (parent != null) {
+    if (pathNodeType.includes(parent.type as PathNodeinfo["type"])) {
+      // 맞으면 추가
+      pathNode.push({
+        type: parent.type as PathNodeinfo["type"],
+        name: parent.name,
+      });
+      /**
+       * 저장 다했으니 순회 종료
+       * 텍스트 순서 맞춰주는 목적으로 reverse 함
+       */
+      if (parent.type === "DOCUMENT") return pathNode.reverse();
+      return FilePathSearch(parent, pathNode);
+    } else {
+      // 아니면 그냥 진행
+      return FilePathSearch(parent, pathNode);
+    }
+  }
+
+  return pathNode;
+};
+
 import { Prettify } from "../../types/utilType";
 import { FigmaNodeType, FigmaNodeTypeMapping } from "./FigmaNodes";
 
@@ -95,3 +129,39 @@ export interface RecursiveFigmaNode<T extends BaseNode["type"]>
 let temp: TestNode = null as any;
 
 type TestNode = Prettify<BaseNodeMixin>;
+
+type PathNodeinfo = {
+  type:
+    | PageNode["type"]
+    | DocumentNode["type"]
+    | ComponentSetNode["type"]
+    | ComponentNode["type"]
+    | SectionNode["type"];
+  name: string;
+};
+
+export const pathNodeType = [
+  "DOCUMENT",
+  "PAGE",
+  "SECTION",
+  "COMPONENT_SET",
+  "COMPONENT",
+] as const;
+
+export type FilterType = {
+  DOCUMENT: boolean;
+  PAGE: boolean;
+  SECTION: boolean;
+  COMPONENT_SET: boolean;
+  COMPONENT: boolean;
+};
+
+// 노드로 해야하나..
+export const FilterTypeIndex = (text: string) => {
+  if (text === "DOCUMENT") return 1;
+  if (text === "PAGE") return 2;
+  if (text === "SECTION") return 3;
+  if (text === "COMPONENT_SET") return 4;
+  if (text === "COMPONENT") return 5;
+  return 0;
+};

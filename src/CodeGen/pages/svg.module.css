@@ -1,0 +1,23 @@
+.extra {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.svgNameWrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-extra-small);
+}
+
+.svgNameFilter {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--figma-color-text);
+
+  width: fit-content;
+  padding: var(--space-extra-small) var(--space-medium);
+  border-radius: var(--border-radius-6);
+}
