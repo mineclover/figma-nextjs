@@ -106,17 +106,23 @@ export default function () {
           return;
         }
         //
+
+        // 테스트
+        // const time = new Date().getTime();
+        // 페이지 이동 시켜줘야 줌이 됨
         await figma.setCurrentPageAsync(page);
         // 현재 페이지를 찾은 페이지로 설정
         // figma 내에서 노드 찾기
-        const node = page.findOne((n) => n.id === nodeId);
+        const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode;
+        // const node = page.findOne((n) => n.id === nodeId);
 
         if (node) {
           // 노드로 화면 줌
           figma.currentPage.selection = [node];
           figma.viewport.scrollAndZoomIntoView([node]);
-
           figma.notify(`${page.name}  /  ${node.name}`);
+          // const time2 = new Date().getTime();
+          // console.log(time2 - time);
         }
       }
     );
@@ -167,6 +173,7 @@ export default function () {
         const svgs = [] as {
           name: string;
           node: SceneNode;
+          svg: any;
         }[];
 
         for (const node of flatNodes) {
@@ -201,8 +208,7 @@ export default function () {
           const result =
             path + "__" + name.replace(/ /g, "").replace(/-/g, "_");
 
-          let svg;
-          await toSingleSvg(node);
+          const svg = await toSingleSvg(node, result);
 
           // const parser = new DOMParser();
           // const svgDom = parser.parseFromString(svg, "image/svg+xml");
@@ -210,6 +216,7 @@ export default function () {
           svgs.push({
             node: node,
             name: result,
+            svg,
           });
           // 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
 

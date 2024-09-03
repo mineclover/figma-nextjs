@@ -8,6 +8,7 @@ import type {
   Element as ParseElement,
   TextNode,
 } from "parse5/dist/tree-adapters/default";
+import { Attribute } from "parse5/dist/common/token";
 
 const unsupported = [
   "mask",
@@ -130,16 +131,6 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
 
 // const symbol;
 
-// svg to symbol 작업
-const ignore = ["svg", "symbol"];
-// if (ignore.includes(ast.tagName)) {
-//   ast.nodeName = "symbol";
-//   ast.tagName = "symbol";
-//   delete ast.attrs.width;
-//   delete ast.attrs.height;
-//   delete ast.attrs.xmlns;
-// }
-
 // 생성 대상이 필요함 unsupported 같은 경우는 svg use 쓸 때임
 // object tag는 다 되고 current도 됨
 // var 컬러 설정 기능을 추가하는게 1번
@@ -171,8 +162,7 @@ const parse5Unsupported = {
   attrsStartsWith: ["url(#"],
 };
 
-export const SvgScan = (ast: ParseElement, attr: Attr): SvgCase => {
-  console.log(ast, attr);
+export const SvgScan = (ast: ParseElement): SvgCase => {
   const children = ast.childNodes as ParseElement[];
 
   // 태그 이름으로 가능 여부를 구분하는 것
@@ -204,13 +194,113 @@ export const SvgScan = (ast: ParseElement, attr: Attr): SvgCase => {
       return true;
     });
     for (const item2 of useNodes) {
-      return SvgScan(item2, attr);
+      return SvgScan(item2);
     }
   }
   return "use";
 };
 
-export const toSingleSvg = async (selectNode: SceneNode) => {
+// 색상 추출 해야함 일단 어디서 시작하든 가장 먼저 추출된 거 기준으로 키 설정 되는거임
+
+export const SvgToObject = (
+  ast: ParseElement,
+  attr: Attr,
+  name: string
+): void => {
+  const children = ast.childNodes as ParseElement[];
+
+  if (Array.isArray(children) && children.length !== 0) {
+    // 줄바꿈 생략
+    const useNodes = children.filter((item) => {
+      if (item.nodeName === "#text") {
+        const textNode = item as unknown as TextNode;
+        return textNode.value !== "\n";
+      }
+      return true;
+    });
+    for (const item2 of useNodes) {
+      return SvgToObject(item2, attr, name);
+    }
+  }
+};
+
+export const SvgToUse = (ast: ParseElement, attr: Attr, name: string): void => {
+  console.log(name, "1111111");
+  const children = ast.childNodes as ParseElement[];
+
+  const ignore = ["svg"];
+
+  // svg to symbol 작업
+  if (ignore.includes(ast.tagName)) {
+    ast.tagName = "symbol";
+    // 아이디는 추가해야하니까 제거 함
+    const target = ["width", "height", "xmlns", "id"];
+    const after = ast.attrs.filter((it) => !target.includes(it.name));
+    ast.attrs = [
+      ...after,
+      {
+        name: "id",
+        value: name,
+      },
+    ];
+  } else {
+    // svg 외에서 작업해야하하므로 else로 둠
+    // Object.entries 써서 속성 값 같은 거 찾아서
+    // 이미 등록되있으면 등록된 키 사용
+    // 오파시티 값도 되긴 함
+    // op
+    const colorTarget = ["fill", "stroke"];
+    const percentTarget = ["opacity"];
+    const target = [...colorTarget, ...percentTarget];
+    // 속성이
+    for (const innerAttr of ast.attrs) {
+      // 타겟 속성이면
+      if (colorTarget.includes(innerAttr.name)) {
+        // key: value 저장되는 attr에 innerAttr.value가 이미 저장되있으면 기존 키를 사용하고
+        // 저장된 적 없는 값이면 새로운 키를 생성한다
+        // svg-color-{length} 라는 키를 사용함
+        // svg-percent-{length} 를 사용할 거임
+        // 가장 먼저 컬러로 추가되면 currentColorKey가 됨
+        //
+        // attr 에서 키를 currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
+
+        // currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
+        // 일단 색 관련 키들 전부 수집
+
+        const existingColorKeys = Object.keys(attr).filter(
+          (key) => key.startsWith("currentColor") || key.startsWith("svg-color")
+        );
+        // 값이 이미 있음
+        const isExisting = existingColorKeys.some(
+          (d) => attr[d] === innerAttr.value
+        );
+
+        if (existingColorKeys.length > 1) {
+        } else {
+          const newKey = `svg-color-${Object.keys(attr).length}`;
+          attr[newKey] = innerAttr.value;
+          innerAttr.value = newKey;
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(children) && children.length !== 0) {
+    // 줄바꿈 생략
+    const useNodes = children.filter((item) => {
+      if (item.nodeName === "#text") {
+        const textNode = item as unknown as TextNode;
+        return textNode.value !== "\n";
+      }
+      return true;
+    });
+    for (const item2 of useNodes) {
+      return SvgToUse(item2, attr, name);
+    }
+  }
+};
+
+export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
   // 지원 안되는 심볼
   const unsupportedKeys = [] as string[];
   const attrList = {} as Attr;
@@ -240,12 +330,21 @@ export const toSingleSvg = async (selectNode: SceneNode) => {
     (item) => (item as ParseElement).tagName === "svg"
   )[0] as ParseElement;
   console.log("svgTag:", svgTag);
+  const svgText = SvgScan(svgTag);
 
-  const svgText = SvgScan(svgTag, attrList);
+  const result = {
+    react: "",
+    object: "",
+    use: "",
+    attrs: attrList,
+  };
 
-  // childNodes[1];
-  const html = parse5.serialize(body);
-  console.log(svgText, "html", html);
+  if (svgText === "object") {
+  } else if (svgText === "use") {
+    SvgToUse(svgTag, attrList, name);
+    console.log(name, "1111111111111");
+    result.use = parse5.serialize(body);
+  }
 
-  return html;
+  return result;
 };
