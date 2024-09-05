@@ -238,88 +238,18 @@ export const SvgScan = (ast: ParseElement): SvgCase => {
 
 // 색상 추출 해야함 일단 어디서 시작하든 가장 먼저 추출된 거 기준으로 키 설정 되는거임
 
-export const SvgToObject = (
-  ast: ParseElement,
-  attr: Attr,
-  name: string
-): void => {
-  const children = ast.childNodes as ParseElement[];
-
-  if (Array.isArray(children) && children.length !== 0) {
-    // 줄바꿈 생략
-    const useNodes = children.filter((item) => {
-      if (item.nodeName === "#text") {
-        const textNode = item as unknown as TextNode;
-        return textNode.value !== "\n";
-      }
-      return true;
-    });
-    for (const item2 of useNodes) {
-      return SvgToObject(item2, attr, name);
-    }
-  }
-};
-
-/**
- * svg
- * @param ast
- * @param storeAttrObject
- * @param name
- * @returns
- */
-export const SvgToUse = (
+const grantingVar = (
   ast: ParseElement,
   storeAttrObject: Attr,
   name: string
-): void => {
-  const children = ast.childNodes as ParseElement[];
-
+) => {
   const ignore = ["svg"];
+  const colorTarget = ["fill", "stroke"];
+  const percentTarget = ["opacity", "fill-opacity", "stroke-opacity"];
+  const target = [...colorTarget, ...percentTarget];
+  // 속성 값 배열
 
-  // svg to symbol 작업
-  if (ignore.includes(ast.tagName)) {
-    ast.tagName = "symbol";
-    // 아이디는 추가해야하니까 제거 함
-    const target = ["width", "height", "xmlns", "id"];
-    const after = ast.attrs.filter((it) => !target.includes(it.name));
-    ast.attrs = [
-      ...after,
-      {
-        name: "id",
-        value: name,
-      },
-    ];
-  } else {
-    // svg 외에서 작업해야하하므로 else로 둠
-    // Object.entries 써서 속성 값 같은 거 찾아서
-    // 이미 등록되있으면 등록된 키 사용
-    // 오파시티 값도 되긴 함
-    // key: value 저장되는 attr에 innerAttr.value가 이미 저장되있으면 기존 키를 사용하고
-    // 저장된 적 없는 값이면 새로운 키를 생성한다
-    // svg-color-{length} 라는 키를 사용함
-    // svg-percent-{length} 를 사용할 거임
-    // 가장 먼저 컬러로 추가되면 currentColorKey가 됨
-    //
-    // attr 에서 키를 currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
-
-    // currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
-    // 일단 색 관련 키들 전부 수집
-    // 값이 이미 있음 이거 왜 안씀?
-    // 색상 속성을 가진 속성이 있을 때 컬러 속성들의 숫자로 색상을 구분했음
-    // 다음은 이미 사용한 색상일 때 그 색상의 키를 제사용하는 것
-    // 속성을 저장함
-
-    // 리스트가 있고 , 그 리스트가 컬러의 키들을 가지고 있음
-    // 컬러 키로 컬러에 접근했을 때의 컬러 값이 저장된 값에서 쓰고 있는 것과 같은게 이미 있을 때
-    // ( 중복 색상 또는 속성이 있을 떄 )
-    // 커런트 컬러는 커런트 컬러다
-    // 키 이름을 써서 데이터에 접근 해서 데이터 가져오고
-    // 네이티브 빌드도 빌드해야하니 빌드
-    const colorTarget = ["fill", "stroke"];
-    const percentTarget = ["opacity", "fill-opacity", "stroke-opacity"];
-
-    const target = [...colorTarget, ...percentTarget];
-    // 속성 값 배열
+  if (!ignore.includes(ast.tagName)) {
     for (const innerAttr of ast.attrs) {
       // 컬러 타겟 속성이면
       if (colorTarget.includes(innerAttr.name)) {
@@ -395,6 +325,122 @@ export const SvgToUse = (
       }
     }
   }
+};
+
+/**
+ * svg
+ * @param ast
+ * @param storeAttrObject
+ * @param name
+ * @returns
+ */
+export const svgToUse = (
+  ast: Parameters<typeof grantingVar>[0],
+  storeAttrObject: Parameters<typeof grantingVar>[1],
+  name: Parameters<typeof grantingVar>[2]
+): void => {
+  const children = ast.childNodes as ParseElement[];
+
+  const ignore = ["svg"];
+
+  // svg to symbol 작업
+  if (ignore.includes(ast.tagName)) {
+    ast.tagName = "symbol";
+    // 아이디는 추가해야하니까 제거 함
+    const target = ["width", "height", "xmlns", "id"];
+    const after = ast.attrs.filter((it) => !target.includes(it.name));
+    ast.attrs = [
+      ...after,
+      {
+        name: "id",
+        value: name,
+      },
+    ];
+  } else {
+    // svg 외에서 작업해야하하므로 else로 둠
+    // Object.entries 써서 속성 값 같은 거 찾아서
+    // 이미 등록되있으면 등록된 키 사용
+    // 오파시티 값도 되긴 함
+    // key: value 저장되는 attr에 innerAttr.value가 이미 저장되있으면 기존 키를 사용하고
+    // 저장된 적 없는 값이면 새로운 키를 생성한다
+    // svg-color-{length} 라는 키를 사용함
+    // svg-percent-{length} 를 사용할 거임
+    // 가장 먼저 컬러로 추가되면 currentColorKey가 됨
+    //
+    // attr 에서 키를 currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
+
+    // currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
+    // 일단 색 관련 키들 전부 수집
+    // 값이 이미 있음 이거 왜 안씀?
+    // 색상 속성을 가진 속성이 있을 때 컬러 속성들의 숫자로 색상을 구분했음
+    // 다음은 이미 사용한 색상일 때 그 색상의 키를 제사용하는 것
+    // 속성을 저장함
+
+    // 리스트가 있고 , 그 리스트가 컬러의 키들을 가지고 있음
+    // 컬러 키로 컬러에 접근했을 때의 컬러 값이 저장된 값에서 쓰고 있는 것과 같은게 이미 있을 때
+    // ( 중복 색상 또는 속성이 있을 떄 )
+    // 커런트 컬러는 커런트 컬러다
+    // 키 이름을 써서 데이터에 접근 해서 데이터 가져오고
+    // 네이티브 빌드도 빌드해야하니 빌드
+
+    grantingVar(ast, storeAttrObject, name);
+  }
+  // 자식이 있고 , 0이 아니면
+  if (Array.isArray(children) && children.length !== 0) {
+    // 줄바꿈 생략
+    const useNodes = children.filter((item) => {
+      if (item.nodeName === "#text") {
+        const textNode = item as unknown as TextNode;
+        return textNode.value !== "\n";
+      }
+      return true;
+    });
+    for (const item2 of useNodes) {
+      svgToUse(item2, storeAttrObject, name);
+    }
+  }
+};
+
+/**
+ * svg
+ * @param ast
+ * @param storeAttrObject
+ * @param name
+ * @returns
+ */
+export const svgToObject = (
+  ast: ParseElement,
+  storeAttrObject: Attr,
+  name: string
+): void => {
+  const children = ast.childNodes as ParseElement[];
+
+  // svg 외에서 작업해야하하므로 else로 둠
+  // Object.entries 써서 속성 값 같은 거 찾아서
+  // 이미 등록되있으면 등록된 키 사용
+  // 오파시티 값도 되긴 함
+  // key: value 저장되는 attr에 innerAttr.value가 이미 저장되있으면 기존 키를 사용하고
+  // 저장된 적 없는 값이면 새로운 키를 생성한다
+  // svg-color-{length} 라는 키를 사용함
+  // svg-percent-{length} 를 사용할 거임
+  // 가장 먼저 컬러로 추가되면 currentColorKey가 됨
+  //
+  // attr 에서 키를 currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
+
+  // currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
+  // 일단 색 관련 키들 전부 수집
+  // 값이 이미 있음 이거 왜 안씀?
+  // 색상 속성을 가진 속성이 있을 때 컬러 속성들의 숫자로 색상을 구분했음
+  // 다음은 이미 사용한 색상일 때 그 색상의 키를 제사용하는 것
+  // 속성을 저장함
+
+  // 리스트가 있고 , 그 리스트가 컬러의 키들을 가지고 있음
+  // 컬러 키로 컬러에 접근했을 때의 컬러 값이 저장된 값에서 쓰고 있는 것과 같은게 이미 있을 때
+  // ( 중복 색상 또는 속성이 있을 떄 )
+  // 커런트 컬러는 커런트 컬러다
+  // 키 이름을 써서 데이터에 접근 해서 데이터 가져오고
+  // 네이티브 빌드도 빌드해야하니 빌드
+  grantingVar(ast, storeAttrObject, name);
 
   // 자식이 있고 , 0이 아니면
   if (Array.isArray(children) && children.length !== 0) {
@@ -407,7 +453,7 @@ export const SvgToUse = (
       return true;
     });
     for (const item2 of useNodes) {
-      SvgToUse(item2, storeAttrObject, name);
+      svgToObject(item2, storeAttrObject, name);
     }
   }
 };
@@ -448,15 +494,15 @@ export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
     raw: "",
     type: svgType,
     attrs: attrList,
+    origin: svg,
   };
 
   if (svgType === SVG_CASE_OBJECT) {
-  } else if (svgType === SVG_CASE_USE) {
-    // 하나의 주소에서 객체 순회로 데이터를 수정하는 구조라서
-    //
-    SvgToUse(svgTag, attrList, name);
+    svgToObject(svgTag, attrList, name);
     result.raw = parse5.serialize(body);
-    console.log(result.raw);
+  } else if (svgType === SVG_CASE_USE) {
+    svgToUse(svgTag, attrList, name);
+    result.raw = parse5.serialize(body);
   }
 
   return result;

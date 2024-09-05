@@ -9,10 +9,12 @@ import {
   SelectNodeByIdZoomHandler,
   MessageHandler,
   SectionSelectSvgUiRequestHandler,
+  SelectList,
 } from "./types";
 import {
   FileMetaSearch,
   FilePathSearch,
+  FilterType,
   FilterTypeIndex,
   findMainComponent,
 } from "../FigmaPluginUtils";
@@ -54,6 +56,21 @@ const responseNode = (target: SceneNode) => {
       }
     );
   }
+};
+
+type SVGResult = {
+  input: {
+    sections: SelectList[];
+    filter: FilterType;
+  };
+  svgs: {
+    name: string;
+    node: SceneNode;
+    type: Awaited<ReturnType<typeof toSingleSvg>>["type"];
+    attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
+    raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
+    origin: Awaited<ReturnType<typeof toSingleSvg>>["origin"];
+  }[];
 };
 
 export default function () {
@@ -131,6 +148,10 @@ export default function () {
       "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
       async (sections, filter) => {
         const nodes = []; // 노드를 저장할 배열 추가
+        const svgResult = {} as SVGResult;
+        /**
+         * 선택된 섹션을 순회해서 노드 데이터를 수집
+         */
         for (const section of sections) {
           // for...of 루프 사용
           const { pageId, id } = section;
@@ -160,24 +181,19 @@ export default function () {
          *  - 다 쓰면 중복 안될 가능성이 높음
          *  - 소속을 나타내는 데이터는 전부 수집한다
          */
+        /**
+         * 노드 데이터에서 섹션 데이터와 컴포넌트 셋의 데이터 내에 있는 노드에 접근하기 쉽게 평탄화
+         */
         const flatNodes = nodes.flatMap((node) => {
           if (areaInclude(node)) return node.children;
           return node;
         });
 
-        console.log("flatNodes::", flatNodes);
-
         // nodes 배열을 사용하여 후속 작업 수행
         // 각 노드 > svg 대상
 
-        const svgs = [] as {
-          name: string;
-          node: SceneNode;
-          type: Awaited<ReturnType<typeof toSingleSvg>>["type"];
-          attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
-          raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
-        }[];
-
+        const svgs = [] as SVGResult["svgs"];
+        /** 노드 순회하면서 svg 생성한다 컬러 프로퍼티 svg를 생성함 */
         for (const node of flatNodes) {
           // 패스 작업
           // 받아올 때 컴포넌트 소속이 뭔지 판단하기 위해 코드를 넣음
@@ -233,10 +249,7 @@ export default function () {
 
           const resultName =
             path + "__" + name.replace(/ /g, "").replace(/-/g, "_");
-
-          console.log("206:: ", name);
           const svg = await toSingleSvg(node, resultName);
-
           // const parser = new DOMParser();
           // const svgDom = parser.parseFromString(svg, "image/svg+xml");
           // console.log("dom:", svgDom);
@@ -251,8 +264,18 @@ export default function () {
           // 결과물로 svg 아이디가 있고 , Node 아이디가 있음
         }
         const input = { sections, filter };
-        console.log(input, svgs);
 
+        /** SVG react 버전 생성 */
+        for (const svg of svgs) {
+          // 일단 SVGR 로 origin을 react화 한 다음 수정하거나
+          // 색상 토큰화 한 다음 추출하는 것도 좋게 보고 있음 모듈화 개념에서 필요함
+          console.log(svg);
+        }
+
+        // Object.assign(svgResult, { settings: input, svgs });
+
+        // sections 는 json import export가 구현되있음
+        //
         // svg export
       }
     );
