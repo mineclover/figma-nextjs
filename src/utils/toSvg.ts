@@ -9,6 +9,7 @@ import type {
   TextNode,
 } from "parse5/dist/tree-adapters/default";
 import { Attribute } from "parse5/dist/common/token";
+import { LLog } from "./console";
 
 const unsupported = [
   "mask",
@@ -30,6 +31,10 @@ type Inspection = {
 
 const currentOverrideOption = false;
 
+const SVG_COLOR_PREFIX = "svg-color";
+const PERCENT_PREFIX = "svg-percent";
+const CURRENT_COLOR = "currentColor";
+
 export const childrenScan = (node: Element): ErrorCase => {
   const children = node.children.filter(
     (item) => item instanceof Element
@@ -39,11 +44,11 @@ export const childrenScan = (node: Element): ErrorCase => {
   const ignore = ["svg", "symbol"];
   if (currentOverrideOption && !ignore.includes(node.name)) {
     if (node.attribs.fill) {
-      node.attribs.fill = "currentcolor";
+      node.attribs.fill = CURRENT_COLOR;
     }
 
     if (currentOverrideOption && node.attribs.stroke) {
-      node.attribs.stroke = "currentcolor";
+      node.attribs.stroke = CURRENT_COLOR;
     }
   }
 
@@ -139,7 +144,10 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
 // object 단점 호출이 쪼개짐 > 이미지 수준의 오버헤드
 // 완전 단순한 svg는 use로 unsupported 로 관리하던 건 object로 넘길 수 있다는 소리임
 
-type SvgCase = "object" | "use";
+const SVG_CASE_OBJECT = "object";
+const SVG_CASE_USE = "use";
+
+type SvgCase = typeof SVG_CASE_OBJECT | typeof SVG_CASE_USE;
 type Attr = {
   /** "fill_1" : rgba(123,123,123,0.1) */
   [key: string]: string;
@@ -165,25 +173,51 @@ const parse5Unsupported = {
 export const SvgScan = (ast: ParseElement): SvgCase => {
   const children = ast.childNodes as ParseElement[];
 
+  console.log("검사로직 ", ast);
   // 태그 이름으로 가능 여부를 구분하는 것
   // unsupported가 하나라도 있으면 이 파일은 object를 통해 임포트 한다
-  if (ast.attrs.some((attr) => parse5Unsupported.attrs.includes(attr.name))) {
-    return "object";
-  }
-  // 속성 중 하나라도 맞으면 > 속성 값 중 하나라도 prefix이 겹치면
   if (
-    ast.attrs.some((attr) =>
-      parse5Unsupported.attrsStartsWith.some((prefix) =>
-        attr.value.startsWith(prefix)
-      )
-    )
+    ast.attrs.some((attr) => {
+      const isUnsupported = parse5Unsupported.attrs.includes(attr.name);
+      LLog("태그 관리", parse5Unsupported.attrs, attr.name, isUnsupported);
+      if (isUnsupported) {
+        LLog("Unsupported attribute found:", attr.name);
+      }
+      return isUnsupported;
+    })
   ) {
-    return "object";
+    return SVG_CASE_OBJECT;
   }
+
+  // 접부사
+  // unsupported가 하나라도 있으면 이 파일은 object를 통해 임포트 한다
+
+  if (
+    ast.attrs.some((attr) => {
+      const isUnsupported = parse5Unsupported.attrsStartsWith.some((prefix) => {
+        const startsWithPrefix = attr.value.startsWith(prefix);
+
+        if (startsWithPrefix) {
+          LLog(
+            "Attribute value starts with unsupported prefix:",
+            prefix,
+            attr.value
+          );
+        }
+        return startsWithPrefix;
+      });
+      return isUnsupported;
+    })
+  ) {
+    return SVG_CASE_OBJECT;
+  }
+  // 태그네임
   // 태그 네임에 특정이름이 포함되면
+
   if (parse5Unsupported.tagName.includes(ast.tagName)) {
-    return "object";
+    return SVG_CASE_OBJECT;
   }
+
   if (Array.isArray(children) && children.length !== 0) {
     // 줄바꿈 생략
     const useNodes = children.filter((item) => {
@@ -193,11 +227,13 @@ export const SvgScan = (ast: ParseElement): SvgCase => {
       }
       return true;
     });
-    for (const item2 of useNodes) {
-      return SvgScan(item2);
+    if (useNodes.length > 0) {
+      for (const item2 of useNodes) {
+        return SvgScan(item2);
+      }
     }
   }
-  return "use";
+  return SVG_CASE_USE;
 };
 
 // 색상 추출 해야함 일단 어디서 시작하든 가장 먼저 추출된 거 기준으로 키 설정 되는거임
@@ -258,45 +294,55 @@ export const SvgToUse = (
     // Object.entries 써서 속성 값 같은 거 찾아서
     // 이미 등록되있으면 등록된 키 사용
     // 오파시티 값도 되긴 함
-    // op
+    // key: value 저장되는 attr에 innerAttr.value가 이미 저장되있으면 기존 키를 사용하고
+    // 저장된 적 없는 값이면 새로운 키를 생성한다
+    // svg-color-{length} 라는 키를 사용함
+    // svg-percent-{length} 를 사용할 거임
+    // 가장 먼저 컬러로 추가되면 currentColorKey가 됨
+    //
+    // attr 에서 키를 currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
 
+    // currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
+    // 일단 색 관련 키들 전부 수집
+    // 값이 이미 있음 이거 왜 안씀?
+    // 색상 속성을 가진 속성이 있을 때 컬러 속성들의 숫자로 색상을 구분했음
+    // 다음은 이미 사용한 색상일 때 그 색상의 키를 제사용하는 것
+    // 속성을 저장함
+
+    // 리스트가 있고 , 그 리스트가 컬러의 키들을 가지고 있음
+    // 컬러 키로 컬러에 접근했을 때의 컬러 값이 저장된 값에서 쓰고 있는 것과 같은게 이미 있을 때
+    // ( 중복 색상 또는 속성이 있을 떄 )
+    // 커런트 컬러는 커런트 컬러다
+    // 키 이름을 써서 데이터에 접근 해서 데이터 가져오고
+    // 네이티브 빌드도 빌드해야하니 빌드
     const colorTarget = ["fill", "stroke"];
-    const percentTarget = ["opacity"];
+    const percentTarget = ["opacity", "fill-opacity", "stroke-opacity"];
+
     const target = [...colorTarget, ...percentTarget];
     // 속성 값 배열
     for (const innerAttr of ast.attrs) {
       // 컬러 타겟 속성이면
       if (colorTarget.includes(innerAttr.name)) {
-        // key: value 저장되는 attr에 innerAttr.value가 이미 저장되있으면 기존 키를 사용하고
-        // 저장된 적 없는 값이면 새로운 키를 생성한다
-        // svg-color-{length} 라는 키를 사용함
-        // svg-percent-{length} 를 사용할 거임
-        // 가장 먼저 컬러로 추가되면 currentColorKey가 됨
-        //
-        // attr 에서 키를 currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
+        LLog("색상으로 판단", colorTarget, innerAttr);
 
-        // currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
-        // 일단 색 관련 키들 전부 수집
         const existingColorKeys = Object.keys(storeAttrObject).filter(
-          (key) => key.startsWith("currentColor") || key.startsWith("svg-color")
+          (key) =>
+            key.startsWith(CURRENT_COLOR) || key.startsWith(SVG_COLOR_PREFIX)
         );
-        // 값이 이미 있음 이거 왜 안씀?
-        // 색상 속성을 가진 속성이 있을 때 컬러 속성들의 숫자로 색상을 구분했음
-        // 다음은 이미 사용한 색상일 때 그 색상의 키를 제사용하는 것
-        // 속성을 저장함
         const isExisting = existingColorKeys.some((colorKey) => {
-          // 리스트가 있고 , 그 리스트가 컬러의 키들을 가지고 있음
-          // 컬러 키로 컬러에 접근했을 때의 컬러 값이 저장된 값에서 쓰고 있는 것과 같은게 이미 있을 때
-          // ( 중복 색상 또는 속성이 있을 떄 )
           return storeAttrObject[colorKey] === innerAttr.value;
         });
-        let newKey = "currentColor";
+        let newKey = CURRENT_COLOR;
         // 한개 이상부터 커런트컬러를 안쓴다
         if (existingColorKeys.length > 0) {
+          LLog("길이 충분", existingColorKeys.length);
           // 만약 중복된 속성이 저장되있지 않으면 뉴 키에 속성을 저장한다
-          if (!isExisting)
-            newKey = `svg-color-${Object.keys(storeAttrObject).length}`;
-          else {
+          if (!isExisting) {
+            LLog("길면서 중복이 없음", existingColorKeys.length);
+
+            newKey = `${SVG_COLOR_PREFIX}-${Object.keys(storeAttrObject).length}`;
+          } else {
+            LLog("길면서 중복임", isExisting, existingColorKeys.length);
             // 중복이면 newKey는 객체에서 value 로 찾아서
             // newKey에 쓸 키를 가져온다
             for (const a of Object.entries(storeAttrObject)) {
@@ -308,23 +354,49 @@ export const SvgToUse = (
             }
           }
           // 키가 한개 이상이면 키 이름 관리
+        }
+
+        storeAttrObject[newKey] = innerAttr.value;
+        if (newKey === CURRENT_COLOR) {
+          innerAttr.value = newKey;
         } else {
-          // 커런트 컬러는 커런트 컬러다
-          // 키 이름을 써서 데이터에 접근 해서 데이터 가져오고
-          // 네이티브 빌드도 빌드해야하니 빌드
-          storeAttrObject[newKey] = innerAttr.value;
-          if (newKey === "currentColor") {
-            innerAttr.value = newKey;
-          } else {
-            innerAttr.value = `var(--${newKey}, ${storeAttrObject[newKey]})`;
-          }
+          innerAttr.value = `var(--${newKey}, ${storeAttrObject[newKey]})`;
         }
       } else if (percentTarget.includes(innerAttr.name)) {
         // tt
+
+        const existingPercentKeys = Object.keys(storeAttrObject).filter((key) =>
+          key.startsWith(PERCENT_PREFIX)
+        );
+        const isExisting = existingPercentKeys.some((percentKey) => {
+          return storeAttrObject[percentKey] === innerAttr.value;
+        });
+        let newKey = `${PERCENT_PREFIX}-${Object.keys(storeAttrObject).length + 1}`;
+        // 한개 이상부터 커런트컬러를 안쓴다
+
+        LLog("길이 충분", existingPercentKeys.length);
+        // 만약 중복된 속성이 저장되있지 않으면 뉴 키에 속성을 저장한다
+        if (isExisting) {
+          LLog("길면서 중복임", isExisting, existingPercentKeys.length);
+          // 중복이면 newKey는 객체에서 value 로 찾아서
+          // newKey에 쓸 키를 가져온다
+          for (const a of Object.entries(storeAttrObject)) {
+            const [key, value] = a;
+            if (value === innerAttr.value) {
+              newKey = key;
+              break;
+            }
+          }
+        }
+        // 키가 한개 이상이면 키 이름 관리
+
+        storeAttrObject[newKey] = innerAttr.value;
+        innerAttr.value = `var(--${newKey}, ${storeAttrObject[newKey]})`;
       }
     }
   }
 
+  // 자식이 있고 , 0이 아니면
   if (Array.isArray(children) && children.length !== 0) {
     // 줄바꿈 생략
     const useNodes = children.filter((item) => {
@@ -335,7 +407,7 @@ export const SvgToUse = (
       return true;
     });
     for (const item2 of useNodes) {
-      return SvgToUse(item2, storeAttrObject, name);
+      SvgToUse(item2, storeAttrObject, name);
     }
   }
 };
@@ -378,8 +450,8 @@ export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
     attrs: attrList,
   };
 
-  if (svgType === "object") {
-  } else if (svgType === "use") {
+  if (svgType === SVG_CASE_OBJECT) {
+  } else if (svgType === SVG_CASE_USE) {
     // 하나의 주소에서 객체 순회로 데이터를 수정하는 구조라서
     //
     SvgToUse(svgTag, attrList, name);

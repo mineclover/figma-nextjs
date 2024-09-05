@@ -27,7 +27,7 @@ export const FileMetaSearch = (
 };
 
 /**
- * 컴포넌트 상위에 path 영향 줄 수 있는 이름 전체 조회
+ * 선택된 노드 상위에 path 역할을 수행할 수 있는 이름을 전체 조회
  * @param node
  * @param section
  * @returns

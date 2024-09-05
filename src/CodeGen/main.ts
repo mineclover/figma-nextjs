@@ -180,6 +180,11 @@ export default function () {
 
         for (const node of flatNodes) {
           // 패스 작업
+          // 받아올 때 컴포넌트 소속이 뭔지 판단하기 위해 코드를 넣음
+          // 패스 역할을 하는 구성요소만 저장했고
+          // 컴포넌트는 그 경계에 있기 때문에 필요에 따라 설계함
+          // 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추가됨
+          // 노드는 현재 선택한 노드
           const paths = FilePathSearch(node, []).filter((path) => {
             // 의도적 결합도
             if (FilterTypeIndex(path.type) === 1) return filter.DOCUMENT;
@@ -191,15 +196,34 @@ export default function () {
           });
           // property 구분
 
+          // 기본 값은 리스트의 마지막을 current에 넣어서 이름을 추출한다
           let currentNode = paths[paths.length - 1] as SceneNode;
 
           if (currentNode && !(FilterTypeIndex(currentNode.type) === 5)) {
+            // 선택한 노드가 컴포넌트가 아니면 그냥 선택된거 쓰고
             currentNode = node;
           } else if (currentNode && FilterTypeIndex(currentNode.type) === 5) {
+            // 선택한 노드가 컴포넌트면 path에서 컴포넌트 팝
             paths.pop();
           }
+
           const names = currentNode.name.split(", ");
-          const name = names.map((t) => t.split("=")[1]).join("_");
+
+          // 키=벨류, 키=벨류 구조의 텍스트에서 벨류만 파싱하는 코드임
+          // 문서에 =이 없으면 공백이 나옴
+          const tempName = names
+            .map((t) => t.split("=")[1])
+            .join("_")
+            .trim();
+          // tempName이 공백이면 기존 이름을 조인하는 코드임
+
+          const name =
+            tempName === ""
+              ? names
+                  .map((t) => t.trim())
+                  .join("_")
+                  .trim()
+              : tempName;
           const path = paths
             .map((item) => item.name.replace(/[^a-zA-Z0-9_]/g, "").trim())
             .map((t, index) =>
@@ -207,17 +231,18 @@ export default function () {
             )
             .join("_");
 
-          const result =
+          const resultName =
             path + "__" + name.replace(/ /g, "").replace(/-/g, "_");
 
-          const svg = await toSingleSvg(node, result);
+          console.log("206:: ", name);
+          const svg = await toSingleSvg(node, resultName);
 
           // const parser = new DOMParser();
           // const svgDom = parser.parseFromString(svg, "image/svg+xml");
           // console.log("dom:", svgDom);
           svgs.push({
             node: node,
-            name: result,
+            name: resultName,
             ...svg,
           });
           // 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
