@@ -74,23 +74,23 @@ export default function () {
 
       if ([...area, ...single].includes(current[0].type)) {
         const target = current[0] as SectionNode;
-        responseNode(target);
-      }
 
-      if (current[0].type === "INSTANCE") {
-        const mainComponent = await findMainComponent(current[0]);
-        if (mainComponent) {
-          if (mainComponent.remote) {
-            figma.notify(
-              "이 인스턴스의 메인 컴포넌트는 현재 프로젝트 외부 라이브러리입니다. 문서화 시 찾기 어려워질 확률이 높음"
-            );
-
-            responseNode(current[0]);
-          } else {
-            // 메인 컴포넌트인데 remote가 아닐 경우 조회 하는데 page가 다르면 데이터를 읽지 못하나?
-            // table, memory 모두 리부팅 하면 해결 되긴 함
-            responseNode(mainComponent);
+        if (current[0].type === "INSTANCE") {
+          const mainComponent = await findMainComponent(current[0]);
+          if (mainComponent) {
+            if (mainComponent.remote) {
+              responseNode(current[0]);
+              figma.notify(
+                "이 인스턴스의 메인 컴포넌트는 현재 프로젝트 외부 라이브러리입니다. 문서화 시 찾기 어려움"
+              );
+            } else {
+              // 메인 컴포넌트인데 remote가 아닐 경우 조회 하는데 page가 다르면 데이터를 읽지 못하나?
+              // table, memory 모두 리부팅 하면 해결 되긴 함
+              responseNode(mainComponent);
+            }
           }
+        } else {
+          responseNode(target);
         }
       }
     });
@@ -120,7 +120,7 @@ export default function () {
           // 노드로 화면 줌
           figma.currentPage.selection = [node];
           figma.viewport.scrollAndZoomIntoView([node]);
-          figma.notify(`${page.name}  /  ${node.name}`);
+          // figma.notify(`${page.name}  /  ${node.name}`);
           // const time2 = new Date().getTime();
           // console.log(time2 - time);
         }
@@ -173,7 +173,9 @@ export default function () {
         const svgs = [] as {
           name: string;
           node: SceneNode;
-          svg: any;
+          type: Awaited<ReturnType<typeof toSingleSvg>>["type"];
+          attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
+          raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
         }[];
 
         for (const node of flatNodes) {
@@ -216,14 +218,15 @@ export default function () {
           svgs.push({
             node: node,
             name: result,
-            svg,
+            ...svg,
           });
           // 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
 
           // 선택된 값들에 대한 섹션 아이디가 있고
           // 결과물로 svg 아이디가 있고 , Node 아이디가 있음
         }
-        console.log(sections, filter, svgs);
+        const input = { sections, filter };
+        console.log(input, svgs);
 
         // svg export
       }

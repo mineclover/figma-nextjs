@@ -224,8 +224,18 @@ export const SvgToObject = (
   }
 };
 
-export const SvgToUse = (ast: ParseElement, attr: Attr, name: string): void => {
-  console.log(name, "1111111");
+/**
+ * svg
+ * @param ast
+ * @param storeAttrObject
+ * @param name
+ * @returns
+ */
+export const SvgToUse = (
+  ast: ParseElement,
+  storeAttrObject: Attr,
+  name: string
+): void => {
   const children = ast.childNodes as ParseElement[];
 
   const ignore = ["svg"];
@@ -249,12 +259,13 @@ export const SvgToUse = (ast: ParseElement, attr: Attr, name: string): void => {
     // 이미 등록되있으면 등록된 키 사용
     // 오파시티 값도 되긴 함
     // op
+
     const colorTarget = ["fill", "stroke"];
     const percentTarget = ["opacity"];
     const target = [...colorTarget, ...percentTarget];
-    // 속성이
+    // 속성 값 배열
     for (const innerAttr of ast.attrs) {
-      // 타겟 속성이면
+      // 컬러 타겟 속성이면
       if (colorTarget.includes(innerAttr.name)) {
         // key: value 저장되는 attr에 innerAttr.value가 이미 저장되있으면 기존 키를 사용하고
         // 저장된 적 없는 값이면 새로운 키를 생성한다
@@ -266,21 +277,50 @@ export const SvgToUse = (ast: ParseElement, attr: Attr, name: string): void => {
 
         // currentColor 또는 svg-color로 시작하는 키를 가지고 있는 객체 중 innerAttr.name이 value로 이미 있는지 확인
         // 일단 색 관련 키들 전부 수집
-
-        const existingColorKeys = Object.keys(attr).filter(
+        const existingColorKeys = Object.keys(storeAttrObject).filter(
           (key) => key.startsWith("currentColor") || key.startsWith("svg-color")
         );
-        // 값이 이미 있음
-        const isExisting = existingColorKeys.some(
-          (d) => attr[d] === innerAttr.value
-        );
-
-        if (existingColorKeys.length > 1) {
+        // 값이 이미 있음 이거 왜 안씀?
+        // 색상 속성을 가진 속성이 있을 때 컬러 속성들의 숫자로 색상을 구분했음
+        // 다음은 이미 사용한 색상일 때 그 색상의 키를 제사용하는 것
+        // 속성을 저장함
+        const isExisting = existingColorKeys.some((colorKey) => {
+          // 리스트가 있고 , 그 리스트가 컬러의 키들을 가지고 있음
+          // 컬러 키로 컬러에 접근했을 때의 컬러 값이 저장된 값에서 쓰고 있는 것과 같은게 이미 있을 때
+          // ( 중복 색상 또는 속성이 있을 떄 )
+          return storeAttrObject[colorKey] === innerAttr.value;
+        });
+        let newKey = "currentColor";
+        // 한개 이상부터 커런트컬러를 안쓴다
+        if (existingColorKeys.length > 0) {
+          // 만약 중복된 속성이 저장되있지 않으면 뉴 키에 속성을 저장한다
+          if (!isExisting)
+            newKey = `svg-color-${Object.keys(storeAttrObject).length}`;
+          else {
+            // 중복이면 newKey는 객체에서 value 로 찾아서
+            // newKey에 쓸 키를 가져온다
+            for (const a of Object.entries(storeAttrObject)) {
+              const [key, value] = a;
+              if (value === innerAttr.value) {
+                newKey = key;
+                break;
+              }
+            }
+          }
+          // 키가 한개 이상이면 키 이름 관리
         } else {
-          const newKey = `svg-color-${Object.keys(attr).length}`;
-          attr[newKey] = innerAttr.value;
-          innerAttr.value = newKey;
+          // 커런트 컬러는 커런트 컬러다
+          // 키 이름을 써서 데이터에 접근 해서 데이터 가져오고
+          // 네이티브 빌드도 빌드해야하니 빌드
+          storeAttrObject[newKey] = innerAttr.value;
+          if (newKey === "currentColor") {
+            innerAttr.value = newKey;
+          } else {
+            innerAttr.value = `var(--${newKey}, ${storeAttrObject[newKey]})`;
+          }
         }
+      } else if (percentTarget.includes(innerAttr.name)) {
+        // tt
       }
     }
   }
@@ -295,7 +335,7 @@ export const SvgToUse = (ast: ParseElement, attr: Attr, name: string): void => {
       return true;
     });
     for (const item2 of useNodes) {
-      return SvgToUse(item2, attr, name);
+      return SvgToUse(item2, storeAttrObject, name);
     }
   }
 };
@@ -330,20 +370,21 @@ export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
     (item) => (item as ParseElement).tagName === "svg"
   )[0] as ParseElement;
   console.log("svgTag:", svgTag);
-  const svgText = SvgScan(svgTag);
+  const svgType = SvgScan(svgTag);
 
   const result = {
-    react: "",
-    object: "",
-    use: "",
+    raw: "",
+    type: svgType,
     attrs: attrList,
   };
 
-  if (svgText === "object") {
-  } else if (svgText === "use") {
+  if (svgType === "object") {
+  } else if (svgType === "use") {
+    // 하나의 주소에서 객체 순회로 데이터를 수정하는 구조라서
+    //
     SvgToUse(svgTag, attrList, name);
-    console.log(name, "1111111111111");
-    result.use = parse5.serialize(body);
+    result.raw = parse5.serialize(body);
+    console.log(result.raw);
   }
 
   return result;
