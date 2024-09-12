@@ -4,12 +4,13 @@ import { toSingleSvg, toSvg } from "../utils/toSvg";
 import {
   ScanHandler,
   SectionSelectUiRequestHandler,
-  SectionSelectMainResponseHandler,
+  FigmaSelectMainResponseHandler,
   SvgSymbolHandler,
   SelectNodeByIdZoomHandler,
   MessageHandler,
   SectionSelectSvgUiRequestHandler,
   SelectList,
+  SectionSelectSvgMainResponseHandler,
 } from "./types";
 import {
   FileMetaSearch,
@@ -36,29 +37,23 @@ const single = ["FRAME", "INSTANCE", "GROUP", "COMPONENT"];
 const responseNode = (target: SceneNode) => {
   const docs = FileMetaSearch(target);
   if (docs) {
-    return emit<SectionSelectMainResponseHandler>(
-      "SECTION_SELECT_UI_RESPONSE",
-      {
-        id: target.id,
-        name: target.name,
-        pageId: docs.page.id,
-        pageName: docs.page.name,
-      }
-    );
+    return emit<FigmaSelectMainResponseHandler>("SECTION_SELECT_UI_RESPONSE", {
+      id: target.id,
+      name: target.name,
+      pageId: docs.page.id,
+      pageName: docs.page.name,
+    });
   } else {
-    return emit<SectionSelectMainResponseHandler>(
-      "SECTION_SELECT_UI_RESPONSE",
-      {
-        id: target.id,
-        name: target.name,
-        pageId: "",
-        pageName: "",
-      }
-    );
+    return emit<FigmaSelectMainResponseHandler>("SECTION_SELECT_UI_RESPONSE", {
+      id: target.id,
+      name: target.name,
+      pageId: "",
+      pageName: "",
+    });
   }
 };
 
-type SVGResult = {
+export type SVGResult = {
   input: {
     sections: SelectList[];
     filter: FilterType;
@@ -66,6 +61,7 @@ type SVGResult = {
   svgs: {
     name: string;
     node: SceneNode;
+    pageId: string;
     type: Awaited<ReturnType<typeof toSingleSvg>>["type"];
     attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
     raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
@@ -147,8 +143,15 @@ export default function () {
     on<SectionSelectSvgUiRequestHandler>(
       "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
       async (sections, filter) => {
-        const nodes = []; // 노드를 저장할 배열 추가
+        const nodes: SceneNode[] = []; // 노드를 저장할 배열 추가
+        const pageIdMap = {} as Record<string, string>;
         const svgResult = {} as SVGResult;
+
+        const addPageMap = (node: SceneNode, pageId: string) => {
+          nodes.push(node);
+          pageIdMap[node.id] = pageId;
+        };
+
         /**
          * 선택된 섹션을 순회해서 노드 데이터를 수집
          */
@@ -168,7 +171,16 @@ export default function () {
 
           // figma 내에서 노드 찾기
           const node = page.findOne((n) => n.id === id);
-          if (node) nodes.push(node); // 찾은 노드 추가
+
+          if (node) {
+            if (areaInclude(node)) {
+              node.children.forEach((n) => {
+                addPageMap(n, pageId);
+              });
+            } else {
+              addPageMap(node, pageId);
+            }
+          }
         }
 
         /**
@@ -184,25 +196,23 @@ export default function () {
         /**
          * 노드 데이터에서 섹션 데이터와 컴포넌트 셋의 데이터 내에 있는 노드에 접근하기 쉽게 평탄화
          */
-        const flatNodes = nodes.flatMap((node) => {
-          if (areaInclude(node)) return node.children;
-          return node;
-        });
 
         // nodes 배열을 사용하여 후속 작업 수행
         // 각 노드 > svg 대상
 
         const svgs = [] as SVGResult["svgs"];
         /** 노드 순회하면서 svg 생성한다 컬러 프로퍼티 svg를 생성함 */
-        for (const node of flatNodes) {
+        for (const node of nodes) {
           // 패스 작업
           // 받아올 때 컴포넌트 소속이 뭔지 판단하기 위해 코드를 넣음
           // 패스 역할을 하는 구성요소만 저장했고
           // 컴포넌트는 그 경계에 있기 때문에 필요에 따라 설계함
           // 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추가됨
           // 노드는 현재 선택한 노드
+          console.log("FilePathSearch::", FilePathSearch(node, []));
           const paths = FilePathSearch(node, []).filter((path) => {
             // 의도적 결합도
+
             if (FilterTypeIndex(path.type) === 1) return filter.DOCUMENT;
             if (FilterTypeIndex(path.type) === 2) return filter.PAGE;
             if (FilterTypeIndex(path.type) === 3) return filter.SECTION;
@@ -212,21 +222,19 @@ export default function () {
           });
           // property 구분
 
-          // 기본 값은 리스트의 마지막을 current에 넣어서 이름을 추출한다
-          let currentNode = paths[paths.length - 1] as SceneNode;
-
-          if (currentNode && !(FilterTypeIndex(currentNode.type) === 5)) {
-            // 선택한 노드가 컴포넌트가 아니면 그냥 선택된거 쓰고
-            currentNode = node;
-          } else if (currentNode && FilterTypeIndex(currentNode.type) === 5) {
-            // 선택한 노드가 컴포넌트면 path에서 컴포넌트 팝
-            paths.pop();
+          // 일단 선택된거 쓰고
+          let currentNode = node;
+          if (node.parent && FilterTypeIndex(node.parent.type) === 5) {
+            // 부모가 컴포넌트면 팝해서 써라
+            currentNode = paths.pop() as SceneNode;
           }
-
+          if (currentNode == null) currentNode = node;
+          console.log("currentNode::", currentNode, paths);
           const names = currentNode.name.split(", ");
 
           // 키=벨류, 키=벨류 구조의 텍스트에서 벨류만 파싱하는 코드임
           // 문서에 =이 없으면 공백이 나옴
+          console.log(names);
           const tempName = names
             .map((t) => t.split("=")[1])
             .join("_")
@@ -246,9 +254,10 @@ export default function () {
               t !== "" ? t : FilterTypeIndex(paths[index].type) + "😎"
             )
             .join("_");
-
+          const firstName = path ? path + "__" : "";
           const resultName =
-            path + "__" + name.replace(/ /g, "").replace(/-/g, "_");
+            firstName +
+            name.replace(/ /g, "").replace(/-/g, "_").replace(/\//g, "_");
           const svg = await toSingleSvg(node, resultName);
           // const parser = new DOMParser();
           // const svgDom = parser.parseFromString(svg, "image/svg+xml");
@@ -256,6 +265,7 @@ export default function () {
           svgs.push({
             node: node,
             name: resultName,
+            pageId: pageIdMap[node.id],
             ...svg,
           });
           // 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
@@ -266,18 +276,18 @@ export default function () {
         const input = { sections, filter };
 
         /** SVG react 버전 생성 */
-        for (const svg of svgs) {
-          // 일단 SVGR 로 origin을 react화 한 다음 수정하거나
-          // 색상 토큰화 한 다음 추출하는 것도 좋게 보고 있음 모듈화 개념에서 필요함
-          console.log(svg);
-        }
 
-        // Object.assign(svgResult, { settings: input, svgs });
-
-        // sections 는 json import export가 구현되있음
-        //
-        // svg export
+        emit<SectionSelectSvgMainResponseHandler>(
+          "SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE",
+          svgs
+        );
       }
+
+      // Object.assign(svgResult, { settings: input, svgs });
+
+      // sections 는 json import export가 구현되있음
+      //
+      // svg export
     );
 
     on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {

@@ -1,7 +1,7 @@
 import { LLog } from "./console";
 
 /**
- * JSON 텍스트를 파일로 만들어 브라우저에서 다운로드합니다.
+ * JSON 텍스트를 파일로 만들어 브라우저에서 다운로드합니다. saveAs 로 대체함
  * @param {string} text - JSON 형식의 문자열
  * @param {string} filename - 다운로드할 파일 이름 (확장자 제외)
  */

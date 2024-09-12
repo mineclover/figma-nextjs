@@ -26,35 +26,39 @@ import { useCallback, useState, useEffect, useReducer } from "preact/hooks";
 import { EventHandler } from "@create-figma-plugin/ui";
 import styles from "./svg.module.css";
 
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+
 import {
   CloseHandler,
   SvgSymbolHandler,
   MessageHandler,
   ScanHandler,
   SectionSelectUiRequestHandler,
-  SectionSelectMainResponseHandler,
+  FigmaSelectMainResponseHandler,
   SelectList,
   SelectNodeByIdZoomHandler,
   SectionSelectSvgUiRequestHandler,
+  SectionSelectSvgMainResponseHandler,
 } from "../types";
 import {
   addUniqueSectionCurry,
-  downloadJsonFile,
   handleFileInput,
   JsonToArray,
 } from "../../utils/jsonFile";
 import DragLayer from "../../components/DragLayer";
 import { LLog } from "../../utils/console";
 import { FilterType, pathNodeType } from "../../FigmaPluginUtils";
+import { svgExporter } from "../../utils/svgComposer";
+import { SVGResult } from "../main";
+import FolderableCode from "../../components/FolderableCode";
+import DuplicateCheck from "../../components/DuplicateCheck";
 
 /**
  *
  * @param text
  * @param fileName .json 확장자 생략가능
  */
-const handleJSONExportButtonClick = (text: string) => {
-  downloadJsonFile(text);
-};
 
 const addUniqueSection = addUniqueSectionCurry<SelectList>(
   (item, index, array) => {
@@ -68,7 +72,8 @@ const addUniqueSection = addUniqueSectionCurry<SelectList>(
 
 function Plugin() {
   const [text, setText] = useState("");
-  const [open, setOpen] = useState<boolean>(true);
+  const [selectOpen, setSelectOpen] = useState<boolean>(true);
+  const [filterOpen, setFilterOpen] = useState<boolean>(true);
   const [sections, setSections] = useState<SelectList[]>([]);
   const [x, update] = useState(0);
   const [filter, setFilter] = useState<FilterType>({
@@ -78,6 +83,11 @@ function Plugin() {
     COMPONENT_SET: true,
     COMPONENT: true,
   });
+  useEffect(() => {
+    handleButtonClick();
+  }, [filter]);
+
+  const [resultSvg, setResultSvg] = useState<SVGResult["svgs"]>();
 
   const handleButtonClick = () => {
     emit<SectionSelectSvgUiRequestHandler>(
@@ -96,13 +106,16 @@ function Plugin() {
       setText(result);
       update((x) => x + 1);
     });
-
-    on<SectionSelectMainResponseHandler>(
-      "SECTION_SELECT_UI_RESPONSE",
-      (data) => {
-        setSections((array) => addUniqueSection(array, data));
+    on<SectionSelectSvgMainResponseHandler>(
+      "SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE",
+      (result) => {
+        setResultSvg(result);
       }
     );
+
+    on<FigmaSelectMainResponseHandler>("SECTION_SELECT_UI_RESPONSE", (data) => {
+      setSections((array) => addUniqueSection(array, data));
+    });
   }, []);
 
   const deleteSection = (id: string) => {
@@ -137,11 +150,12 @@ function Plugin() {
           emit<SectionSelectUiRequestHandler>("SECTION_SELECT_UI_REQUEST");
         }}
       ></Textbox>
+
       <Disclosure
         onClick={(event) => {
-          setOpen(!(open === true));
+          setSelectOpen(!(selectOpen === true));
         }}
-        open={open}
+        open={selectOpen}
         title="Select List"
       >
         <Container space="extraSmall" className={styles.extra}>
@@ -158,7 +172,8 @@ function Plugin() {
                 key={id}
                 description={pageName}
                 icon={<IconTarget16 />}
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   emit<SelectNodeByIdZoomHandler>(
                     "SELECT_NODE_BY_ID_ZOOM",
                     id,
@@ -172,6 +187,7 @@ function Plugin() {
           })}
         </Container>
       </Disclosure>
+      <DuplicateCheck resultSvg={resultSvg}></DuplicateCheck>
       <div
         style={{
           display: "flex",
@@ -190,13 +206,18 @@ function Plugin() {
           }}
         >
           {/* 만드는 중 */}
-          Export SVG
+          SVG Name Check
         </Button>
         <Button
           fullWidth
           onClick={() => {
             // export json
-            handleJSONExportButtonClick(JSON.stringify(sections));
+            saveAs(
+              new Blob([JSON.stringify(sections)], {
+                type: "application/json",
+              }),
+              "export.json"
+            );
           }}
           secondary
         >
@@ -204,25 +225,43 @@ function Plugin() {
         </Button>
       </Columns>
       <VerticalSpace space="extraSmall"></VerticalSpace>
+      <Columns space="extraSmall">
+        <Button
+          fullWidth
+          onClick={() => {
+            if (resultSvg)
+              svgExporter(resultSvg, {
+                sections,
+                filter,
+              });
+          }}
+        >
+          {/* 만드는 중 */}
+          Export SVG
+        </Button>
+      </Columns>
+      <VerticalSpace space="extraSmall"></VerticalSpace>
       <Disclosure
         onClick={(event) => {
-          setOpen(!(open === true));
+          setFilterOpen(!(filterOpen === true));
         }}
-        open={open}
-        title="SVG Name Compose Option"
+        open={filterOpen}
+        title="Naming Option"
       >
         <div className={styles.svgNameWrap}>
-          {pathNodeType.map((key, index) => {
-            return (
-              <div key={key} className={styles.svgNameFilter}>
-                <Checkbox {...filterActionCurry(key)}>
-                  <Text>
-                    {index + 1}. {key}
-                  </Text>
-                </Checkbox>
-              </div>
-            );
-          })}{" "}
+          {pathNodeType
+            .filter((t) => t !== "COMPONENT")
+            .map((key, index) => {
+              return (
+                <div key={key} className={styles.svgNameFilter}>
+                  <Checkbox {...filterActionCurry(key)}>
+                    <Text>
+                      {index + 1}. {key}
+                    </Text>
+                  </Checkbox>
+                </div>
+              );
+            })}{" "}
         </div>
       </Disclosure>
 
@@ -239,19 +278,14 @@ function Plugin() {
           <Muted>import section data json</Muted>
         </Text>
       </FileUploadDropzone>
+      <VerticalSpace space="small" />
+      {resultSvg
+        ? resultSvg.map((t) => (
+            <FolderableCode attrs={t.attrs} name={t.name}></FolderableCode>
+          ))
+        : ""}
 
       <VerticalSpace space="small" />
-      <TextboxMultiline
-        onValueInput={handleValueInput}
-        onClick={(e) => {
-          if (e.currentTarget.value.length > 10) {
-            document.execCommand("selectAll");
-            document.execCommand("copy");
-            emit<MessageHandler>("POST_MESSAGE", "복사 완료");
-          }
-        }}
-        value={text}
-      ></TextboxMultiline>
     </Container>
   );
 }

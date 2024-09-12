@@ -244,7 +244,7 @@ const grantingVar = (
   name: string
 ) => {
   const ignore = ["svg"];
-  const colorTarget = ["fill", "stroke"];
+  const colorTarget = ["fill", "stroke", "stop-color"];
   const percentTarget = ["opacity", "fill-opacity", "stroke-opacity"];
   const target = [...colorTarget, ...percentTarget];
   // 속성 값 배열
@@ -270,7 +270,7 @@ const grantingVar = (
           if (!isExisting) {
             LLog("길면서 중복이 없음", existingColorKeys.length);
 
-            newKey = `${SVG_COLOR_PREFIX}-${Object.keys(storeAttrObject).length}`;
+            newKey = `${SVG_COLOR_PREFIX}-${Object.keys(existingColorKeys).length}`;
           } else {
             LLog("길면서 중복임", isExisting, existingColorKeys.length);
             // 중복이면 newKey는 객체에서 value 로 찾아서
@@ -301,7 +301,7 @@ const grantingVar = (
         const isExisting = existingPercentKeys.some((percentKey) => {
           return storeAttrObject[percentKey] === innerAttr.value;
         });
-        let newKey = `${PERCENT_PREFIX}-${Object.keys(storeAttrObject).length + 1}`;
+        let newKey = `${PERCENT_PREFIX}-${Object.keys(existingPercentKeys).length + 1}`;
         // 한개 이상부터 커런트컬러를 안쓴다
 
         LLog("길이 충분", existingPercentKeys.length);

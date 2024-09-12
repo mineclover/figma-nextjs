@@ -1,9 +1,9 @@
 import { Layer, IconTarget16 } from "@create-figma-plugin/ui";
-import { h } from "preact";
 import { SingleExtractProps } from "../../types/utilType";
 import { useState } from "preact/hooks";
 import styles from "./test.module.css";
 import { LLog } from "../utils/console";
+import { h } from "preact";
 
 interface Props extends Omit<SingleExtractProps<typeof Layer>, "value"> {
   limit: number;
