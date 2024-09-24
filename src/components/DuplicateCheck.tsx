@@ -38,7 +38,7 @@ const DuplicateCheck = ({ resultSvg }: Props) => {
               emit<SelectNodeByIdZoomHandler>(
                 "SELECT_NODE_BY_ID_ZOOM",
                 data.node.id,
-                data.pageId
+                data.nodeInfo.pageId
               );
             }}
           >

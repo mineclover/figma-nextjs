@@ -4,6 +4,12 @@ import { useState } from "preact/hooks";
 
 import Svg from "./pages/Svg";
 
+type newFeed_Feed__Boost_Active = {
+  path: "newFeed_Feed__Boost_Active";
+  svgColor1: string;
+  svgPercent2: number;
+};
+
 import { NonNullableComponentTypeExtract } from "../../types/utilType";
 
 const fn = async (files: Array<File>) => {

@@ -254,22 +254,22 @@ const grantingVar = (
       // 컬러 타겟 속성이면
       if (colorTarget.includes(innerAttr.name)) {
         LLog("색상으로 판단", colorTarget, innerAttr);
-
         const existingColorKeys = Object.keys(storeAttrObject).filter(
           (key) =>
             key.startsWith(CURRENT_COLOR) || key.startsWith(SVG_COLOR_PREFIX)
         );
         const isExisting = existingColorKeys.some((colorKey) => {
-          return storeAttrObject[colorKey] === innerAttr.value;
+          //소문자로 고정
+          return storeAttrObject[colorKey.toLowerCase()] === innerAttr.value;
         });
         let newKey = CURRENT_COLOR;
-        // 한개 이상부터 커런트컬러를 안쓴다
-        if (existingColorKeys.length > 0) {
+        // 두개 이상부터 커런트컬러를 안쓴다
+        // 커런트 포함해야하니까
+        if (existingColorKeys.length > 1) {
           LLog("길이 충분", existingColorKeys.length);
           // 만약 중복된 속성이 저장되있지 않으면 뉴 키에 속성을 저장한다
           if (!isExisting) {
             LLog("길면서 중복이 없음", existingColorKeys.length);
-
             newKey = `${SVG_COLOR_PREFIX}-${Object.keys(existingColorKeys).length}`;
           } else {
             LLog("길면서 중복임", isExisting, existingColorKeys.length);
@@ -402,7 +402,7 @@ export const svgToUse = (
 };
 
 /**
- * svg
+ * url을 사용하는 객체에 대해서 디테일한 설계가 필요하기 떄문에 사용 보류
  * @param ast
  * @param storeAttrObject
  * @param name
@@ -440,7 +440,9 @@ export const svgToObject = (
   // 커런트 컬러는 커런트 컬러다
   // 키 이름을 써서 데이터에 접근 해서 데이터 가져오고
   // 네이티브 빌드도 빌드해야하니 빌드
-  grantingVar(ast, storeAttrObject, name);
+
+  /** url을 사용하는 객체에 대해서 디테일한 설계가 필요하기 떄문에 사용 보류 */
+  // grantingVar(ast, storeAttrObject, name);
 
   // 자식이 있고 , 0이 아니면
   if (Array.isArray(children) && children.length !== 0) {
@@ -498,7 +500,7 @@ export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
   };
 
   if (svgType === SVG_CASE_OBJECT) {
-    svgToObject(svgTag, attrList, name);
+    // svgToObject(svgTag, attrList, name);
     result.raw = parse5.serialize(body);
   } else if (svgType === SVG_CASE_USE) {
     svgToUse(svgTag, attrList, name);

@@ -31,6 +31,11 @@ const areaInclude = (
 /** 그 자체가 svg화 되야하는 대상 */
 const single = ["FRAME", "INSTANCE", "GROUP", "COMPONENT"];
 
+export type NodeInfo = {
+  pageId: string;
+  seleteNodeId: string;
+};
+
 /**
  * 전송할 노드 선택
  */
@@ -61,7 +66,7 @@ export type SVGResult = {
   svgs: {
     name: string;
     node: SceneNode;
-    pageId: string;
+    nodeInfo: NodeInfo;
     type: Awaited<ReturnType<typeof toSingleSvg>>["type"];
     attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
     raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
@@ -144,12 +149,19 @@ export default function () {
       "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
       async (sections, filter) => {
         const nodes: SceneNode[] = []; // 노드를 저장할 배열 추가
-        const pageIdMap = {} as Record<string, string>;
+        const pageIdMap = {} as Record<string, NodeInfo>;
         const svgResult = {} as SVGResult;
 
-        const addPageMap = (node: SceneNode, pageId: string) => {
+        const addPageMap = (
+          node: SceneNode,
+          pageId: string,
+          nodeId: string
+        ) => {
           nodes.push(node);
-          pageIdMap[node.id] = pageId;
+          pageIdMap[node.id] = {
+            pageId: pageId,
+            seleteNodeId: nodeId,
+          };
         };
 
         /**
@@ -173,12 +185,13 @@ export default function () {
           const node = page.findOne((n) => n.id === id);
 
           if (node) {
+            // 컴포넌트 셋 또는 섹션일 경우
             if (areaInclude(node)) {
               node.children.forEach((n) => {
-                addPageMap(n, pageId);
+                addPageMap(n, pageId, node.id);
               });
             } else {
-              addPageMap(node, pageId);
+              addPageMap(node, pageId, node.id);
             }
           }
         }
@@ -265,7 +278,7 @@ export default function () {
           svgs.push({
             node: node,
             name: resultName,
-            pageId: pageIdMap[node.id],
+            nodeInfo: pageIdMap[node.id],
             ...svg,
           });
           // 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
