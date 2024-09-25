@@ -8,7 +8,11 @@ import styles from "./test.module.css";
 import { MessageHandler } from "../CodeGen/types";
 import { emit } from "@create-figma-plugin/utilities";
 import { SVGResult } from "../CodeGen/main";
-import { safeNumberConversion } from "../utils/textTools";
+import {
+  safeNumberConversion,
+  typeofNumber,
+  varToName,
+} from "../utils/textTools";
 
 type Props = {
   name: string;
@@ -17,15 +21,18 @@ type Props = {
 
 const typeTemplate = "type $PascalName = { path: $name; $types }";
 
-const attrsToStyle = (name: string, attrs: Props["attrs"]) => {
+export const attrsToStyle = (name: string, attrs: Props["attrs"]) => {
   const styles = {} as Record<string, string | number>;
   let css = "." + name + " {";
   // 타입 선언은 타입 선언인데 이걸 정확한 위치로 어떻게 이동시키느냐가 문제임
   // 일단 키 이름이 다르고, 키 타입도 달라서 문제가 됨
   // Icon 컴포넌트 내부에서 path로 분기처리하면서 유효 타입도 처리하는 방법이 있긴 함
+  let type = "{";
 
   const types = [] as string[];
 
+  // styles
+  // props에 들어가기 떄문에 json에 맞춰서 출력되는게 맞음 그래서 객체로 정의했음
   Object.keys(attrs).forEach((key) => {
     if (key === "currentColor") {
       styles["color"] = attrs[key];
@@ -33,18 +40,32 @@ const attrsToStyle = (name: string, attrs: Props["attrs"]) => {
       styles["--" + key] = safeNumberConversion(attrs[key]);
     }
   });
+
+  // css
   Object.keys(attrs).forEach((key) => {
     if (key === "currentColor") {
-      css += "color :" + attrs[key];
+      css += "color :" + attrs[key] + ";";
     } else {
-      css += "--" + key + " : " + safeNumberConversion(attrs[key]);
+      css += "--" + key + " : " + safeNumberConversion(attrs[key]) + ";";
     }
-    css += ";";
   });
   css += "}";
+
+  // type
+  type += `path: '${name}';`;
+  Object.keys(attrs).forEach((key) => {
+    type +=
+      varToName(key) +
+      " : " +
+      (typeofNumber(attrs[key]) ? "number" : "string") +
+      ";";
+  });
+  type += "}";
+
   return {
     css,
     styles,
+    type,
   };
 };
 

@@ -254,44 +254,34 @@ const grantingVar = (
       // 컬러 타겟 속성이면
       if (colorTarget.includes(innerAttr.name)) {
         LLog("색상으로 판단", colorTarget, innerAttr);
-        const existingColorKeys = Object.keys(storeAttrObject).filter(
-          (key) =>
-            key.startsWith(CURRENT_COLOR) || key.startsWith(SVG_COLOR_PREFIX)
+        const existingColorKeys = Object.keys(storeAttrObject).filter((key) =>
+          key.startsWith(SVG_COLOR_PREFIX)
         );
         const isExisting = existingColorKeys.some((colorKey) => {
           //소문자로 고정
           return storeAttrObject[colorKey.toLowerCase()] === innerAttr.value;
         });
-        let newKey = CURRENT_COLOR;
-        // 두개 이상부터 커런트컬러를 안쓴다
-        // 커런트 포함해야하니까
-        if (existingColorKeys.length > 1) {
-          LLog("길이 충분", existingColorKeys.length);
-          // 만약 중복된 속성이 저장되있지 않으면 뉴 키에 속성을 저장한다
-          if (!isExisting) {
-            LLog("길면서 중복이 없음", existingColorKeys.length);
-            newKey = `${SVG_COLOR_PREFIX}-${Object.keys(existingColorKeys).length}`;
-          } else {
-            LLog("길면서 중복임", isExisting, existingColorKeys.length);
-            // 중복이면 newKey는 객체에서 value 로 찾아서
-            // newKey에 쓸 키를 가져온다
-            for (const a of Object.entries(storeAttrObject)) {
-              const [key, value] = a;
-              if (value === innerAttr.value) {
-                newKey = key;
-                break;
-              }
+        let newKey = "";
+
+        // 만약 중복된 속성이 저장되있지 않으면 뉴 키에 속성을 저장한다
+        if (!isExisting) {
+          LLog("길면서 중복이 없음", existingColorKeys.length);
+          // 키 생성
+          newKey = `${SVG_COLOR_PREFIX}-${Object.keys(existingColorKeys).length + 1}`;
+        } else {
+          LLog("길면서 중복임", isExisting, existingColorKeys.length);
+          for (const a of Object.entries(storeAttrObject)) {
+            const [key, value] = a;
+            if (value === innerAttr.value) {
+              newKey = key;
+              break;
             }
           }
-          // 키가 한개 이상이면 키 이름 관리
         }
+        // 키가 한개 이상이면 키 이름 관리
 
         storeAttrObject[newKey] = innerAttr.value;
-        if (newKey === CURRENT_COLOR) {
-          innerAttr.value = newKey;
-        } else {
-          innerAttr.value = `var(--${newKey}, ${storeAttrObject[newKey]})`;
-        }
+        innerAttr.value = `var(--${newKey}, ${storeAttrObject[newKey]})`;
       } else if (percentTarget.includes(innerAttr.name)) {
         // tt
 

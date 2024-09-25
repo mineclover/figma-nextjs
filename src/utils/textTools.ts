@@ -16,6 +16,11 @@ export const safeNumberConversion = (input: string) => {
   }
 };
 
+/** input이 숫자로 바꿨을 때 숫자면 true */
+export const typeofNumber = (input: string) => {
+  return typeof safeNumberConversion(input) === "number";
+};
+
 // -_ 잡아서 스플릿해서 파스칼로
 export const pascal = (text: string) =>
   text
@@ -35,3 +40,8 @@ export const camel = (text: string) =>
       return t;
     })
     .join("");
+
+/** svg-color-1 이 들어왔을 때, s */
+export const varToName = (input: string) => {
+  return input.split("-").slice(1).join("");
+};
