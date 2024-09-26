@@ -54,6 +54,8 @@ export const attrsToStyle = (name: string, attrs: Props["attrs"]) => {
   // type
   type += `path: '${name}';`;
   Object.keys(attrs).forEach((key) => {
+    type += `\n/** ${attrs[key]} */\n`;
+
     type +=
       varToName(key) +
       " : " +
