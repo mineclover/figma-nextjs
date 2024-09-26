@@ -93,22 +93,18 @@ function Plugin() {
     COMPONENT: true,
   });
   useEffect(() => {
-    handleButtonClick();
-  }, [filter]);
+    generateTrigger();
+  }, [filter, sections]);
 
   const [resultSvg, setResultSvg] = useState<SVGResult["svgs"]>();
 
-  const handleButtonClick = () => {
+  const generateTrigger = () => {
     emit<SectionSelectSvgUiRequestHandler>(
       "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
       sections,
       filter
     );
   };
-
-  function handleValueInput(newValue: string) {
-    setText(newValue);
-  }
 
   useEffect(() => {
     on<ScanHandler>("FULL_SCAN", (result, dupl, unsup, id) => {
@@ -196,7 +192,7 @@ function Plugin() {
           })}
         </Container>
       </Disclosure>
-      <DuplicateCheck resultSvg={resultSvg}></DuplicateCheck>
+
       <div
         style={{
           display: "flex",
@@ -208,15 +204,6 @@ function Plugin() {
         }}
       ></div>
       <Columns space="extraSmall">
-        <Button
-          fullWidth
-          onClick={() => {
-            handleButtonClick();
-          }}
-        >
-          {/* 만드는 중 */}
-          SVG Name Check
-        </Button>
         {/* <Button
           fullWidth
           onClick={() => {
@@ -233,7 +220,6 @@ function Plugin() {
           Export JSON
         </Button> */}
         <Button
-          secondary
           fullWidth
           onClick={() => {
             if (resultSvg)
@@ -287,11 +273,7 @@ function Plugin() {
         </Text>
       </FileUploadDropzone>
       <VerticalSpace space="small" />
-      {resultSvg
-        ? resultSvg.map((t) => (
-            <FolderableCode attrs={t.attrs} name={t.name}></FolderableCode>
-          ))
-        : ""}
+      <DuplicateCheck resultSvg={resultSvg}></DuplicateCheck>
 
       <VerticalSpace space="small" />
     </Container>

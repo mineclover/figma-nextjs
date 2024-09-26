@@ -173,7 +173,7 @@ const parse5Unsupported = {
 export const SvgScan = (ast: ParseElement): SvgCase => {
   const children = ast.childNodes as ParseElement[];
 
-  console.log("검사로직 ", ast);
+  LLog("검사로직 ", ast);
   // 태그 이름으로 가능 여부를 구분하는 것
   // unsupported가 하나라도 있으면 이 파일은 object를 통해 임포트 한다
   if (
@@ -469,17 +469,17 @@ export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
 
   const parseResult = parse5.parse(svg);
   // html 용이여서 빈 html과 Head가 생김
-  console.log("parseResult:", parseResult);
+  LLog("parseResult:", parseResult);
   const docu = parseResult.childNodes[0] as ParseElement;
-  console.log("docu:", docu);
+  LLog("docu:", docu);
   const body = docu.childNodes.filter(
     (item) => (item as ParseElement).tagName === "body"
   )[0] as ParseElement;
-  console.log("body:", body);
+  LLog("body:", body);
   const svgTag = body.childNodes.filter(
     (item) => (item as ParseElement).tagName === "svg"
   )[0] as ParseElement;
-  console.log("svgTag:", svgTag);
+  LLog("svgTag:", svgTag);
   const svgType = SvgScan(svgTag);
 
   const result = {

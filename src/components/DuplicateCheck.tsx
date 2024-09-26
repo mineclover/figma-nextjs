@@ -1,6 +1,11 @@
 import { h } from "preact";
 import { SVGResult } from "../CodeGen/main";
 import { useState } from "preact/hooks";
+import {
+  IconLayerImage16,
+  IconLayerInstance16,
+  TextColor,
+} from "@create-figma-plugin/ui";
 
 import { SelectNodeByIdZoomHandler } from "../CodeGen/types";
 import { emit } from "@create-figma-plugin/utilities";
@@ -16,23 +21,36 @@ interface Props {
   resultSvg?: SVGResult["svgs"];
 }
 
+const typeICon = (type: NonNullable<Props["resultSvg"]>[number]["type"]) => {
+  if (type === "use") return <IconLayerInstance16></IconLayerInstance16>;
+  if (type === "object") return <IconLayerImage16></IconLayerImage16>;
+  return <IconTarget16></IconTarget16>;
+};
+
 const DuplicateCheck = ({ resultSvg }: Props) => {
   const [hover, setHover] = useState(false);
-  const target = resultSvg?.filter(
-    (svg) => svg.name && resultSvg.filter((s) => s.name === svg.name).length > 1
-  );
 
-  if (target && target.length > 0)
+  if (resultSvg) {
+    const target = resultSvg
+      .map((svg) => {
+        const isDuplicate =
+          svg.name && resultSvg.filter((s) => s.name === svg.name).length > 1;
+        if (isDuplicate) return { ...svg, isDuplicate: true };
+
+        return { ...svg, isDuplicate: false };
+      })
+      .sort((a, b) => (a.name < b.name ? -1 : 1));
+
     return (
       <div>
         <Text>
-          <Muted>이름 중복 리스트</Muted>
+          <Muted>Icons</Muted>
         </Text>
         <VerticalSpace space="extraSmall" />
         {target.map((data) => (
           <Layer
             value={hover}
-            icon={<IconTarget16 />}
+            icon={typeICon(data.type)}
             onClick={(e) => {
               e.preventDefault();
               emit<SelectNodeByIdZoomHandler>(
@@ -42,11 +60,20 @@ const DuplicateCheck = ({ resultSvg }: Props) => {
               );
             }}
           >
-            <span>{data.name}</span>
+            <span
+              style={{
+                color: data.isDuplicate
+                  ? "var(--figma-color-bg-danger,red)"
+                  : undefined,
+              }}
+            >
+              {data.name}
+            </span>
           </Layer>
         ))}
       </div>
     );
+  }
 
   return null;
 };

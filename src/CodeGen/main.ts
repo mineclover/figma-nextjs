@@ -140,7 +140,7 @@ export default function () {
           figma.viewport.scrollAndZoomIntoView([node]);
           // figma.notify(`${page.name}  /  ${node.name}`);
           // const time2 = new Date().getTime();
-          // console.log(time2 - time);
+          // LLog(time2 - time);
         }
       }
     );
@@ -222,7 +222,7 @@ export default function () {
           // 컴포넌트는 그 경계에 있기 때문에 필요에 따라 설계함
           // 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추가됨
           // 노드는 현재 선택한 노드
-          console.log("FilePathSearch::", FilePathSearch(node, []));
+          LLog("FilePathSearch::", FilePathSearch(node, []));
           const paths = FilePathSearch(node, []).filter((path) => {
             // 의도적 결합도
 
@@ -242,12 +242,12 @@ export default function () {
             currentNode = paths.pop() as SceneNode;
           }
           if (currentNode == null) currentNode = node;
-          console.log("currentNode::", currentNode, paths);
+          LLog("currentNode::", currentNode, paths);
           const names = currentNode.name.split(", ");
 
           // 키=벨류, 키=벨류 구조의 텍스트에서 벨류만 파싱하는 코드임
           // 문서에 =이 없으면 공백이 나옴
-          console.log(names);
+          LLog(names);
           const tempName = names
             .map((t) => t.split("=")[1])
             .join("_")
@@ -263,9 +263,7 @@ export default function () {
               : tempName;
           const path = paths
             .map((item) => item.name.replace(/[^a-zA-Z0-9_]/g, "").trim())
-            .map((t, index) =>
-              t !== "" ? t : FilterTypeIndex(paths[index].type) + "😎"
-            )
+            .map((t, index) => (t !== "" ? t : "❌" + paths[index].type + "❌"))
             .join("_");
           const firstName = path ? path + "__" : "";
           const resultName =
@@ -274,7 +272,7 @@ export default function () {
           const svg = await toSingleSvg(node, resultName);
           // const parser = new DOMParser();
           // const svgDom = parser.parseFromString(svg, "image/svg+xml");
-          // console.log("dom:", svgDom);
+          // LLog("dom:", svgDom);
           svgs.push({
             node: node,
             name: resultName,
