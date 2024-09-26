@@ -42,9 +42,10 @@ import {
   SectionSelectSvgMainResponseHandler,
 } from "../types";
 import {
-  addUniqueSectionCurry,
+  addArrayFilterCurry,
+  addValueFilterCurry,
   handleFileInput,
-  JsonToArray,
+  JsonToObject,
 } from "../../utils/jsonFile";
 import DragLayer from "../../components/DragLayer";
 import { LLog } from "../../utils/console";
@@ -60,7 +61,15 @@ import DuplicateCheck from "../../components/DuplicateCheck";
  * @param fileName .json 확장자 생략가능
  */
 
-const addUniqueSection = addUniqueSectionCurry<SelectList>(
+const addUniqueSection = addValueFilterCurry<SelectList>(
+  (item, index, array) => {
+    return (
+      index === array.findIndex((t) => t.id === item.id && t.name === item.name)
+    );
+  }
+);
+
+const addUniqueArraySection = addArrayFilterCurry<SelectList>(
   (item, index, array) => {
     return (
       index === array.findIndex((t) => t.id === item.id && t.name === item.name)
@@ -208,7 +217,7 @@ function Plugin() {
           {/* 만드는 중 */}
           SVG Name Check
         </Button>
-        <Button
+        {/* <Button
           fullWidth
           onClick={() => {
             // export json
@@ -222,11 +231,9 @@ function Plugin() {
           secondary
         >
           Export JSON
-        </Button>
-      </Columns>
-      <VerticalSpace space="extraSmall"></VerticalSpace>
-      <Columns space="extraSmall">
+        </Button> */}
         <Button
+          secondary
           fullWidth
           onClick={() => {
             if (resultSvg)
@@ -240,6 +247,7 @@ function Plugin() {
           Export SVG
         </Button>
       </Columns>
+
       <VerticalSpace space="extraSmall"></VerticalSpace>
       <Disclosure
         onClick={(event) => {
@@ -268,10 +276,10 @@ function Plugin() {
       <FileUploadDropzone
         onSelectedFiles={async (e) => {
           // 중복 아이디 삭제하면서 여러 json 추가 가능
-          const data = await JsonToArray(e);
-          data.forEach((item) => {
-            setSections((array) => addUniqueSection(array, item));
-          });
+          const data = await JsonToObject(e);
+          // 읽은 json 들에서 sections만 읽어서 array로 궈성
+          const jsonSections = data.flatMap((i) => i.sections);
+          setSections((array) => addUniqueArraySection(array, jsonSections));
         }}
       >
         <Text align="center">

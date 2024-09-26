@@ -136,49 +136,6 @@ export const svgExporter = async (
   const useSvgList = useList.map((item) => item.raw);
 
   // .ts 파일 생성
-
-  // use 인지 object 든 조건 분기에 필요한 것
-  const typeSuffix = "Type";
-  const listSuffix = "KeyList";
-
-  let tsTemplate = `export type $name${typeSuffix} = $union`;
-  let constTemplate = `export const $name${listSuffix} = [$array]`;
-
-  const useUnion = useList.map((node) => `"${node.name}"`);
-
-  const USE_NAME = "use";
-  const useNameType = replaceTemplateVariables(tsTemplate, {
-    name: USE_NAME,
-    union: useUnion.join(" | "),
-  });
-  const useNameList = replaceTemplateVariables(constTemplate, {
-    name: USE_NAME,
-    array: useUnion.join(", "),
-  });
-
-  console.log("useNameType::", useNameType, "useNameList::", useNameList);
-
-  const OBJECT_NAME = "object";
-  const objectUnion = objectList.map((node) => `"${node.name}"`);
-
-  const objectNameType = replaceTemplateVariables(tsTemplate, {
-    name: OBJECT_NAME,
-    union: useUnion.join(" | "),
-  });
-
-  const objectNameList = replaceTemplateVariables(constTemplate, {
-    name: OBJECT_NAME,
-    array: objectUnion.join(", "),
-  });
-
-  console.log(
-    "objectNameType::",
-    objectNameType,
-    "objectNameList::",
-    objectNameList
-  );
-
-  // props 읽어서 styles 로 추출할 때 읽어야하는 default style set
   // path 기준으로 attrs 저장
   const defaultStyles = svgData.reduce(
     (acc, node) => {

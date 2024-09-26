@@ -34,7 +34,7 @@ export function downloadJsonFile(text: string): void {
   }
 }
 
-export const JsonToArray = async (files: File[]) => {
+export const JsonToObject = async (files: File[]) => {
   // json 만
   const json = files.filter((file) => file.type === "application/json");
   const array = [];
@@ -56,17 +56,25 @@ export const handleFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
   if (event.target instanceof HTMLInputElement && event.target.files) {
     const files = event.target.files;
     const fileArray = Array.from(files);
-    return JsonToArray(fileArray);
+    return JsonToObject(fileArray);
   } else {
     // 파일이 선택되지 않은 경우 처리
     LLog("파일이 선택되지 않았습니다.");
   }
 };
 
-export const addUniqueSectionCurry =
+/** 단일 객체를 추가하면서 필터 */
+export const addValueFilterCurry =
   <T extends {}>(fn: (value: T, index: number, array: T[]) => boolean) =>
   (array: T[], data: T) => {
     return [...array, data].filter(fn);
+  };
+
+/** 어레이 객체를 추가하면서 필터 */
+export const addArrayFilterCurry =
+  <T extends {}>(fn: (value: T, index: number, array: T[]) => boolean) =>
+  (array: T[], data: T[]) => {
+    return [...array, ...data].filter(fn);
   };
 
 // const addUniqueSection = <T extends { id: string; name: string }>(array: T[], data: T) => {
