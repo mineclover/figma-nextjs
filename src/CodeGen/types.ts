@@ -9,6 +9,11 @@ export type SelectList = {
   pageName: string;
 };
 
+export type Project = {
+  fileKey?: string;
+  projectName: string;
+};
+
 // 핸들러
 export interface CloseHandler extends EventHandler {
   name: "CLOSE";
@@ -58,4 +63,14 @@ export interface SectionSelectSvgUiRequestHandler extends EventHandler {
 export interface SectionSelectSvgMainResponseHandler extends EventHandler {
   name: "SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE";
   handler: (svgs: SVGResult["svgs"]) => void;
+}
+
+export interface ProjectUIHandler extends EventHandler {
+  name: "PROJECT_INFO_UI_RESPONSE";
+  handler: () => void;
+}
+
+export interface ProjectMainHandler extends EventHandler {
+  name: "PROJECT_INFO_MAIN_RESPONSE";
+  handler: (project: Project) => void;
 }

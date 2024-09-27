@@ -6,18 +6,6 @@ import { FilterType } from "../FigmaPluginUtils";
 import { camel, varToName } from "./textTools";
 import { attrsToStyle } from "../components/FolderableCode";
 
-// 텍스트 대체 기능 수행하는 함수
-// object의 키가 전환될 $key로 사용되고 그 내용으로 대체하는 구조
-const replaceTemplateVariables = (
-  template: string,
-  variables: Record<string, string>
-): string => {
-  return Object.keys(variables).reduce((result, key) => {
-    const regex = new RegExp(`\\$${key}`, "g");
-    return result.replace(regex, variables[key]);
-  }, template);
-};
-
 const IconComp = `import { CSSProperties } from "react";
 
 type IconProps = {
@@ -25,6 +13,7 @@ type IconProps = {
   fill?: boolean;
   className?: string;
   style?: CSSProperties;
+  options?: FilterOptions;
 };
 
 type NullableString = string | boolean | undefined;
@@ -48,6 +37,33 @@ const fillStyles = (isFill?: boolean) => {
       objectFit: "cover",
     } as const;
   return {};
+};
+
+type FilterOptions = {
+  blur?: number | string;
+  brightness?: number | string;
+  contrast?: number | string;
+  grayscale?: number | string;
+  invert?: number | string;
+  saturate?: number | string;
+  sepia?: number | string;
+  opacity?: number | string;
+  "drop-shadow"?: string;
+  "hue-rotate"?: string;
+};
+
+const filterStyle = (options?: FilterOptions) => {
+  if (!options) return {};
+  const { opacity, ...filters } = options;
+
+  const filter = Object.entries(filters)
+    .map(([key, value]) => \`\${key}(\${value})\`)
+    .join(" ");
+
+  return {
+    filter: filter,
+    opacity: opacity,
+  };
 };
 
 /**
@@ -77,7 +93,6 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
 
     // 대충 propsKey : cssKey 임
     const varNames = Object.entries(usePropsObject[path]);
-
     const varStyles = {} as Record<string, string>;
 
     for (const [pk, cssKey] of varNames) {
@@ -88,7 +103,12 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
 
     return (
       <svg
-        style={{ ...fillStyles(props.fill), ...varStyles, ...props.style }}
+        style={{
+          ...fillStyles(props.fill),
+          ...filterStyle(props.options),
+          ...varStyles,
+          ...props.style,
+        }}
         className={clc(props.className)}
         aria-label={alt}
       >
@@ -112,6 +132,7 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
         role="img"
         style={{
           ...fillStyles(props.fill),
+          ...filterStyle(props.options),
           pointerEvents: "none",
           ...props.style,
         }}
@@ -128,7 +149,8 @@ export default Icon;`;
 
 export const svgExporter = async (
   svgData: SVGResult["svgs"],
-  settings: { sections: SelectList[]; filter: FilterType }
+  settings: { sections: SelectList[]; filter: FilterType },
+  dev?: boolean
 ) => {
   const zipFile = new JSZip();
   const useList = svgData.filter((item) => item.type === "use");
@@ -136,26 +158,6 @@ export const svgExporter = async (
   const useSvgList = useList.map((item) => item.raw);
 
   // .ts 파일 생성
-  // path 기준으로 attrs 저장
-  const defaultStyles = svgData.reduce(
-    (acc, node) => {
-      const path = node.name;
-
-      // props 는 camelcase 로 통일
-      const temp = Object.entries(node.attrs).map(([key, value]) => {
-        return [camel(key), value];
-      });
-      const attrs = Object.fromEntries(temp);
-
-      acc[path] = attrs; // object에 속성 추가
-      return acc; // 누적된 객체 반환
-    },
-    {} as Record<string, SVGResult["svgs"][number]["attrs"]>
-  );
-
-  // console;
-
-  // 사용할 코드 구현해놓고, 그거 그대로 복붙해서 생성하게해야함 ㅇㅇ..
 
   // asset.svg 생성
   const result = `<svg xmlns="http://www.w3.org/2000/svg">
@@ -163,7 +165,13 @@ export const svgExporter = async (
     ${useSvgList.join("\n")}
   </defs>
 </svg>`;
-  zipFile.file("asset.svg", result);
+
+  if (dev) {
+    const devFolder = zipFile.folder("public");
+    devFolder && devFolder.file("asset.svg", result);
+  } else {
+    zipFile.file("asset.svg", result);
+  }
 
   // 아이콘 메타데이터 리스트 정리
   const all = svgData.map((item) => ({
@@ -173,7 +181,10 @@ export const svgExporter = async (
     type: item.type,
     nodeInfo: item.nodeInfo,
   }));
-  zipFile.file("settings.json", JSON.stringify({ ...settings, all }));
+  zipFile.file(
+    Date.now() + "_settings.json",
+    JSON.stringify({ ...settings, all })
+  );
 
   // 타입 일괄 추출
 
@@ -214,10 +225,15 @@ export const svgExporter = async (
   // 유틸 코드
   tsFile += IconComp;
 
-  zipFile.file("Icon.tsx", tsFile);
+  if (dev) {
+    const devFolder = zipFile.folder("src");
+    devFolder && devFolder.file("Icon.tsx", tsFile);
+  } else {
+    zipFile.file("Icon.tsx", tsFile);
+  }
 
   // object/~.svg 생성
-  const objectFolder = zipFile.folder("object");
+  const objectFolder = zipFile.folder(dev ? "public/object" : "object");
   if (objectFolder) {
     for (const svg of objectList) {
       objectFolder.file(svg.name + ".svg", svg.raw);

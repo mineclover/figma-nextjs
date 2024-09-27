@@ -11,6 +11,8 @@ import {
   SectionSelectSvgUiRequestHandler,
   SelectList,
   SectionSelectSvgMainResponseHandler,
+  ProjectUIHandler,
+  ProjectMainHandler,
 } from "./types";
 import {
   FileMetaSearch,
@@ -295,28 +297,17 @@ export default function () {
       }
 
       // Object.assign(svgResult, { settings: input, svgs });
-
       // sections 는 json import export가 구현되있음
-      //
       // svg export
     );
 
-    on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {
-      const current = figma.currentPage.selection;
+    on<ProjectUIHandler>("PROJECT_INFO_UI_RESPONSE", async function async() {
+      const project = {
+        fileKey: figma.fileKey,
+        projectName: figma.root.name,
+      };
 
-      const { id, completed, duplicate, unsupportedKeys } =
-        await toSvg(current);
-      const text = completed
-        .filter((item) => item != null)
-        .join("\n")
-        .replace(/viewbox/g, "viewBox");
-
-      const result = `<svg xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    ${text}
-  </defs>
-</svg>`;
-      emit<ScanHandler>("FULL_SCAN", result, duplicate, unsupportedKeys, id);
+      emit<ProjectMainHandler>("PROJECT_INFO_MAIN_RESPONSE", project);
     });
 
     on<MessageHandler>("POST_MESSAGE", function (text: string) {

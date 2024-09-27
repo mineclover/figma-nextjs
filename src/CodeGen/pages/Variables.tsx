@@ -13,7 +13,6 @@ import {
 import { emit, on } from "@create-figma-plugin/utilities";
 import { h } from "preact";
 import { useCallback, useState, useEffect } from "preact/hooks";
-import { EventHandler } from "@create-figma-plugin/ui";
 
 import {
   CloseHandler,

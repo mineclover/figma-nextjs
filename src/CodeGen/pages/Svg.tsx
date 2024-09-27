@@ -40,6 +40,9 @@ import {
   SelectNodeByIdZoomHandler,
   SectionSelectSvgUiRequestHandler,
   SectionSelectSvgMainResponseHandler,
+  Project,
+  ProjectUIHandler,
+  ProjectMainHandler,
 } from "../types";
 import {
   addArrayFilterCurry,
@@ -80,7 +83,9 @@ const addUniqueArraySection = addArrayFilterCurry<SelectList>(
 //event: h.JSX.TargetedMouseEvent<HTMLInputElement>
 
 function Plugin() {
-  const [text, setText] = useState("");
+  const [project, setProject] = useState<Project>({
+    projectName: "",
+  });
   const [selectOpen, setSelectOpen] = useState<boolean>(true);
   const [filterOpen, setFilterOpen] = useState<boolean>(true);
   const [sections, setSections] = useState<SelectList[]>([]);
@@ -107,10 +112,14 @@ function Plugin() {
   };
 
   useEffect(() => {
-    on<ScanHandler>("FULL_SCAN", (result, dupl, unsup, id) => {
-      setText(result);
-      update((x) => x + 1);
-    });
+    emit<ProjectUIHandler>("PROJECT_INFO_UI_RESPONSE");
+
+    emit<SectionSelectSvgUiRequestHandler>(
+      "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
+      sections,
+      filter
+    );
+
     on<SectionSelectSvgMainResponseHandler>(
       "SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE",
       (result) => {
@@ -120,6 +129,10 @@ function Plugin() {
 
     on<FigmaSelectMainResponseHandler>("SECTION_SELECT_UI_RESPONSE", (data) => {
       setSections((array) => addUniqueSection(array, data));
+    });
+
+    on<ProjectMainHandler>("PROJECT_INFO_MAIN_RESPONSE", (data) => {
+      setProject(data);
     });
   }, []);
 
@@ -144,6 +157,7 @@ function Plugin() {
 
   return (
     <Container space="medium">
+      <Text>{project.projectName}</Text>
       <VerticalSpace space="extraLarge" />
       <Text>section select</Text>
       <VerticalSpace space="medium" />
@@ -193,16 +207,6 @@ function Plugin() {
         </Container>
       </Disclosure>
 
-      <div
-        style={{
-          display: "flex",
-          direction: "row",
-          justifyContent: "flex-start",
-          alignItems: "center",
-          gap: 4,
-          padding: 4,
-        }}
-      ></div>
       <Columns space="extraSmall">
         {/* <Button
           fullWidth
@@ -226,6 +230,7 @@ function Plugin() {
               svgExporter(resultSvg, {
                 sections,
                 filter,
+                project,
               });
           }}
         >
@@ -264,8 +269,12 @@ function Plugin() {
           // 중복 아이디 삭제하면서 여러 json 추가 가능
           const data = await JsonToObject(e);
           // 읽은 json 들에서 sections만 읽어서 array로 궈성
-          const jsonSections = data.flatMap((i) => i.sections);
+          const setting = data[0];
+          // const jsonSections = data.flatMap((i) => i.sections);
+          const jsonSections = setting.sections;
           setSections((array) => addUniqueArraySection(array, jsonSections));
+          const jsonFilter = setting.filter;
+          setFilter(jsonFilter);
         }}
       >
         <Text align="center">
@@ -275,6 +284,42 @@ function Plugin() {
       <VerticalSpace space="small" />
       <DuplicateCheck resultSvg={resultSvg}></DuplicateCheck>
 
+      <VerticalSpace space="small" />
+      <Columns space="extraSmall">
+        {/* <Button
+          fullWidth
+          onClick={() => {
+            // export json
+            saveAs(
+              new Blob([JSON.stringify(sections)], {
+                type: "application/json",
+              }),
+              "export.json"
+            );
+          }}
+          secondary
+        >
+          Export JSON
+        </Button> */}
+        <Button
+          fullWidth
+          onClick={() => {
+            if (resultSvg)
+              svgExporter(
+                resultSvg,
+                {
+                  sections,
+                  filter,
+                  project,
+                },
+                true
+              );
+          }}
+        >
+          {/* 만드는 중 */}
+          Dev Export SVG
+        </Button>
+      </Columns>
       <VerticalSpace space="small" />
     </Container>
   );

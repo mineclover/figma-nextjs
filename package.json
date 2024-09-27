@@ -33,20 +33,15 @@
     "dev": "tsc ./src/Test/index.ts && node ./src/Test/index.js"
   },
   "figma-plugin": {
-    "networkAccess": {
-      "allowedDomains": [
-        "https://api.open-meteo.com/"
-      ]
-    },
     "editorType": [
+      "figma",
       "dev"
     ],
     "id": "1331810010782002781",
     "capabilities": [
-      "inspect",
-      "codegen"
+      "inspect"
     ],
-    "name": "CodeGen",
+    "name": "Svg Sprite",
     "main": "src/CodeGen/main.ts",
     "ui": "src/CodeGen/ui.tsx"
   }
