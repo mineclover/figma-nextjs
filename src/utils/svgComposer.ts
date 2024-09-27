@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { SelectList } from "../CodeGen/types";
+import { Project, SelectList } from "../CodeGen/types";
 import { SVGResult } from "../CodeGen/main";
 import { FilterType } from "../FigmaPluginUtils";
 import { camel, varToName } from "./textTools";
@@ -149,7 +149,7 @@ export default Icon;`;
 
 export const svgExporter = async (
   svgData: SVGResult["svgs"],
-  settings: { sections: SelectList[]; filter: FilterType },
+  settings: { sections: SelectList[]; filter: FilterType; project: Project },
   dev?: boolean
 ) => {
   const zipFile = new JSZip();
