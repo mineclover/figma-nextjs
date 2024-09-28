@@ -157,8 +157,9 @@ function Plugin() {
 
   return (
     <Container space="medium">
-      <Text>{project.projectName}</Text>
       <VerticalSpace space="extraLarge" />
+      <Text>{project.projectName}</Text>
+      <VerticalSpace space="medium" />
       <Text>section select</Text>
       <VerticalSpace space="medium" />
       <Textbox

@@ -34,7 +34,7 @@ export const FileMetaSearch = (
  */
 export const FilePathSearch = (
   node: BaseNode,
-  pathNode: PathNodeinfo[]
+  pathNode: PathNodeinfo[] = []
 ): PathNodeinfo[] => {
   const parent = node.parent;
 

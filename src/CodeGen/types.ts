@@ -74,3 +74,8 @@ export interface ProjectMainHandler extends EventHandler {
   name: "PROJECT_INFO_MAIN_RESPONSE";
   handler: (project: Project) => void;
 }
+
+export interface ResizeWindowHandler extends EventHandler {
+  name: "RESIZE_WINDOW";
+  handler: (windowSize: { width: number; height: number }) => void;
+}

@@ -1234,6 +1234,7 @@ export interface components {
             transitionDuration?: number;
             /** @description The easing curve used in the prototyping transition on this node. */
             transitionEasing?: components["schemas"]["EasingType"];
+            interactions?: components["schemas"]["Interaction"][];
         };
         DevStatusTrait: {
             /** @description Represents whether or not a node has a particular handoff (or dev) status applied to it. */
@@ -2345,6 +2346,208 @@ export interface components {
             type: "VARIABLE_ALIAS";
             /** @description The id of the variable that the current variable is aliased to. This variable can be a local or remote variable, and both can be retrieved via the GET /v1/files/:file_key/variables/local endpoint. */
             id: string;
+        };
+        /** @description An interaction in the Figma viewer, containing a trigger and one or more actions. */
+        Interaction: {
+            /** @description The user event that initiates the interaction. */
+            trigger: components["schemas"]["Trigger"] | null;
+            /** @description The actions that are performed when the trigger is activated. */
+            actions?: components["schemas"]["Action"][];
+        };
+        /** @description The `"ON_HOVER"` and `"ON_PRESS"` trigger types revert the navigation when the trigger is finished (the result is temporary).
+         *     `"MOUSE_ENTER"`, `"MOUSE_LEAVE"`, `"MOUSE_UP"` and `"MOUSE_DOWN"` are permanent, one-way navigation.
+         *     The `delay` parameter requires the trigger to be held for a certain duration of time before the action occurs.
+         *     Both `timeout` and `delay` values are in milliseconds.
+         *     The `"ON_MEDIA_HIT"` and `"ON_MEDIA_END"` trigger types can only trigger from a video.
+         *     They fire when a video reaches a certain time or ends. The `timestamp` value is in seconds. */
+        Trigger: {
+            /** @enum {string} */
+            type: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "ON_DRAG";
+        } | components["schemas"]["AfterTimeoutTrigger"] | {
+            /** @enum {string} */
+            type: "MOUSE_ENTER" | "MOUSE_LEAVE" | "MOUSE_UP" | "MOUSE_DOWN";
+            delay: number;
+            /** @description Whether this is a [deprecated version](https://help.figma.com/hc/en-us/articles/360040035834-Prototype-triggers#h_01HHN04REHJNP168R26P1CMP0A) of the trigger that was left unchanged for backwards compatibility.
+             *     If not present, the trigger is the latest version. */
+            deprecatedVersion?: boolean;
+        } | components["schemas"]["OnKeyDownTrigger"] | components["schemas"]["OnMediaHitTrigger"] | {
+            /** @enum {string} */
+            type: "ON_MEDIA_END";
+        };
+        AfterTimeoutTrigger: {
+            /** @enum {string} */
+            type: "AFTER_TIMEOUT";
+            timeout: number;
+        };
+        OnKeyDownTrigger: {
+            /** @enum {string} */
+            type: "ON_KEY_DOWN";
+            /** @enum {string} */
+            device: "KEYBOARD" | "XBOX_ONE" | "PS4" | "SWITCH_PRO" | "UNKNOWN_CONTROLLER";
+            keyCodes: number[];
+        };
+        OnMediaHitTrigger: {
+            /** @enum {string} */
+            type: "ON_MEDIA_HIT";
+            mediaHitTime: number;
+        };
+        /** @description An action that is performed when a trigger is activated. */
+        Action: {
+            /** @enum {string} */
+            type: "BACK" | "CLOSE";
+        } | components["schemas"]["OpenURLAction"] | components["schemas"]["UpdateMediaRuntimeAction"] | components["schemas"]["SetVariableAction"] | components["schemas"]["SetVariableModeAction"] | components["schemas"]["ConditionalAction"] | components["schemas"]["NodeAction"];
+        /** @description An action that opens a URL. */
+        OpenURLAction: {
+            /** @enum {string} */
+            type: "URL";
+            url: string;
+        };
+        /** @description An action that affects a video node in the Figma viewer. For example, to play, pause, or skip. */
+        UpdateMediaRuntimeAction: {
+            /** @enum {string} */
+            type: "UPDATE_MEDIA_RUNTIME";
+            destinationId: string | null;
+            /** @enum {string} */
+            mediaAction: "PLAY" | "PAUSE" | "TOGGLE_PLAY_PAUSE" | "MUTE" | "UNMUTE" | "TOGGLE_MUTE_UNMUTE";
+        } | {
+            /** @enum {string} */
+            type: "UPDATE_MEDIA_RUNTIME";
+            destinationId?: string | null;
+            /** @enum {string} */
+            mediaAction: "SKIP_FORWARD" | "SKIP_BACKWARD";
+            amountToSkip: number;
+        } | {
+            /** @enum {string} */
+            type: "UPDATE_MEDIA_RUNTIME";
+            destinationId?: string | null;
+            /** @enum {string} */
+            mediaAction: "SKIP_TO";
+            newTimestamp: number;
+        };
+        /** @description An action that navigates to a specific node in the Figma viewer. */
+        NodeAction: {
+            /** @enum {string} */
+            type: "NODE";
+            destinationId: string | null;
+            navigation: components["schemas"]["Navigation"];
+            transition: components["schemas"]["Transition"] | null;
+            /** @description Whether the scroll offsets of any scrollable elements in the current screen or overlay are preserved when navigating to the destination. This is applicable only if the layout of both the current frame and its destination are the same. */
+            preserveScrollPosition?: boolean;
+            /** @description Applicable only when `navigation` is `"OVERLAY"` and the destination is a frame with `overlayPosition` equal to `"MANUAL"`. This value represents the offset by which the overlay is opened relative to this node. */
+            overlayRelativePosition?: components["schemas"]["Vector"];
+            /** @description When true, all videos within the destination frame will reset their memorized playback position to 00:00 before starting to play. */
+            resetVideoPosition?: boolean;
+            /** @description Whether the scroll offsets of any scrollable elements in the current screen or overlay reset when navigating to the destination. This is applicable only if the layout of both the current frame and its destination are the same. */
+            resetScrollPosition?: boolean;
+            /** @description Whether the state of any interactive components in the current screen or overlay reset when navigating to the destination. This is applicable if there are interactive components in the destination frame. */
+            resetInteractiveComponents?: boolean;
+        };
+        /**
+         * @description The method of navigation. The possible values are:
+         *     - `"NAVIGATE"`: Replaces the current screen with the destination, also closing all overlays.
+         *     - `"OVERLAY"`: Opens the destination as an overlay on the current screen.
+         *     - `"SWAP"`: On an overlay, replaces the current (topmost) overlay with the destination. On a top-level frame,
+         *       behaves the same as `"NAVIGATE"` except that no entry is added to the navigation history.
+         *     - `"SCROLL_TO"`: Scrolls to the destination on the current screen.
+         *     - `"CHANGE_TO"`: Changes the closest ancestor instance of source node to the specified variant.
+         * @enum {string}
+         */
+        Navigation: "NAVIGATE" | "SWAP" | "OVERLAY" | "SCROLL_TO" | "CHANGE_TO";
+        Transition: components["schemas"]["SimpleTransition"] | components["schemas"]["DirectionalTransition"];
+        /** @description Describes an animation used when navigating in a prototype. */
+        SimpleTransition: {
+            /** @enum {string} */
+            type: "DISSOLVE" | "SMART_ANIMATE" | "SCROLL_ANIMATE";
+            /** @description The duration of the transition in milliseconds. */
+            duration: number;
+            /** @description The easing curve of the transition. */
+            easing: components["schemas"]["Easing"];
+        };
+        /** @description Describes an animation used when navigating in a prototype. */
+        DirectionalTransition: {
+            /** @enum {string} */
+            type: "MOVE_IN" | "MOVE_OUT" | "PUSH" | "SLIDE_IN" | "SLIDE_OUT";
+            /** @enum {string} */
+            direction: "LEFT" | "RIGHT" | "TOP" | "BOTTOM";
+            /** @description The duration of the transition in milliseconds. */
+            duration: number;
+            /** @description The easing curve of the transition. */
+            easing: components["schemas"]["EasingType"];
+            /** @description When the transition `type` is `"SMART_ANIMATE"` or when `matchLayers` is `true`, then the transition will be performed using smart animate, which attempts to match corresponding layers an interpolate other properties during the animation. */
+            matchLayers?: boolean;
+        };
+        /** @description Describes an easing curve. */
+        Easing: {
+            /** @description The type of easing curve. */
+            type: components["schemas"]["EasingType"];
+            /** @description A cubic bezier curve that defines the easing. */
+            easingFunctionCubicBezier?: {
+                /** @description The x component of the first control point. */
+                x1: number;
+                /** @description The y component of the first control point. */
+                y1: number;
+                /** @description The x component of the second control point. */
+                x2: number;
+                /** @description The y component of the second control point. */
+                y2: number;
+            };
+            /** @description A spring function that defines the easing. */
+            easingFunctionSpring?: {
+                mass: number;
+                stiffness: number;
+                damping: number;
+            };
+        };
+        /** @description Sets a variable to a specific value. */
+        SetVariableAction: {
+            /** @enum {string} */
+            type: "SET_VARIABLE";
+            variableId: string | null;
+            variableValue?: components["schemas"]["VariableData"];
+        };
+        /** @description Sets a variable to a specific mode. */
+        SetVariableModeAction: {
+            /** @enum {string} */
+            type: "SET_VARIABLE_MODE";
+            variableCollectionId?: string | null;
+            variableModeId?: string | null;
+        };
+        /** @description Checks if a condition is met before performing certain actions by using an if/else conditional statement. */
+        ConditionalAction: {
+            /** @enum {string} */
+            type: "CONDITIONAL";
+            conditionalBlocks: components["schemas"]["ConditionalBlock"][];
+        };
+        /** @description A value to set a variable to during prototyping. */
+        VariableData: {
+            type?: components["schemas"]["VariableDataType"];
+            resolvedType?: components["schemas"]["VariableResolvedDataType"];
+            value?: boolean | number | string | components["schemas"]["RGB"] | components["schemas"]["RGBA"] | components["schemas"]["VariableAlias"] | components["schemas"]["Expression"];
+        };
+        /**
+         * @description Defines the types of data a VariableData object can hold
+         * @enum {string}
+         */
+        VariableDataType: "BOOLEAN" | "FLOAT" | "STRING" | "COLOR" | "VARIABLE_ALIAS" | "EXPRESSION";
+        /**
+         * @description Defines the types of data a VariableData object can eventually equal
+         * @enum {string}
+         */
+        VariableResolvedDataType: "BOOLEAN" | "FLOAT" | "STRING" | "COLOR";
+        /** @description Defines the [Expression](https://help.figma.com/hc/en-us/articles/15253194385943) object, which contains a list of `VariableData` objects strung together by operators (`ExpressionFunction`). */
+        Expression: {
+            expressionFunction: components["schemas"]["ExpressionFunction"];
+            expressionArguments: components["schemas"]["VariableData"][];
+        };
+        /**
+         * @description Defines the list of operators available to use in an Expression.
+         * @enum {string}
+         */
+        ExpressionFunction: "ADDITION" | "SUBTRACTION" | "MULTIPLICATION" | "DIVISION" | "EQUALS" | "NOT_EQUAL" | "LESS_THAN" | "LESS_THAN_OR_EQUAL" | "GREATER_THAN" | "GREATER_THAN_OR_EQUAL" | "AND" | "OR" | "VAR_MODE_LOOKUP" | "NEGATE" | "NOT";
+        /** @description Either the if or else conditional blocks. The if block contains a condition to check. If that condition is met then it will run those list of actions, else it will run the actions in the else block. */
+        ConditionalBlock: {
+            condition?: components["schemas"]["VariableData"];
+            actions: components["schemas"]["Action"][];
         };
         /** @description Position of a comment relative to the frame to which it is attached. */
         FrameOffset: {

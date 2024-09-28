@@ -4,7 +4,7 @@
     "@create-figma-plugin/utilities": "^3.2.0",
     "@fxts/core": "^1.0.1",
     "@types/domhandler": "^2.4.5",
-    "@types/lodash": "^4.17.7",
+    "@types/lodash": "^4.17.9",
     "@zip.js/zip.js": "^2.7.52",
     "dom-serializer": "^2.0.0",
     "file-saver": "^2.0.5",
@@ -12,19 +12,19 @@
     "jszip": "^3.10.1",
     "lodash": "^4.17.21",
     "parse5": "^7.1.2",
-    "preact": "^10.23.2",
+    "preact": "^10.24.1",
     "prettier": "^3.3.3"
   },
   "devDependencies": {
     "@create-figma-plugin/build": "^3.2.0",
     "@create-figma-plugin/tsconfig": "^3.2.0",
-    "@figma/plugin-typings": "1.99.0",
-    "@figma/widget-typings": "^1.9.1",
+    "@figma/plugin-typings": "1.100.2",
+    "@figma/widget-typings": "^1.9.2",
     "@svgr/core": "^8.1.0",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^20.16.2",
-    "@types/react": "^18.3.4",
-    "typescript": "^5.5.4"
+    "@types/react": "^18.3.10",
+    "typescript": "^5.6.2"
   },
   "scripts": {
     "build": "build-figma-plugin --typecheck --minify",

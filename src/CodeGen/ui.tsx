@@ -1,4 +1,9 @@
-import { render, TabsOption, Tabs } from "@create-figma-plugin/ui";
+import {
+  render,
+  TabsOption,
+  Tabs,
+  useWindowResize,
+} from "@create-figma-plugin/ui";
 import { h } from "preact";
 import { useState } from "preact/hooks";
 
@@ -11,13 +16,26 @@ type newFeed_Feed__Boost_Active = {
 };
 
 import { NonNullableComponentTypeExtract } from "../../types/utilType";
+import Variables from "./pages/Variables";
+import { emit } from "@create-figma-plugin/utilities";
+import { ResizeWindowHandler } from "./types";
 
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
 };
 
 function Plugin() {
-  const nav = ["SVG 생성기", "2", "3"];
+  function onWindowResize(windowSize: { width: number; height: number }) {
+    emit<ResizeWindowHandler>("RESIZE_WINDOW", windowSize);
+  }
+  useWindowResize(onWindowResize, {
+    maxHeight: 1080,
+    maxWidth: 1920,
+    minHeight: 120,
+    minWidth: 120,
+    resizeBehaviorOnDoubleClick: "minimize",
+  });
+  const nav = ["SVG 생성기", "변수 추출", "3"];
 
   const options: Array<TabsOption> = [
     {
@@ -25,7 +43,7 @@ function Plugin() {
       value: nav[0],
     },
     {
-      children: <div>Bar</div>,
+      children: <Variables></Variables>,
       value: nav[1],
     },
     {

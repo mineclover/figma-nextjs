@@ -1,4 +1,10 @@
-import { once, on, showUI, emit } from "@create-figma-plugin/utilities";
+import {
+  once,
+  on,
+  showUI,
+  emit,
+  convertRgbColorToHexColor,
+} from "@create-figma-plugin/utilities";
 
 import { toSingleSvg, toSvg } from "../utils/toSvg";
 import {
@@ -13,6 +19,7 @@ import {
   SectionSelectSvgMainResponseHandler,
   ProjectUIHandler,
   ProjectMainHandler,
+  ResizeWindowHandler,
 } from "./types";
 import {
   FileMetaSearch,
@@ -22,6 +29,26 @@ import {
   findMainComponent,
 } from "../FigmaPluginUtils";
 import { LLog } from "../utils/console";
+import { VariableGetRequestHandler } from "./pages/variableHandlerType";
+import { typeofNumber } from "../utils/textTools";
+
+type TokenValue = Variable | Omit<VariableValue, "VariableAlias">;
+
+/**
+ * const styleName = toStyleName(variable);
+ * const tokenName = toTokenId(variable, modeId);
+ * css var name
+ * */
+const getVarName = (styleName: string, tokenName: string) => {
+  return "var(--" + styleName + ", $" + tokenName + ");";
+};
+
+/** 값을 고유하다고 가정하고 찾아진 하나만  */
+const findOne = <T extends Object>(arr: T[], fn: (item: T) => boolean) => {
+  const data = arr.filter(fn);
+  if (data.length) return arr.filter(fn)[0];
+  return null;
+};
 
 /** 하위 객체 탐색 필요 대상 */
 const area = ["SECTION", "COMPONENT_SET"];
@@ -77,11 +104,20 @@ export type SVGResult = {
 };
 
 export default function () {
-  if (figma.editorType === "dev") {
+  if (["dev", "figma"].includes(figma.editorType)) {
     figma.on("selectionchange", async () => {
       const current = figma.currentPage.selection;
     });
+    on<ResizeWindowHandler>(
+      "RESIZE_WINDOW",
+      function (windowSize: { width: number; height: number }) {
+        const { width, height } = windowSize;
+        figma.ui.resize(width, height);
+      }
+    );
 
+    // SVG
+    // #region
     on<SectionSelectUiRequestHandler>("SECTION_SELECT_UI_REQUEST", async () => {
       const current = figma.currentPage.selection;
 
@@ -165,7 +201,6 @@ export default function () {
             seleteNodeId: nodeId,
           };
         };
-
         /**
          * 선택된 섹션을 순회해서 노드 데이터를 수집
          */
@@ -222,10 +257,10 @@ export default function () {
           // 받아올 때 컴포넌트 소속이 뭔지 판단하기 위해 코드를 넣음
           // 패스 역할을 하는 구성요소만 저장했고
           // 컴포넌트는 그 경계에 있기 때문에 필요에 따라 설계함
-          // 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추가됨
+          // 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추��됨
           // 노드는 현재 선택한 노드
-          LLog("FilePathSearch::", FilePathSearch(node, []));
-          const paths = FilePathSearch(node, []).filter((path) => {
+          LLog("FilePathSearch::", FilePathSearch(node));
+          const paths = FilePathSearch(node).filter((path) => {
             // 의도적 결합도
 
             if (FilterTypeIndex(path.type) === 1) return filter.DOCUMENT;
@@ -321,8 +356,384 @@ export default function () {
         },
       });
     });
+    // #endregion
 
-    showUI({});
+    // Variables
+    // #region
+    on<VariableGetRequestHandler>("VARIABLE_GET_REQUEST", async function () {
+      const collectionsList1 =
+        await figma.variables.getLocalVariableCollectionsAsync();
+      const variablesList1 = await figma.variables.getLocalVariablesAsync();
+      const stylesList1 = await figma.getLocalPaintStylesAsync();
+
+      // const textList1 = await figma.getLocalTextStylesAsync();
+      // console.log(textList1);
+
+      // const effectList1 = await figma.getLocalEffectStylesAsync();
+      // console.log(effectList1);
+      // const gridList1 = await figma.getLocalGridStylesAsync();
+      // console.log(gridList1);
+
+      // console.log(await figma.variables.getLocalVariablesAsync());
+      // console.log(await figma.getLocalTextStylesAsync());
+      // console.log(await figma.getLocalPaintStylesAsync());
+      // console.log(await figma.getLocalEffectStylesAsync());
+      // console.log(await figma.getLocalGridStylesAsync());
+
+      const collectionsList2 = collectionsList1.map((item) => {
+        return {
+          id: item.id,
+          name: item.name,
+          modes: item.modes,
+          defaultModeId: item.defaultModeId,
+        };
+      });
+      console.log(collectionsList1);
+      console.log(collectionsList2);
+
+      const VCID = "VariableCollectionId:";
+      const VID = "VariableID:";
+
+      let count = 0;
+      /** 스타일 이름 , css 생성기 */
+      const toStyleName = (vari: Variable) => {
+        // 이름에서 특수문자 , 한글 제거
+        // 공백은 언더바 처리 가능한데
+        // _를 어떻게 처리할지는 좀 고민되긴 하네 딱히 규칙은 필요 없음
+        const name = vari.name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
+          .replace(/:/g, "__")
+          .replace(/ /g, "_");
+        // .replace(/\//g, "_")
+        // 대문자 처리하고
+        const errorPrefix = "NAME_ERROR_";
+
+        // 특수문자만 남아있는 경우도 제거
+        const test = name.replace(/[^a-zA-Z0-9]/g, "");
+        // 숫자만 있는 경우
+        // 길이가 0이거나 숫자거나
+        if (test.length === 0 || typeofNumber(test)) {
+          // 에러 토큰... 처리를 어떻게 하는가 뭐 일단 에러인 건 맞아
+          count++;
+          errorTokens[vari.variableCollectionId] = [
+            errorPrefix + count,
+            vari.name,
+          ];
+          return errorPrefix + count;
+        }
+
+        return name
+          .split("/")
+          .map((text, index) => {
+            // 0빼고 나머지
+            return index ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+          })
+          .join("");
+      };
+
+      /**
+       * 스코프 디팬던시 있음 variablesList1
+       * VARIABLE_ALIAS 일 경우 참조된 variable를 가져오게 함
+       * @param vari
+       * @param modeName
+       * @returns
+       */
+      const getStyleValue = (vari: Variable, modeName: string): TokenValue => {
+        const value = vari.valuesByMode[modeName];
+        if (value == null) {
+          LLog("Error check", vari, modeName, value);
+          return "ERROR";
+        }
+
+        if (
+          typeof value === "object" &&
+          (("type" in value) as unknown as VariableAlias) &&
+          (value as unknown as VariableAlias).type === "VARIABLE_ALIAS"
+        ) {
+          const next = (value as unknown as VariableAlias).id;
+          const nextVari = findOne(variablesList1, (item) => item.id === next);
+          // 값을 얻어야하는데 참조의 모드를 추론하는게 안됨
+
+          // 이름에 모드까지 얹어서 토큰 호출하거나 > 이건 모드 추론 안되는 문제가 있음
+          // 이름 기반으로 css 토큰 호출하는게 이상적일 것으로 판단됨
+
+          if (nextVari) {
+            return nextVari;
+          }
+          return "분기 처리 실패 ERROR";
+        }
+        return value;
+      };
+      // const fromStyleName = (name: string) => {
+
+      // };
+
+      /**
+       * VCID , VID
+       *  스코프 디펜던시 있음
+       */
+      const toTokenId = (vari: Variable, modeKey: string) => {
+        const variableCollectionId = vari.variableCollectionId
+          .replace(VCID, "VCID")
+          .replace(":", "_");
+        const variableID = vari.id.replace(VID, "VID").replace(/:/g, "_");
+        // const modeValue = vari.valuesByMode[modeKey];
+        // console.log("mode:", modeValue);
+        const modeName = "M" + modeKey.replace(/:/g, "_");
+        const text = [variableCollectionId, variableID, modeName].join("__");
+        return text;
+      };
+      /**
+       * VCID , VID
+       *  스코프 디펜던시 있음
+       */
+      const fromTokenId = (tokenId: string) => {
+        const [tokenVCID, tokenVID, tokenMode] = tokenId.split("__");
+        const variableCollectionId = tokenVCID
+          .replace("VCID", VCID)
+          .replace(/_/g, ":");
+        const variableID = tokenVID.replace("VID", VID).replace(/_/g, ":");
+        const mode = tokenMode.replace("M", "");
+
+        // 딱 식별키
+        return {
+          variableCollectionId,
+          variableID,
+          mode,
+        };
+      };
+
+      /** 스타일 이름 */
+      const globalName = {} as Record<string, any>;
+      /** 글로벌 토큰으로 저장되는 값 */
+      const tokens = {} as Record<string, TokenValue>;
+      /** SCSS 생성을 위해 저장되는 스타일 */
+      const scssModeStyles = {} as Record<string, any>;
+      /** var를 사용하는 scss 변수 생성 */
+      const scssVariableStyles = {} as Record<string, any>;
+      /** default scss 생성 */
+      const defaultScssStyles = {} as Record<string, any>;
+
+      const errorTokens = {} as Record<string, any>;
+
+      // 작업 티켓을 만들어서 처리하는 방식으로 구성할 것임
+      // 토큰 키 : variableID
+      // 어짜피 참조 값 땡겨 쓰는 구조라서 딱히 비용은 없음 매핑 개념으로 사용
+      // 어떻게 순차처리를하면서 갯수를 판단하면서 기본 스타일임을 구분하는가
+      // variableCollectionId 에서 모드를 끌어오는것도 방법
+      // 아이디가 이름..을 줄 수 있지만 .. 모드의 갯수를 판단해서 기본 값을 판단하긴 해야해
+      // array 로 티켓 key value 해도 되고
+      // 오브젝트로 key : { variable : VA , count: 갯수 } 로 갯수를 붙여야하나
+
+      for (const variable of variablesList1) {
+        const variableCollectionId = variable.variableCollectionId;
+        const parent = findOne(
+          collectionsList1,
+          (item) => item.id === variableCollectionId
+        );
+
+        // 일단 콜렉션은 무조건 있음
+        if (parent) {
+          const modes = parent.modes;
+          const styleName = toStyleName(variable);
+
+          /** 생성 코드  */
+          const cssProcess = (
+            length: number,
+            variable: Variable,
+            mode: {
+              modeId: string;
+              name: string;
+            }
+          ) => {
+            const modeId = mode.modeId;
+            const modeName = mode.name.toLocaleUpperCase();
+            // console.log(variable, "name::", toStyleName(variable));
+
+            // 생성된 스타일 이름과 모드를 포함해서 데이터를 읽고 저장하는 코드가 필요함
+            // 전체 이름 중복 검사를 위한 코드인데 지금 당장 할 필요가 있나?
+            // globalName[ toStyleName(variable)] = toStyleName(variable)
+
+            // 1. 토큰으로 구성
+            // 고유식별토큰이름으로 ${token}: value
+            const tokenName = toTokenId(variable, modeId);
+            tokens[tokenName] = getStyleValue(variable, modeId);
+
+            // 2. 모드에 저장
+            // 스타일이라는 건 이제 고유 식별 이름
+            // 대시로 구성되는 것 a-b-c 로 구성하는 것
+            // 모드 이름 안에
+            // --{스타일}: $고유식별토큰
+            // 으로 생성할 거임 그 근거
+            if (length > 1) {
+              // 모드 이름으로 구조가 없으면 없으면 객체 생성
+              if (scssModeStyles[modeName] == null) {
+                scssModeStyles[modeName] = {} as any;
+              }
+              /** scss 이름에 해당 실제 벨류 매핑 > var 토큰이 값을 구성할 수 있게 함 */
+              scssModeStyles[modeName][styleName] = "$" + tokenName;
+            } else if (length === 1) {
+              // mode가 하나라서 기본 값에 데이터를 넣는다
+              // 이름이 한개면 선택지가 없으니까 그냥 때려박음
+              defaultScssStyles[styleName] = "$" + tokenName;
+            }
+
+            // 공통 로직
+            // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
+            // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
+            // ${스타일}: var(--{스타일}, ${token});
+            scssVariableStyles["$" + styleName] = getVarName(
+              styleName,
+              tokenName
+            );
+          };
+
+          // 모드에 데이터를 넣는다
+
+          for (const mode of modes) {
+            // color 일단 컬러만 처리해야하므로
+            if (variable.resolvedType === "COLOR") {
+              cssProcess(modes.length, variable, mode);
+            }
+          }
+        }
+
+        // const defaultModeId = variable.variableCollectionId;
+      }
+      // convertRgbColorToHexColor
+
+      // variable 처리
+
+      const isVariable = (variab: TokenValue): variab is Variable => {
+        if (
+          typeof variab === "object" &&
+          "id" in variab &&
+          variab.id.startsWith(VID)
+        )
+          return true;
+        return false;
+      };
+
+      const isRGB = (variab: TokenValue): variab is RGB | RGBA => {
+        if (
+          typeof variab === "object" &&
+          "r" in variab &&
+          "g" in variab &&
+          "b" in variab
+        )
+          return true;
+        return false;
+      };
+
+      const tokensValueMap = Object.entries(tokens).map(([key, value]) => {
+        // 숫자 , 문자, 불린은 스타일 선언 대상 객체가 아님
+        // 어떻게 처리할 지 생각해야할 듯
+
+        const arr = ["number", "string", "boolean"];
+        if (arr.includes(typeof value)) {
+          console.log("나오면 에러임");
+        }
+
+        if (isVariable(value)) {
+          // const {mode} =  fromTokenId(key)
+
+          //
+          const modeValue = key;
+          const styleName = toStyleName(value);
+
+          // var(이름, 그 값의 원본은?)
+
+          // styleName
+          // 변수 처리
+          // 일단 무한루프는 피그마에서 막혀있음
+          // 모드에 의한 분기를 처리하지 못하기 때문에
+
+          return [key, "var(--" + styleName + ");"];
+        } else if (isRGB(value)) {
+          return [key, "#" + convertRgbColorToHexColor(value)];
+        }
+
+        return [key, value];
+      });
+
+      const designTokens = Object.fromEntries(tokensValueMap);
+
+      console.log(
+        "tokens:",
+        tokens,
+        "scssModeStyles:",
+        scssModeStyles,
+        "scssVariableStyles:",
+        scssVariableStyles,
+        "defaultScssStyles:",
+        defaultScssStyles,
+        "errorTokens:",
+        errorTokens
+      );
+      //  --- 아래 세 개가 같은 수준으로 설정 된다
+      // 디자인 토큰 선언
+      // 모드 선언
+      // 모드 설정 없는 기본 값 선언
+      console.log(
+        "designTokens:",
+        designTokens,
+        "scssModeStyles:",
+        scssModeStyles,
+        "defaultScssStyles",
+        defaultScssStyles
+      );
+
+      // 그리고 그걸 사용할 수 있으면서 별칭으로 정의되있는 scss
+      console.log("scssVariableStyles:", scssVariableStyles);
+
+      // 사용할 수 있는 모드 종류
+      // 사용할 수 있는 모든 별칭 scss 키 ( 모든 vari key 기도 함 )
+      //  ---
+
+      //
+
+      // 일단 토큰 처리 완료 됨
+      // token value 처리를 하지 않음 > 쌩 객체인 상태임
+      // 아직 처리된 걸로 파일을 만드는 작업을 하지 않음
+      //
+      // console.log(variablesList1);
+
+      // 텍스트, 이펙트 , 그리드는 아직 목적이 불분명함
+      // 일단 그라디언트는 필요하긴 해
+
+      console.log(stylesList1);
+      /**
+       * 백그라운드를 위한 스타일을
+       * 1. 한번에 겹쳐서 구현한다
+       * 2. div 레이어 여러 개 나눠서 구현한다
+       *
+       * 번외: 블랜더모드가 필요한가?
+       * 토큰으로 구현하기 위해서는 어떻게 해야하는가
+       * 리니어 떡칠해야하는 부분이 있음
+       * 시각적인 통일을 하기 위해 리니어 떡칠됨 ㅇㅇ
+       *
+       * 블랜드 모드까지 쓰려면 scss로 써야하나? 어떻게?
+       * 굳이도 포함
+       * 블랜드랑 그라디언트를 분리하는게 좋을 것 같고 그 이유는 스펙 확인하려고
+       * 변수의 변수를 호출할 수 있는지 모르겠지만 뭐 된다면 {이름}_blend , {이름}_image 를 생각하고 있음
+       */
+      // for (const colorStyle of stylesList1) {
+      //   // paintStyle 이더라도
+      //   console.log(colorStyle);
+      // }
+
+      // for (const variable of variablesList1) {
+      //   await figma.variables.get
+      // }
+    });
+    // #endregion
+
+    showUI({
+      width: 300,
+      height: 800,
+    });
   }
   // 코드 제너레이터 코드를 넣을 수 있음
   // 일단 기본적인 코드 토크나이저 부터 시작
