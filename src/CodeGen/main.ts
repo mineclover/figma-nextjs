@@ -76,6 +76,14 @@ const getVarName = (styleName: string, tokenName: string) => {
   return "var(--" + styleName + ", $" + tokenName + ");";
 };
 
+const getIsVariable = (variable: VariableValue): variable is VariableAlias => {
+  return (
+    typeof variable === "object" &&
+    (("type" in variable) as unknown as VariableAlias) &&
+    (variable as unknown as VariableAlias).type === "VARIABLE_ALIAS"
+  );
+};
+
 const globalFilter = {} as FilterType;
 
 /** 값을 고유하다고 가정하고 찾아진 하나만  */
@@ -151,7 +159,10 @@ const VID = "VariableID:";
  */
 const toStyleName = (
   vari: Variable,
-  parent: VariableCollection,
+  // parent: VariableCollection,
+  parent: {
+    name: string;
+  },
   errorTokens: ErrorTokensValue
 ) => {
   // 이름에서 특수문자 , 한글 제거
@@ -472,10 +483,22 @@ export default function () {
     // Variables
     // #region
     on<VariableGetRequestHandler>("VARIABLE_GET_REQUEST", async function () {
+      const remoteParent = {
+        name: "figma_remote_parent",
+      };
       const collectionsList1 =
         await figma.variables.getLocalVariableCollectionsAsync();
-      const variablesList1 = await figma.variables.getLocalVariablesAsync();
+      const localVariablesList = await figma.variables.getLocalVariablesAsync();
+      // 아직 문서화되지 않은 api
+
+      const subscribedVariableList =
+        // @ts-ignore
+        figma.variables.getSubscribedVariables() as Variable[];
+      const variablesList1 = [...subscribedVariableList, ...localVariablesList];
       const stylesList1 = await figma.getLocalPaintStylesAsync();
+      // 있음
+      //@ts-ignore
+      // const remoteVariables = figma.variables.getSubscribedVariables();
 
       // const textList1 = await figma.getLocalTextStylesAsync();
       // console.log(textList1);
@@ -498,20 +521,20 @@ export default function () {
        * @param modeName
        * @returns
        */
-      const getStyleValue = (vari: Variable, modeName: string): TokenValue => {
+      const getStyleValue = async (
+        vari: Variable,
+        modeName: string
+      ): Promise<TokenValue> => {
         const value = vari.valuesByMode[modeName];
         if (value == null) {
           LLog("svg", "Error check", vari, modeName, value);
           return "ERROR";
         }
 
-        if (
-          typeof value === "object" &&
-          (("type" in value) as unknown as VariableAlias) &&
-          (value as unknown as VariableAlias).type === "VARIABLE_ALIAS"
-        ) {
-          const next = (value as unknown as VariableAlias).id;
+        if (getIsVariable(value)) {
+          const next = value.id;
           const nextVari = findOne(variablesList1, (item) => item.id === next);
+
           // 값을 얻어야하는데 참조의 모드를 추론하는게 안됨
 
           // 이름에 모드까지 얹어서 토큰 호출하거나 > 이건 모드 추론 안되는 문제가 있음
@@ -519,7 +542,22 @@ export default function () {
 
           if (nextVari) {
             return nextVari;
+          } else if (value.type) {
+            // 있으면 찾고 없으면 가져와서 넣어라
+
+            const nextRemoteValue = await figma.variables.getVariableByIdAsync(
+              value.id
+            );
+            return nextRemoteValue
+              ? nextRemoteValue
+              : "권한이 없거나 변수에 문제가 있음";
           }
+
+          const nextCollect = findOne(
+            collectionsList1,
+            (item) => item.id === vari.variableCollectionId
+          );
+
           return "분기 처리 실패 ERROR";
         }
         return value;
@@ -537,11 +575,22 @@ export default function () {
           .replace(VCID, "VCID")
           .replace(":", "_");
         const variableID = vari.id.replace(VID, "VID").replace(/:/g, "_");
+
+        const isRemote =
+          variableCollectionId.includes("/") && variableID.includes("/");
+
         // const modeValue = vari.valuesByMode[modeKey];
         // console.log("mode:", modeValue);
         const modeName = "M" + modeKey.replace(/:/g, "_");
-        const text = [variableCollectionId, variableID, modeName].join("__");
-        return text;
+
+        if (isRemote) {
+          const remoteVcid = "R_VCID" + variableCollectionId.split("/")[1];
+          const remoteVid = "R_VID" + variableID.split("/")[1];
+
+          return [remoteVcid, remoteVid, modeName].join("__");
+        }
+
+        return [variableCollectionId, variableID, modeName].join("__");
       };
       /**
        * VCID , VID
@@ -593,6 +642,90 @@ export default function () {
           collectionsList1,
           (item) => item.id === variableCollectionId
         );
+        /** 생성 코드  */
+        const cssProcess = async (
+          length: number,
+          styleName: string,
+          variable: Variable,
+          mode: {
+            modeId: string;
+            name: string;
+          }
+        ) => {
+          const modeId = mode.modeId;
+          const modeName = mode.name
+            .toUpperCase()
+            .trim()
+            .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
+            .replace(/:/g, "__")
+            .replace(/ /g, "_");
+          // console.log(variable, "name::", toStyleName(variable));
+
+          // 생성된 스타일 이름과 모드를 포함해서 데이터를 읽고 저장하는 코드가 필요함
+          // 전체 이름 중복 검사를 위한 코드인데 지금 당장 할 필요가 있나?
+          // globalName[ toStyleName(variable)] = toStyleName(variable)
+
+          // 1. 토큰으로 구성
+          // 고유식별토큰이름으로 ${token}: value
+          const tokenName = toTokenId(variable, modeId);
+
+          tokens[tokenName] = await getStyleValue(variable, modeId);
+
+          // 2. 모드에 저장
+          // 스타일이라는 건 이제 고유 식별 이름
+          // 대시로 구성되는 것 a-b-c 로 구성하는 것
+          // 모드 이름 안에
+          // --{스타일}: $고유식별토큰
+          // 으로 생성할 거임 그 근거
+          if (length > 1) {
+            // 모드 이름으로 구조가 없으면 없으면 객체 생성
+            if (scssModeStyles[modeName] == null) {
+              scssModeStyles[modeName] = {} as any;
+            }
+
+            // 해당 모드가
+            if (
+              Object.entries(variable.valuesByMode).some(([key, _], index) => {
+                // 한개는 무조건 false
+                // 모드 아이디가 키와 맞을 때 > 그 모드 아이디는 첫번째에 있어야한다
+                if (index === 0) return key === modeId;
+                return false;
+              })
+            ) {
+              if (globalName[styleName] == null) globalName[styleName] = [];
+              globalName[styleName].push(variable);
+
+              if (globalName[styleName].length > 1) {
+                console.log("겹침 :", variable);
+              }
+            }
+
+            /** scss 이름에 해당 실제 벨류 매핑 > var 토큰이 값을 구성할 수 있게 함 */
+            scssModeStyles[modeName][styleName] = "$" + tokenName;
+
+            // 이름이 중첩되기 때문에 이전 값이 있으면 중첩될거임
+          } else if (length === 1) {
+            // mode가 하나라서 기본 값에 데이터를 넣는다
+            // 이름이 한개면 선택지가 없으니까 그냥 때려박음
+            if (globalName[styleName] == null) globalName[styleName] = [];
+            globalName[styleName].push(variable);
+
+            if (globalName[styleName].length > 1) {
+              console.log("겹침 :", variable);
+            }
+            defaultScssStyles[styleName] = "$" + tokenName;
+          }
+
+          // 공통 로직
+          // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
+          // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
+          // ${스타일}: var(--{스타일}, ${token});
+
+          scssVariableStyles["$" + styleName] = getVarName(
+            styleName,
+            tokenName
+          );
+        };
 
         // 일단 콜렉션은 무조건 있음
         if (parent) {
@@ -609,97 +742,29 @@ export default function () {
             errorTokens
           );
 
-          /** 생성 코드  */
-          const cssProcess = (
-            length: number,
-            variable: Variable,
-            mode: {
-              modeId: string;
-              name: string;
-            }
-          ) => {
-            const modeId = mode.modeId;
-            const modeName = mode.name
-              .toUpperCase()
-              .trim()
-              .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
-              .replace(/:/g, "__")
-              .replace(/ /g, "_");
-            // console.log(variable, "name::", toStyleName(variable));
-
-            // 생성된 스타일 이름과 모드를 포함해서 데이터를 읽고 저장하는 코드가 필요함
-            // 전체 이름 중복 검사를 위한 코드인데 지금 당장 할 필요가 있나?
-            // globalName[ toStyleName(variable)] = toStyleName(variable)
-
-            // 1. 토큰으로 구성
-            // 고유식별토큰이름으로 ${token}: value
-            const tokenName = toTokenId(variable, modeId);
-            tokens[tokenName] = getStyleValue(variable, modeId);
-
-            // 2. 모드에 저장
-            // 스타일이라는 건 이제 고유 식별 이름
-            // 대시로 구성되는 것 a-b-c 로 구성하는 것
-            // 모드 이름 안에
-            // --{스타일}: $고유식별토큰
-            // 으로 생성할 거임 그 근거
-            if (length > 1) {
-              // 모드 이름으로 구조가 없으면 없으면 객체 생성
-              if (scssModeStyles[modeName] == null) {
-                scssModeStyles[modeName] = {} as any;
-              }
-
-              // 해당 모드가
-              if (
-                Object.entries(variable.valuesByMode).some(
-                  ([key, _], index) => {
-                    // 한개는 무조건 false
-                    // 모드 아이디가 키와 맞을 때 > 그 모드 아이디는 첫번째에 있어야한다
-                    if (index === 0) return key === modeId;
-                    return false;
-                  }
-                )
-              ) {
-                if (globalName[styleName] == null) globalName[styleName] = [];
-                globalName[styleName].push(variable);
-
-                if (globalName[styleName].length > 1) {
-                  console.log("겹침 :", variable);
-                }
-              }
-
-              /** scss 이름에 해당 실제 벨류 매핑 > var 토큰이 값을 구성할 수 있게 함 */
-              scssModeStyles[modeName][styleName] = "$" + tokenName;
-
-              // 이름이 중첩되기 때문에 이전 값이 있으면 중첩될거임
-            } else if (length === 1) {
-              // mode가 하나라서 기본 값에 데이터를 넣는다
-              // 이름이 한개면 선택지가 없으니까 그냥 때려박음
-              if (globalName[styleName] == null) globalName[styleName] = [];
-              globalName[styleName].push(variable);
-
-              if (globalName[styleName].length > 1) {
-                console.log("겹침 :", variable);
-              }
-              defaultScssStyles[styleName] = "$" + tokenName;
-            }
-
-            // 공통 로직
-            // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
-            // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
-            // ${스타일}: var(--{스타일}, ${token});
-            scssVariableStyles["$" + styleName] = getVarName(
-              styleName,
-              tokenName
-            );
-          };
-
           // 모드에 데이터를 넣는다
 
           for (const mode of modes) {
             // color 일단 컬러만 처리해야하므로
             if (variable.resolvedType === "COLOR") {
-              cssProcess(modes.length, variable, mode);
+              await cssProcess(modes.length, styleName, variable, mode);
             }
+          }
+        } else {
+          console.log(variable);
+          if (variable.resolvedType === "COLOR") {
+            const parentCollection = remoteParent;
+            const mode = {
+              modeId: Object.keys(variable.valuesByMode)[0],
+              name: "abc",
+            };
+
+            const styleName = toStyleName(
+              variable,
+              parentCollection,
+              errorTokens
+            );
+            await cssProcess(1, styleName, variable, mode);
           }
         }
 
@@ -736,23 +801,31 @@ export default function () {
 
         const arr = ["number", "string", "boolean"];
         if (arr.includes(typeof value)) {
-          console.log("나오면 에러임");
+          console.log("나오면 에러임", value);
         }
 
+        // variable 여부 판단
         if (isVariable(value)) {
           // const {mode} =  fromTokenId(key)
 
           // const styleName = toStyleName(value);
 
-          const parentCollection = findOne(
-            collectionsList1,
-            (item) => item.id === value.variableCollectionId
-          );
-          if (parentCollection == null) {
-            console.log("분기 처리 필요함 reomte 대응이 없음");
-            return [key, value];
+          if (value.remote) {
+            // asdf 가능
+            LLog("dubug", [key, value]);
           }
-          const styleName = toStyleName(value, parentCollection, errorTokens);
+
+          const localParentCollection =
+            findOne(
+              collectionsList1,
+              (item) => item.id === value.variableCollectionId
+            ) ?? remoteParent;
+
+          const styleName = toStyleName(
+            value,
+            localParentCollection,
+            errorTokens
+          );
 
           // var(이름, 그 값의 원본은?)
 
