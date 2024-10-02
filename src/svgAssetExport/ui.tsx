@@ -21,7 +21,7 @@ import "figma-kit/styles.css";
 import { LLog } from "../utils/console";
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
-  LLog(files[0].name, JSON.parse(text));
+  LLog("svg", files[0].name, JSON.parse(text));
   // log(files[0].name, JSON.parse(text));
 };
 
@@ -46,7 +46,7 @@ function Plugin() {
       setDuplicate(dupl);
       setUnsupportedKeys(unsup);
       setIds(id);
-      LLog(id);
+      LLog("svg", id);
     });
   }, []);
 

@@ -19,6 +19,7 @@ import { NonNullableComponentTypeExtract } from "../../types/utilType";
 import Variables from "./pages/Variables";
 import { emit } from "@create-figma-plugin/utilities";
 import { ResizeWindowHandler } from "./types";
+import Inspect from "./pages/Inspect";
 
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
@@ -35,7 +36,7 @@ function Plugin() {
     minWidth: 120,
     resizeBehaviorOnDoubleClick: "minimize",
   });
-  const nav = ["SVG 생성기", "변수 추출", "3"];
+  const nav = ["SVG 생성기", "변수 추출", "SVG 정보 자동완성"];
 
   const options: Array<TabsOption> = [
     {
@@ -47,7 +48,7 @@ function Plugin() {
       value: nav[1],
     },
     {
-      children: <div>Baz</div>,
+      children: <Inspect></Inspect>,
       value: nav[2],
     },
   ] as const;

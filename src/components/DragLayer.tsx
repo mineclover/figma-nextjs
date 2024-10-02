@@ -59,6 +59,7 @@ const DragLayer = ({ limit, right, left, children, ...props }: Props) => {
               const distance = currentX - startX; // 이동 거리 계산
               const absDistance = Math.abs(distance);
               LLog(
+                "svg",
                 `Distance moved: ${Math.abs(distance)}px`,
                 distance > 0 ? "right" : "left"
               );

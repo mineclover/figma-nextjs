@@ -232,6 +232,16 @@ export const svgExporter = async (
     zipFile.file("Icon.tsx", tsFile);
   }
 
+  // image/~x{scale}.png 생성
+  const imageFolder = zipFile.folder(dev ? "public/image" : "image");
+  if (imageFolder) {
+    for (const svg of svgData) {
+      for (const png of svg.pngs) {
+        imageFolder.file(svg.name + "x" + png.scale + ".png", png.png);
+      }
+    }
+  }
+
   // object/~.svg 생성
   const objectFolder = zipFile.folder(dev ? "public/object" : "object");
   if (objectFolder) {

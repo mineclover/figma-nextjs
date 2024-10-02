@@ -59,7 +59,7 @@ export const handleFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
     return JsonToObject(fileArray);
   } else {
     // 파일이 선택되지 않은 경우 처리
-    LLog("파일이 선택되지 않았습니다.");
+    LLog("svg", "파일이 선택되지 않았습니다.");
   }
 };
 

@@ -16,7 +16,7 @@ export default function () {
   if (figma.editorType === "figma") {
     on<SvgSymbolHandler>("SVG_SYMBOL_CODE", async function async() {
       const current = figma.currentPage.selection;
-      LLog("current", current);
+      LLog("svg", "current", current);
       const { id, completed, duplicate, unsupportedKeys } =
         await toSvg(current);
       const text = completed

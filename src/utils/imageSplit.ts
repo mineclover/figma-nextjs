@@ -9,7 +9,7 @@ export function* sliceDeepTraverse(
   // 현재 노드 방문
   if (selectType.includes(node.type)) {
     const data = (node as SliceNode).absoluteBoundingBox;
-    LLog(node);
+    LLog("svg", node);
 
     if (data) yield data;
   }

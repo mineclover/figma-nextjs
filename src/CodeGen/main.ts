@@ -29,10 +29,43 @@ import {
   findMainComponent,
 } from "../FigmaPluginUtils";
 import { LLog } from "../utils/console";
-import { VariableGetRequestHandler } from "./pages/variableHandlerType";
+import {
+  InspectFilterUpdate,
+  InspectMainData,
+  InspectOff,
+  InspectOn,
+  VariableGetRequestHandler,
+  VariableGetResponseHandler,
+} from "./pages/variableHandlerType";
 import { typeofNumber } from "../utils/textTools";
 
 type TokenValue = Variable | Omit<VariableValue, "VariableAlias">;
+
+type StringKeyValue = Record<string, string>;
+type ModeStyles = Record<string, StringKeyValue>;
+/** 키는  */
+export type ErrorTokensValue = Record<string, string[][]>;
+
+type SameNameVariableInfo = {
+  collectionName: string;
+  variableName: string;
+};
+
+export type VariableResponseData = VariableTokenData & ErrorTokenData;
+
+export type VariableTokenData = {
+  designTokens: StringKeyValue;
+  scssModeStyles: ModeStyles;
+  defaultScssStyles: StringKeyValue;
+  scssVariableStyles: StringKeyValue;
+};
+
+export type ErrorTokenData = {
+  /** 하나의 컨테이너를 기준으로 에러난  */
+  errorTokens: ErrorTokensValue;
+  /** 하나의 이름을 키로 반복되는 변수들의 정보 저장 */
+  sameNamesObject: Record<string, SameNameVariableInfo[]>;
+};
 
 /**
  * const styleName = toStyleName(variable);
@@ -42,6 +75,8 @@ type TokenValue = Variable | Omit<VariableValue, "VariableAlias">;
 const getVarName = (styleName: string, tokenName: string) => {
   return "var(--" + styleName + ", $" + tokenName + ");";
 };
+
+const globalFilter = {} as FilterType;
 
 /** 값을 고유하다고 가정하고 찾아진 하나만  */
 const findOne = <T extends Object>(arr: T[], fn: (item: T) => boolean) => {
@@ -100,14 +135,120 @@ export type SVGResult = {
     attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
     raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
     origin: Awaited<ReturnType<typeof toSingleSvg>>["origin"];
+    pngs: { scale: number; png: Uint8Array }[];
   }[];
+};
+
+let count = 0;
+const VCID = "VariableCollectionId:";
+const VID = "VariableID:";
+
+/**
+ * 스타일 이름 , css 생성기
+ *  getCSSAsync 결과랑 출력 맞춰놨음
+ *  종속성 문제랑 getCSSAsync이 기능이 더 많은 문제가 있음
+ * number, string, boolean 값도 지원하는 차이
+ */
+const toStyleName = (
+  vari: Variable,
+  parent: VariableCollection,
+  errorTokens: ErrorTokensValue
+) => {
+  // 이름에서 특수문자 , 한글 제거
+  // 공백은 언더바 처리 가능한데
+  // _를 어떻게 처리할지는 좀 고민되긴 하네 딱히 규칙은 필요 없음
+  const name = vari.name
+    .trim()
+    .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
+    .replace(/:/g, "__")
+    .replace(/ /g, "_")
+    .replace(/\//g, "-");
+  // .replace(/\//g, "_")
+  // 대문자 처리하고
+  const errorPrefix = "NAME_ERROR_";
+
+  // 특수문자만 남아있는 경우도 제거
+  const test = name.replace(/[^a-zA-Z0-9]/g, "");
+  // 숫자만 있는 경우
+  // 길이가 0이거나 숫자거나
+  if (test.length === 0 || typeofNumber(test) || name.startsWith("/")) {
+    // 에러 토큰... 처리를 어떻게 하는가 뭐 일단 에러인 건 맞아
+    count++;
+
+    if (!parent) {
+      return "PARANT NULL ERROR" + count;
+    }
+
+    if (errorTokens[parent.name] == null) {
+      errorTokens[parent.name] = [];
+    }
+
+    errorTokens[parent.name].push([
+      errorPrefix + count,
+      vari.name,
+      vari.resolvedType,
+    ]);
+    return errorPrefix + count;
+  }
+
+  return name
+    .split("/")
+    .map((text, index) => {
+      // 0빼고 나머지
+      return index ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+    })
+    .join("");
+};
+
+const toNodeName = (node: SceneNode, filter: FilterType) => {
+  const paths = FilePathSearch(node).filter((path) => {
+    // 의도적 결합도
+    if (FilterTypeIndex(path.type) === 1) return filter.DOCUMENT;
+    if (FilterTypeIndex(path.type) === 2) return filter.PAGE;
+    if (FilterTypeIndex(path.type) === 3) return filter.SECTION;
+    if (FilterTypeIndex(path.type) === 4) return filter.COMPONENT_SET;
+    if (FilterTypeIndex(path.type) === 5) return filter.COMPONENT;
+    return false;
+  });
+  // property 구분
+  // 일단 선택된거 쓰고
+  let currentNode = node;
+  if (node.parent && FilterTypeIndex(node.parent.type) === 5) {
+    // 부모가 컴포넌트면 팝해서 써라
+    currentNode = paths.pop() as SceneNode;
+  }
+  if (currentNode == null) currentNode = node;
+  LLog("svg", "currentNode::", currentNode, paths);
+  const names = currentNode.name.split(", ");
+
+  // 키=벨류, 키=벨류 구조의 텍스트에서 벨류만 파싱하는 코드임
+  // 문서에 =이 없으면 공백이 나옴
+  LLog("svg", names);
+  const tempName = names
+    .map((t) => t.split("=")[1])
+    .join("_")
+    .trim();
+  // tempName이 공백이면 기존 이름을 조인하는 코드임
+
+  const name =
+    tempName === ""
+      ? names
+          .map((t) => t.trim())
+          .join("_")
+          .trim()
+      : tempName;
+  const path = paths
+    .map((item) => item.name.replace(/[^a-za-zA-Z0-9_]/g, "").trim())
+    .map((t, index) => (t !== "" ? t : "❌" + paths[index].type + "❌"))
+    .join("_");
+  const firstName = path ? path + "__" : "";
+  return (
+    firstName + name.replace(/ /g, "").replace(/-/g, "_").replace(/\//g, "_")
+  );
 };
 
 export default function () {
   if (["dev", "figma"].includes(figma.editorType)) {
-    figma.on("selectionchange", async () => {
-      const current = figma.currentPage.selection;
-    });
     on<ResizeWindowHandler>(
       "RESIZE_WINDOW",
       function (windowSize: { width: number; height: number }) {
@@ -178,7 +319,7 @@ export default function () {
           figma.viewport.scrollAndZoomIntoView([node]);
           // figma.notify(`${page.name}  /  ${node.name}`);
           // const time2 = new Date().getTime();
-          // LLog(time2 - time);
+          // LLog("svg",time2 - time);
         }
       }
     );
@@ -188,7 +329,6 @@ export default function () {
       async (sections, filter) => {
         const nodes: SceneNode[] = []; // 노드를 저장할 배열 추가
         const pageIdMap = {} as Record<string, NodeInfo>;
-        const svgResult = {} as SVGResult;
 
         const addPageMap = (
           node: SceneNode,
@@ -257,64 +397,35 @@ export default function () {
           // 받아올 때 컴포넌트 소속이 뭔지 판단하기 위해 코드를 넣음
           // 패스 역할을 하는 구성요소만 저장했고
           // 컴포넌트는 그 경계에 있기 때문에 필요에 따라 설계함
-          // 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추��됨
+          // 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추가됨
           // 노드는 현재 선택한 노드
-          LLog("FilePathSearch::", FilePathSearch(node));
-          const paths = FilePathSearch(node).filter((path) => {
-            // 의도적 결합도
 
-            if (FilterTypeIndex(path.type) === 1) return filter.DOCUMENT;
-            if (FilterTypeIndex(path.type) === 2) return filter.PAGE;
-            if (FilterTypeIndex(path.type) === 3) return filter.SECTION;
-            if (FilterTypeIndex(path.type) === 4) return filter.COMPONENT_SET;
-            if (FilterTypeIndex(path.type) === 5) return filter.COMPONENT;
-            return false;
-          });
-          // property 구분
+          const resultName = toNodeName(node, filter);
 
-          // 일단 선택된거 쓰고
-          let currentNode = node;
-          if (node.parent && FilterTypeIndex(node.parent.type) === 5) {
-            // 부모가 컴포넌트면 팝해서 써라
-            currentNode = paths.pop() as SceneNode;
-          }
-          if (currentNode == null) currentNode = node;
-          LLog("currentNode::", currentNode, paths);
-          const names = currentNode.name.split(", ");
-
-          // 키=벨류, 키=벨류 구조의 텍스트에서 벨류만 파싱하는 코드임
-          // 문서에 =이 없으면 공백이 나옴
-          LLog(names);
-          const tempName = names
-            .map((t) => t.split("=")[1])
-            .join("_")
-            .trim();
-          // tempName이 공백이면 기존 이름을 조인하는 코드임
-
-          const name =
-            tempName === ""
-              ? names
-                  .map((t) => t.trim())
-                  .join("_")
-                  .trim()
-              : tempName;
-          const path = paths
-            .map((item) => item.name.replace(/[^a-zA-Z0-9_]/g, "").trim())
-            .map((t, index) => (t !== "" ? t : "❌" + paths[index].type + "❌"))
-            .join("_");
-          const firstName = path ? path + "__" : "";
-          const resultName =
-            firstName +
-            name.replace(/ /g, "").replace(/-/g, "_").replace(/\//g, "_");
           const svg = await toSingleSvg(node, resultName);
           // const parser = new DOMParser();
           // const svgDom = parser.parseFromString(svg, "image/svg+xml");
-          // LLog("dom:", svgDom);
+          // LLog("svg","dom:", svgDom);
+
+          const scales = [1, 1.5, 2, 3];
+          const pngs = [] as SVGResult["svgs"][number]["pngs"];
+          for (const scale of scales) {
+            const png = await node.exportAsync({
+              format: "PNG",
+              constraint: { type: "SCALE", value: scale },
+            });
+            pngs.push({
+              scale,
+              png,
+            });
+          }
+
           svgs.push({
             node: node,
             name: resultName,
             nodeInfo: pageIdMap[node.id],
             ...svg,
+            pngs,
           });
           // 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
 
@@ -380,59 +491,6 @@ export default function () {
       // console.log(await figma.getLocalEffectStylesAsync());
       // console.log(await figma.getLocalGridStylesAsync());
 
-      const collectionsList2 = collectionsList1.map((item) => {
-        return {
-          id: item.id,
-          name: item.name,
-          modes: item.modes,
-          defaultModeId: item.defaultModeId,
-        };
-      });
-      console.log(collectionsList1);
-      console.log(collectionsList2);
-
-      const VCID = "VariableCollectionId:";
-      const VID = "VariableID:";
-
-      let count = 0;
-      /** 스타일 이름 , css 생성기 */
-      const toStyleName = (vari: Variable) => {
-        // 이름에서 특수문자 , 한글 제거
-        // 공백은 언더바 처리 가능한데
-        // _를 어떻게 처리할지는 좀 고민되긴 하네 딱히 규칙은 필요 없음
-        const name = vari.name
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
-          .replace(/:/g, "__")
-          .replace(/ /g, "_");
-        // .replace(/\//g, "_")
-        // 대문자 처리하고
-        const errorPrefix = "NAME_ERROR_";
-
-        // 특수문자만 남아있는 경우도 제거
-        const test = name.replace(/[^a-zA-Z0-9]/g, "");
-        // 숫자만 있는 경우
-        // 길이가 0이거나 숫자거나
-        if (test.length === 0 || typeofNumber(test)) {
-          // 에러 토큰... 처리를 어떻게 하는가 뭐 일단 에러인 건 맞아
-          count++;
-          errorTokens[vari.variableCollectionId] = [
-            errorPrefix + count,
-            vari.name,
-          ];
-          return errorPrefix + count;
-        }
-
-        return name
-          .split("/")
-          .map((text, index) => {
-            // 0빼고 나머지
-            return index ? text.charAt(0).toUpperCase() + text.slice(1) : text;
-          })
-          .join("");
-      };
-
       /**
        * 스코프 디팬던시 있음 variablesList1
        * VARIABLE_ALIAS 일 경우 참조된 variable를 가져오게 함
@@ -443,7 +501,7 @@ export default function () {
       const getStyleValue = (vari: Variable, modeName: string): TokenValue => {
         const value = vari.valuesByMode[modeName];
         if (value == null) {
-          LLog("Error check", vari, modeName, value);
+          LLog("svg", "Error check", vari, modeName, value);
           return "ERROR";
         }
 
@@ -505,18 +563,20 @@ export default function () {
         };
       };
 
-      /** 스타일 이름 */
-      const globalName = {} as Record<string, any>;
+      /** 전체 스타일 이름
+       * 키 이름을 변수 이름으로 잡고 , 벨류 리스트 즉 이름에 할당된 변수들으로 추론한다
+       */
+      const globalName = {} as Record<string, Variable[]>;
       /** 글로벌 토큰으로 저장되는 값 */
       const tokens = {} as Record<string, TokenValue>;
       /** SCSS 생성을 위해 저장되는 스타일 */
-      const scssModeStyles = {} as Record<string, any>;
+      const scssModeStyles = {} as ModeStyles;
       /** var를 사용하는 scss 변수 생성 */
-      const scssVariableStyles = {} as Record<string, any>;
+      const scssVariableStyles = {} as StringKeyValue;
       /** default scss 생성 */
-      const defaultScssStyles = {} as Record<string, any>;
+      const defaultScssStyles = {} as StringKeyValue;
 
-      const errorTokens = {} as Record<string, any>;
+      const errorTokens = {} as ErrorTokensValue;
 
       // 작업 티켓을 만들어서 처리하는 방식으로 구성할 것임
       // 토큰 키 : variableID
@@ -537,7 +597,17 @@ export default function () {
         // 일단 콜렉션은 무조건 있음
         if (parent) {
           const modes = parent.modes;
-          const styleName = toStyleName(variable);
+          const parentCollection = findOne(
+            collectionsList1,
+            (item) => item.id === variable.variableCollectionId
+          );
+          if (parentCollection == null)
+            return console.log("분기 처리 필요함 reomte 대응이 없음");
+          const styleName = toStyleName(
+            variable,
+            parentCollection,
+            errorTokens
+          );
 
           /** 생성 코드  */
           const cssProcess = (
@@ -549,7 +619,12 @@ export default function () {
             }
           ) => {
             const modeId = mode.modeId;
-            const modeName = mode.name.toLocaleUpperCase();
+            const modeName = mode.name
+              .toUpperCase()
+              .trim()
+              .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
+              .replace(/:/g, "__")
+              .replace(/ /g, "_");
             // console.log(variable, "name::", toStyleName(variable));
 
             // 생성된 스타일 이름과 모드를 포함해서 데이터를 읽고 저장하는 코드가 필요함
@@ -572,11 +647,39 @@ export default function () {
               if (scssModeStyles[modeName] == null) {
                 scssModeStyles[modeName] = {} as any;
               }
+
+              // 해당 모드가
+              if (
+                Object.entries(variable.valuesByMode).some(
+                  ([key, _], index) => {
+                    // 한개는 무조건 false
+                    // 모드 아이디가 키와 맞을 때 > 그 모드 아이디는 첫번째에 있어야한다
+                    if (index === 0) return key === modeId;
+                    return false;
+                  }
+                )
+              ) {
+                if (globalName[styleName] == null) globalName[styleName] = [];
+                globalName[styleName].push(variable);
+
+                if (globalName[styleName].length > 1) {
+                  console.log("겹침 :", variable);
+                }
+              }
+
               /** scss 이름에 해당 실제 벨류 매핑 > var 토큰이 값을 구성할 수 있게 함 */
               scssModeStyles[modeName][styleName] = "$" + tokenName;
+
+              // 이름이 중첩되기 때문에 이전 값이 있으면 중첩될거임
             } else if (length === 1) {
               // mode가 하나라서 기본 값에 데이터를 넣는다
               // 이름이 한개면 선택지가 없으니까 그냥 때려박음
+              if (globalName[styleName] == null) globalName[styleName] = [];
+              globalName[styleName].push(variable);
+
+              if (globalName[styleName].length > 1) {
+                console.log("겹침 :", variable);
+              }
               defaultScssStyles[styleName] = "$" + tokenName;
             }
 
@@ -639,9 +742,17 @@ export default function () {
         if (isVariable(value)) {
           // const {mode} =  fromTokenId(key)
 
-          //
-          const modeValue = key;
-          const styleName = toStyleName(value);
+          // const styleName = toStyleName(value);
+
+          const parentCollection = findOne(
+            collectionsList1,
+            (item) => item.id === value.variableCollectionId
+          );
+          if (parentCollection == null) {
+            console.log("분기 처리 필요함 reomte 대응이 없음");
+            return [key, value];
+          }
+          const styleName = toStyleName(value, parentCollection, errorTokens);
 
           // var(이름, 그 값의 원본은?)
 
@@ -650,7 +761,7 @@ export default function () {
           // 일단 무한루프는 피그마에서 막혀있음
           // 모드에 의한 분기를 처리하지 못하기 때문에
 
-          return [key, "var(--" + styleName + ");"];
+          return [key, "var(--" + styleName + ")"];
         } else if (isRGB(value)) {
           return [key, "#" + convertRgbColorToHexColor(value)];
         }
@@ -658,25 +769,16 @@ export default function () {
         return [key, value];
       });
 
-      const designTokens = Object.fromEntries(tokensValueMap);
+      const designTokens = Object.fromEntries(tokensValueMap) as StringKeyValue;
 
-      console.log(
-        "tokens:",
-        tokens,
-        "scssModeStyles:",
-        scssModeStyles,
-        "scssVariableStyles:",
-        scssVariableStyles,
-        "defaultScssStyles:",
-        defaultScssStyles,
-        "errorTokens:",
-        errorTokens
-      );
+      LLog("svg", "tokens:", tokens);
       //  --- 아래 세 개가 같은 수준으로 설정 된다
       // 디자인 토큰 선언
+      // scss 에서 css 만들 때 쓰는 토큰
       // 모드 선언
       // 모드 설정 없는 기본 값 선언
-      console.log(
+      LLog(
+        "svg",
         "designTokens:",
         designTokens,
         "scssModeStyles:",
@@ -685,14 +787,46 @@ export default function () {
         defaultScssStyles
       );
 
+      //  scss 에서 css 만들 때 쓰는 토큰
       // 그리고 그걸 사용할 수 있으면서 별칭으로 정의되있는 scss
-      console.log("scssVariableStyles:", scssVariableStyles);
+      LLog("svg", "scssVariableStyles:", scssVariableStyles);
+      // 에러 토큰
+      LLog("svg", "errorTokens:", errorTokens);
+      const sameNames = Object.entries(globalName)
+        .filter(([key, value]) => value.length >= 2)
+        .map(([key, variables]) => {
+          const collections = variables.map((vari) => {
+            const collection = findOne(
+              collectionsList1,
+              (item) => item.id === vari.variableCollectionId
+            );
+            return {
+              collectionName: collection?.name ?? "error",
+              // variableName: '변수 이름'
+              variableName: vari.name,
+            } as SameNameVariableInfo;
+          });
+          return [key, collections] as const;
+        });
+
+      const sameNamesObject = Object.fromEntries(
+        sameNames
+      ) as ErrorTokenData["sameNamesObject"];
+
+      emit<VariableGetResponseHandler>("VARIABLE_GET_RESPONSE", {
+        designTokens,
+        scssModeStyles,
+        defaultScssStyles,
+        scssVariableStyles,
+        // 에러를 따로 구분해야하나?
+
+        errorTokens,
+        sameNamesObject,
+      });
 
       // 사용할 수 있는 모드 종류
       // 사용할 수 있는 모든 별칭 scss 키 ( 모든 vari key 기도 함 )
       //  ---
-
-      //
 
       // 일단 토큰 처리 완료 됨
       // token value 처리를 하지 않음 > 쌩 객체인 상태임
@@ -703,7 +837,7 @@ export default function () {
       // 텍스트, 이펙트 , 그리드는 아직 목적이 불분명함
       // 일단 그라디언트는 필요하긴 해
 
-      console.log(stylesList1);
+      LLog("svg", stylesList1);
       /**
        * 백그라운드를 위한 스타일을
        * 1. 한번에 겹쳐서 구현한다
@@ -729,6 +863,51 @@ export default function () {
       // }
     });
     // #endregion
+
+    const InspectFunction = async () => {
+      const selection = figma.currentPage.selection;
+      if (selection.length === 1) {
+        const target = selection[0];
+        const nodeName = toNodeName(target, globalFilter);
+        // width , height
+
+        const css = await target.getCSSAsync();
+
+        console.log(
+          "data:",
+          nodeName,
+          css,
+
+          target.boundVariables,
+          target.width,
+          target.height
+        );
+        // + 효과
+        // 필터가 밖에 있어서 이름 뽑는 건 외부에서 해야 함
+
+        emit<InspectMainData>("INSPECT_MAIN_DATA", {
+          nodeName,
+          css,
+          width: target.width,
+          height: target.height,
+        });
+      }
+    };
+    // Variables
+    // #region
+    on<InspectOn>("INSPECT_ON", () => {
+      figma.on("selectionchange", InspectFunction);
+    });
+
+    on<InspectFilterUpdate>("INSPECT_FILTER", (data) => {
+      Object.assign(globalFilter, data);
+      InspectFunction();
+    });
+
+    //이게 여러번 실행해도 끌 수 있는가
+    on<InspectOff>("INSPECT_OFF", () => {
+      figma.off("selectionchange", InspectFunction);
+    });
 
     showUI({
       width: 300,
