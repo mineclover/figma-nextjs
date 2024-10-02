@@ -1,10 +1,14 @@
 type Mode = "dev" | "build";
 // const mode = "build";
-const mode = "build";
+const mode = "dev";
 
-export const LLog = (...args: any[]) => {
+type Category = "svg" | "token" | "debug";
+
+const currentCartegory: Category = "debug";
+
+export const LLog = (category: string, ...args: any[]) => {
   //@ts-ignore
-  if (mode === "dev") {
+  if (category === currentCartegory && mode === "dev") {
     return console.log(...args);
   }
   return () => {};
