@@ -34,13 +34,15 @@ export type VariableTokenData = {
   scssVariableStyles: StringKeyValue;
 };
 
+export const splitUnit = ", $";
+
 /**
  * const styleName = toStyleName(variable);
  * const tokenName = toTokenId(variable, modeId);
  * css var name
  * */
 export const getVarName = (styleName: string, tokenName: string) => {
-  return "var(--" + styleName + ", $" + tokenName + ");";
+  return "var(--" + styleName + splitUnit + tokenName + ");";
 };
 
 export const getIsVariable = (

@@ -31,7 +31,35 @@ import {
   VariableTokenData,
   ErrorTokenData,
   VariableResponseData,
+  StringKeyValue,
+  splitUnit,
 } from "../variableMain";
+
+/**
+ * $VCID13336_127831__VID13336_129050__M13336_0 이걸 값으로 스왑해야함
+ * @param scssVariableStyles   ["$Primary-Disabled" , "var(--Primary-Disabled, $VCID13336_127831__VID13336_129050__M13336_0);"]
+ * @param designTokens  [VCID10683_73113__VID10683_73120__M540_4 , #E0DEFD]
+ */
+const scssTypes = (
+  scssVariableStyles: StringKeyValue,
+  designTokens: StringKeyValue
+) => {
+  const next1 = Object.entries(scssVariableStyles).map(([key, value]) => {
+    const scssKey = value.split(splitUnit)[1].trim().replace(");", "");
+
+    const nextValue = value.replace("$" + scssKey, designTokens[scssKey]);
+
+    // 아래 방식이 불필요할 수 있음 왜냐면 사용할 수 있는 자바스크립트 버전 토큰이 필요한거니까
+    // key.replace('$','')
+    // VCID13336_127831__VID13336_129050__M13336_0
+    return [key.replace(/\-/g, "_"), '"' + nextValue.replace(";", "") + '";'];
+    // ["$Primary-Disabled" , "VCID13336_127831__VID13336_129050__M13336_0"]
+  });
+  return next1.reduce(
+    (prev, cur) => prev + "export const " + cur.join(" = ") + "\n",
+    ""
+  );
+};
 
 function Variables() {
   const [text, setText] = useState<VariableTokenData>();
@@ -98,7 +126,7 @@ function scssExporter({
   defaultScssStyles,
   scssVariableStyles,
 }: VariableTokenData) {
-  const { figmaToken, defaultScss, useToken } = scssObjecttoText({
+  const { figmaToken, defaultScss, useToken, constants } = scssObjecttoText({
     designTokens,
     scssModeStyles,
     defaultScssStyles,
@@ -109,6 +137,7 @@ function scssExporter({
   zipFile.file("_figmaToken.scss", figmaToken);
   zipFile.file("default.scss", defaultScss);
   zipFile.file("useToken.scss", useToken);
+  zipFile.file("useToken.ts", constants);
 
   zipFile.generateAsync({ type: "blob" }).then(function callback(blob) {
     saveAs(blob, "scssExport.zip");
@@ -125,7 +154,10 @@ function scssObjecttoText({
   // let figmaToken = "";
   // let useToken = "";
 
-  /** 실제 데이터 담겨있는 토큰들 */
+  /**
+   * 실제 데이터 담겨있는 토큰들
+   * $VCID10683_73113__VID10683_73120__M540_4:#E0DEFD;
+   */
   const figmaToken = Object.entries(designTokens).reduce(
     (prev, [key, value]) => prev + "$" + key + ":" + value + ";\n",
     ""
@@ -183,9 +215,12 @@ function scssObjecttoText({
   // figma에서 쓰는 원시 값 데이터
   // figmaToken.scss
 
+  const constants = scssTypes(scssVariableStyles, designTokens);
+
   return {
     figmaToken,
     defaultScss,
     useToken,
+    constants,
   };
 }
