@@ -24,14 +24,14 @@ import {
   VariableGetRequestHandler,
   VariableGetResponseHandler,
 } from "./variableHandlerType";
-import {
-  ErrorTokenData,
-  VariableResponseData,
-  VariableTokenData,
-} from "../main";
 import JSZip from "jszip";
 import saveAs from "file-saver";
 import TokenErrorCheck from "../../components/TokenErrorCheck";
+import {
+  VariableTokenData,
+  ErrorTokenData,
+  VariableResponseData,
+} from "../variableMain";
 
 function Variables() {
   const [text, setText] = useState<VariableTokenData>();

@@ -1,5 +1,5 @@
 import { Fragment, h } from "preact";
-import { ErrorTokenData, SVGResult, VariableTokenData } from "../CodeGen/main";
+import { SVGResult } from "../CodeGen/main";
 import { useState } from "preact/hooks";
 import {
   Bold,
@@ -20,6 +20,7 @@ import {
   VerticalSpace,
 } from "@create-figma-plugin/ui";
 import FolderableError from "./FolderableError";
+import { ErrorTokenData, VariableTokenData } from "../CodeGen/variableMain";
 
 type Props = {
   data?: VariableTokenData;
@@ -60,6 +61,10 @@ const TokenErrorCheck = ({ data, errors: errorDatas }: Props) => {
             <Muted>Same Name Info</Muted>
           </Text>
           <VerticalSpace space="extraSmall" />
+          <Text>
+            예시: {"<{"}collection Name{"}>{"}name{"}"}
+          </Text>
+          <VerticalSpace space="extraSmall" />
           <Stack space="extraSmall">
             {sames.map(([key, variables]) => {
               return (
@@ -90,6 +95,10 @@ const TokenErrorCheck = ({ data, errors: errorDatas }: Props) => {
         <Fragment>
           <Text>
             <Muted>Error Token Info</Muted>
+          </Text>
+          <VerticalSpace space="extraSmall" />
+          <Text>
+            예시: {"{"}저장된 이름{"} | {"}피그마 이름{"} | {"}타입{"}"}
           </Text>
           <VerticalSpace space="extraSmall" />
           <Stack space="extraSmall">

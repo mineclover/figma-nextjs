@@ -1,6 +1,7 @@
 import { EventHandler } from "@create-figma-plugin/utilities";
-import { VariableResponseData } from "../main";
+
 import { FilterType } from "../../FigmaPluginUtils";
+import { VariableResponseData } from "../variableMain";
 
 export interface VariableGetRequestHandler extends EventHandler {
   name: "VARIABLE_GET_REQUEST";
