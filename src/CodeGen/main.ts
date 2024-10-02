@@ -727,7 +727,7 @@ export default function () {
           );
         };
 
-        // 일단 콜렉션은 무조건 있음
+        // 일단 콜렉션은 로컬에만 존재함
         if (parent) {
           const modes = parent.modes;
           const parentCollection = findOne(
@@ -735,7 +735,9 @@ export default function () {
             (item) => item.id === variable.variableCollectionId
           );
           if (parentCollection == null)
-            return console.log("분기 처리 필요함 reomte 대응이 없음");
+            return console.log(
+              "parent 로 검증되는 값이라 필요 없는데 타입 때문에 넣은 코드임 나오면 문제 있는 거임"
+            );
           const styleName = toStyleName(
             variable,
             parentCollection,
@@ -751,12 +753,13 @@ export default function () {
             }
           }
         } else {
-          console.log(variable);
+          // remote variable 체크 코드
+          // css process써야해서 넣었음
           if (variable.resolvedType === "COLOR") {
             const parentCollection = remoteParent;
             const mode = {
               modeId: Object.keys(variable.valuesByMode)[0],
-              name: "abc",
+              name: "If you find this letter, report it",
             };
 
             const styleName = toStyleName(
@@ -764,6 +767,8 @@ export default function () {
               parentCollection,
               errorTokens
             );
+            // 항상 기본 값으로 처리하고 그래도 모드 값은 가지고 있어라라는 의미
+            // remote collection 읽는 코드 안넣어서 없음
             await cssProcess(1, styleName, variable, mode);
           }
         }
