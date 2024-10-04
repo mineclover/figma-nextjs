@@ -119,7 +119,13 @@ export const toStyleName = (
     .join("");
 };
 
-export const toNodeName = (node: SceneNode, filter: FilterType) => {
+export const toNodeName = (
+  node: SceneNode,
+  filter: FilterType
+): {
+  resultName: string;
+  alias: boolean;
+} => {
   const paths = FilePathSearch(node).filter((path) => {
     // 의도적 결합도
     if (FilterTypeIndex(path.type) === 1) return filter.DOCUMENT;
@@ -138,6 +144,16 @@ export const toNodeName = (node: SceneNode, filter: FilterType) => {
   }
   if (currentNode == null) currentNode = node;
   LLog("svg", "currentNode::", currentNode, paths);
+
+  const pluginSaveName = currentNode.getPluginData("name").trim();
+
+  /** 있으면 덮어씀 */
+  if (pluginSaveName !== "")
+    return {
+      resultName: pluginSaveName,
+      alias: true,
+    };
+
   const names = currentNode.name.split(", ");
 
   // 키=벨류, 키=벨류 구조의 텍스트에서 벨류만 파싱하는 코드임
@@ -161,9 +177,11 @@ export const toNodeName = (node: SceneNode, filter: FilterType) => {
     .map((t, index) => (t !== "" ? t : "❌" + paths[index].type + "❌"))
     .join("_");
   const firstName = path ? path + "__" : "";
-  return (
-    firstName + name.replace(/ /g, "").replace(/-/g, "_").replace(/\//g, "_")
-  );
+  return {
+    resultName:
+      firstName + name.replace(/ /g, "").replace(/-/g, "_").replace(/\//g, "_"),
+    alias: false,
+  };
 };
 
 /**

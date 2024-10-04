@@ -173,7 +173,6 @@ const parse5Unsupported = {
 export const SvgScan = (ast: ParseElement): SvgCase => {
   const children = ast.childNodes as ParseElement[];
 
-  console.log("검사로직 ", ast);
   // 태그 이름으로 가능 여부를 구분하는 것
   // unsupported가 하나라도 있으면 이 파일은 object를 통해 임포트 한다
   if (
@@ -224,8 +223,6 @@ export const SvgScan = (ast: ParseElement): SvgCase => {
   if (parse5Unsupported.tagName.includes(ast.tagName)) {
     return SVG_CASE_OBJECT;
   }
-  //TODO: 여기 처리 해야함
-
   if (Array.isArray(children) && children.length > 0) {
     // 줄바꿈 생략
     const useNodes = children.filter((item) => {

@@ -30,6 +30,7 @@ export interface InspectOff extends EventHandler {
 
 export type AutoCSSData = {
   nodeName: string;
+  alias: boolean;
   css: Record<string, string>;
   width: number;
   height: number;

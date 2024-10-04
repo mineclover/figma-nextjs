@@ -20,6 +20,8 @@ import {
   ProjectUIHandler,
   ProjectMainHandler,
   ResizeWindowHandler,
+  SelectNodeSetNameHandler,
+  EndSignalHandler,
 } from "./types";
 import {
   FileMetaSearch,
@@ -107,6 +109,7 @@ export type SVGResult = {
   };
   svgs: {
     name: string;
+    alias: boolean;
     node: SceneNode;
     nodeInfo: NodeInfo;
     type: Awaited<ReturnType<typeof toSingleSvg>>["type"];
@@ -194,6 +197,31 @@ export default function () {
       }
     );
 
+    on<SelectNodeSetNameHandler>(
+      "SELECT_NODE_SET_NAME",
+      async (nodeId, pageId, name, TransactionID) => {
+        const page = figma.root.findChild(
+          (node) => node.id === pageId && node.type === "PAGE"
+        ) as PageNode | null;
+
+        if (!page) {
+          return;
+        }
+        //
+
+        // 테스트
+        // const time = new Date().getTime();
+        // 페이지 이동 시켜줘야 줌이 됨
+        await figma.setCurrentPageAsync(page);
+        // 현재 페이지를 찾은 페이지로 설정
+        // figma 내에서 노드 찾기
+        const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode;
+        node.setPluginData("name", name);
+
+        emit<EndSignalHandler>(TransactionID);
+      }
+    );
+
     on<SectionSelectSvgUiRequestHandler>(
       "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
       async (sections, filter) => {
@@ -270,7 +298,7 @@ export default function () {
           // 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추가됨
           // 노드는 현재 선택한 노드
 
-          const resultName = toNodeName(node, filter);
+          const { resultName, alias } = toNodeName(node, filter);
 
           const svg = await toSingleSvg(node, resultName);
           // const parser = new DOMParser();
@@ -293,6 +321,7 @@ export default function () {
           svgs.push({
             node: node,
             name: resultName,
+            alias,
             nodeInfo: pageIdMap[node.id],
             ...svg,
             pngs,
@@ -411,11 +440,6 @@ export default function () {
               ? nextRemoteValue
               : "권한이 없거나 변수에 문제가 있음";
           }
-
-          const nextCollect = findOne(
-            collectionsList1,
-            (item) => item.id === vari.variableCollectionId
-          );
 
           return "분기 처리 실패 ERROR";
         }
@@ -759,7 +783,13 @@ export default function () {
       const selection = figma.currentPage.selection;
       if (selection.length === 1) {
         const target = selection[0];
-        const nodeName = toNodeName(target, globalFilter);
+
+        // target.setPluginData("hello", "world");
+
+        const { resultName: nodeName, alias } = toNodeName(
+          target,
+          globalFilter
+        );
         // width , height
 
         const css = await target.getCSSAsync();
@@ -778,6 +808,7 @@ export default function () {
 
         emit<InspectMainData>("INSPECT_MAIN_DATA", {
           nodeName,
+          alias,
           css,
           width: target.width,
           height: target.height,

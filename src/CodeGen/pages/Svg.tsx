@@ -3,15 +3,9 @@ import {
   Columns,
   Container,
   Muted,
-  render,
   Text,
-  TextboxNumeric,
   VerticalSpace,
-  Code,
-  TextboxMultiline,
   IconPlus32,
-  IconTarget32,
-  IconLayerFrameCoverArt16,
   IconTarget16,
   SelectableItem,
   Textbox,
@@ -283,7 +277,10 @@ function Plugin() {
         </Text>
       </FileUploadDropzone>
       <VerticalSpace space="small" />
-      <DuplicateCheck resultSvg={resultSvg}></DuplicateCheck>
+      <DuplicateCheck
+        resultSvg={resultSvg}
+        generateTrigger={generateTrigger}
+      ></DuplicateCheck>
 
       <VerticalSpace space="small" />
       <Columns space="extraSmall">

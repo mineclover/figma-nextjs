@@ -45,3 +45,14 @@ export const camel = (text: string) =>
 export const varToName = (input: string) => {
   return input.split("-").slice(1).join("");
 };
+
+/** 랜덤 텍스트 */
+export function generateRandomText(length: number) {
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}

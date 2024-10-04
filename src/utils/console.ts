@@ -1,6 +1,6 @@
 type Mode = "dev" | "build";
 // const mode = "build";
-const mode = "dev";
+const mode = "build";
 
 type Category = "svg" | "token" | "debug";
 

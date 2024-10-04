@@ -2,6 +2,7 @@ import { h } from "preact";
 import { SVGResult } from "../CodeGen/main";
 import { useState } from "preact/hooks";
 import {
+  Container,
   IconLayerImage16,
   IconLayerInstance16,
   TextColor,
@@ -16,18 +17,20 @@ import {
   Text,
   VerticalSpace,
 } from "@create-figma-plugin/ui";
+import InputSelect from "./InputSelect";
 
 interface Props {
   resultSvg?: SVGResult["svgs"];
+  generateTrigger: Function;
 }
 
-const typeICon = (type: NonNullable<Props["resultSvg"]>[number]["type"]) => {
+const typeIcon = (type: NonNullable<Props["resultSvg"]>[number]["type"]) => {
   if (type === "use") return <IconLayerInstance16></IconLayerInstance16>;
   if (type === "object") return <IconLayerImage16></IconLayerImage16>;
   return <IconTarget16></IconTarget16>;
 };
 
-const DuplicateCheck = ({ resultSvg }: Props) => {
+const DuplicateCheck = ({ resultSvg, generateTrigger }: Props) => {
   const [hover, setHover] = useState(false);
 
   if (resultSvg) {
@@ -42,36 +45,19 @@ const DuplicateCheck = ({ resultSvg }: Props) => {
       .sort((a, b) => (a.name < b.name ? -1 : 1));
 
     return (
-      <div>
+      <Container space="extraSmall">
         <Text>
           <Muted>Icons</Muted>
         </Text>
         <VerticalSpace space="extraSmall" />
         {target.map((data) => (
-          <Layer
-            value={hover}
-            icon={typeICon(data.type)}
-            onClick={(e) => {
-              e.preventDefault();
-              emit<SelectNodeByIdZoomHandler>(
-                "SELECT_NODE_BY_ID_ZOOM",
-                data.node.id,
-                data.nodeInfo.pageId
-              );
-            }}
-          >
-            <span
-              style={{
-                color: data.isDuplicate
-                  ? "var(--figma-color-bg-danger,red)"
-                  : undefined,
-              }}
-            >
-              {data.name}
-            </span>
-          </Layer>
+          <InputSelect
+            data={data}
+            key={data.node.id + data.name}
+            generateTrigger={generateTrigger}
+          />
         ))}
-      </div>
+      </Container>
     );
   }
 
