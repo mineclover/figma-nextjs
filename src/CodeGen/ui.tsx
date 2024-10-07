@@ -52,7 +52,7 @@ function Plugin() {
       value: nav[2],
     },
   ] as const;
-  const [value, setValue] = useState<string>("SVG 생성기");
+  const [value, setValue] = useState<string>("변수 추출");
 
   function handleChange(
     //  event: NonNullableComponentTypeExtract<typeof Tabs, 'onChange'>

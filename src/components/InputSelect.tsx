@@ -35,8 +35,6 @@ const InputSelect = ({ data, generateTrigger }: Props) => {
   const [text, setText] = useState(data.name);
   const ref = useRef<HTMLInputElement>(null);
 
-  console.log("input: ", data);
-
   const activeColor = "var(--figma-color-bg-brand)";
   const disabledColor = "transparent";
 
@@ -93,7 +91,6 @@ const InputSelect = ({ data, generateTrigger }: Props) => {
             );
             setHover(false);
             await promiseOnceSample(key).then(() => {
-              console.log("asdf");
               generateTrigger();
             });
             // if (e.currentTarget.value === "") {
@@ -105,7 +102,6 @@ const InputSelect = ({ data, generateTrigger }: Props) => {
           setHover(true);
         }}
         onBlur={(e) => {
-          console.log("hover");
           e.currentTarget.value = text;
           setHover(false);
 

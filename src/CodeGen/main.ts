@@ -55,8 +55,8 @@ import {
   VID,
   toTokenId,
 } from "./variableMain";
-
-const globalFilter = {} as FilterType;
+import { base64TokenEncode, hexToBase64 } from "../utils/data";
+import { paintCheck } from "../utils/gradient";
 
 /** 값을 고유하다고 가정하고 찾아진 하나만  */
 const findOne = <T extends Object>(arr: T[], fn: (item: T) => boolean) => {
@@ -124,6 +124,8 @@ export type SVGResult = {
 
 export default function () {
   if (["dev", "figma"].includes(figma.editorType)) {
+    const globalFilter = {} as FilterType;
+
     on<ResizeWindowHandler>(
       "RESIZE_WINDOW",
       function (windowSize: { width: number; height: number }) {
@@ -404,6 +406,41 @@ export default function () {
       // console.log(await figma.getLocalEffectStylesAsync());
       // console.log(await figma.getLocalGridStylesAsync());
 
+      const getPaintValue = (paints: Paint[]) => {
+        // 비지블 없으면 없는 처리
+
+        const paintStyles = paints
+          .filter((paint) => {
+            if (typeof paint.visible === "undefined")
+              console.log("visible 없는 Paint", paint);
+            return paint.visible;
+          })
+          .map((paint, index, origin) =>
+            paintCheck(paint, index === origin.length - 1)
+          )
+          .reduce(
+            (prev, cur) => {
+              const next = {
+                background: [...prev.background, cur.background],
+                blend: [...prev.blend, cur.blend.toLowerCase()],
+              };
+
+              return next;
+            },
+            {
+              background: [] as string[],
+              blend: [] as string[],
+            }
+          );
+
+        const { background, blend } = paintStyles;
+
+        return {
+          backgroundImage: background.join(", "),
+          backgroundBlendMode: blend.join(", "),
+        };
+      };
+
       /**
        * 스코프 디팬던시 있음 variablesList1
        * VARIABLE_ALIAS 일 경우 참조된 variable를 가져오게 함
@@ -454,7 +491,7 @@ export default function () {
       /** 전체 스타일 이름
        * 키 이름을 변수 이름으로 잡고 , 벨류 리스트 즉 이름에 할당된 변수들으로 추론한다
        */
-      const globalName = {} as Record<string, Variable[]>;
+      const globalName = {} as Record<string, (Variable | PaintStyle)[]>;
       /** 글로벌 토큰으로 저장되는 값 */
       const tokens = {} as Record<string, TokenValue>;
       /** SCSS 생성을 위해 저장되는 스타일 */
@@ -474,6 +511,86 @@ export default function () {
       // 아이디가 이름..을 줄 수 있지만 .. 모드의 갯수를 판단해서 기본 값을 판단하긴 해야해
       // array 로 티켓 key value 해도 되고
       // 오브젝트로 key : { variable : VA , count: 갯수 } 로 갯수를 붙여야하나
+      const cssProcess = async (
+        length: number,
+        styleName: string,
+        variable: Variable,
+        mode: {
+          modeId: string;
+          name: string;
+        }
+      ) => {
+        const modeId = mode.modeId;
+        const modeName = mode.name
+          .toUpperCase()
+          .trim()
+          .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
+          .replace(/:/g, "__")
+          .replace(/ /g, "_");
+        // console.log(variable, "name::", toStyleName(variable));
+
+        // 생성된 스타일 이름과 모드를 포함해서 데이터를 읽고 저장하는 코드가 필요함
+        // 전체 이름 중복 검사를 위한 코드인데 지금 당장 할 필요가 있나?
+        // globalName[ toStyleName(variable)] = toStyleName(variable)
+
+        // 1. 토큰으로 구성
+        // 고유식별토큰이름으로 ${token}: value
+        const tokenName = toTokenId(variable, modeId);
+
+        tokens[tokenName] = await getStyleValue(variable, modeId);
+
+        // 2. 모드에 저장
+        // 스타일이라는 건 이제 고유 식별 이름
+        // 대시로 구성되는 것 a-b-c 로 구성하는 것
+        // 모드 이름 안에
+        // --{스타일}: $고유식별토큰
+        // 으로 생성할 거임 그 근거
+        if (length > 1) {
+          // 모드 이름으로 구조가 없으면 없으면 객체 생성
+          if (scssModeStyles[modeName] == null) {
+            scssModeStyles[modeName] = {} as any;
+          }
+
+          // 해당 모드가
+          if (
+            Object.entries(variable.valuesByMode).some(([key, _], index) => {
+              // 한개는 무조건 false
+              // 모드 아이디가 키와 맞을 때 > 그 모드 아이디는 첫번째에 있어야한다
+              if (index === 0) return key === modeId;
+              return false;
+            })
+          ) {
+            if (globalName[styleName] == null) globalName[styleName] = [];
+            globalName[styleName].push(variable);
+
+            if (globalName[styleName].length > 1) {
+              LLog("debug", "겹침 :", variable);
+            }
+          }
+
+          /** scss 이름에 해당 실제 벨류 매핑 > var 토큰이 값을 구성할 수 있게 함 */
+          scssModeStyles[modeName][styleName] = "$" + tokenName;
+
+          // 이름이 중첩되기 때문에 이전 값이 있으면 중첩될거임
+        } else if (length === 1) {
+          // mode가 하나라서 기본 값에 데이터를 넣는다
+          // 이름이 한개면 선택지가 없으니까 그냥 때려박음
+          if (globalName[styleName] == null) globalName[styleName] = [];
+          globalName[styleName].push(variable);
+
+          if (globalName[styleName].length > 1) {
+            LLog("debug", "겹침 :", variable);
+          }
+          defaultScssStyles[styleName] = "$" + tokenName;
+        }
+
+        // 공통 로직
+        // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
+        // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
+        // ${스타일}: var(--{스타일}, ${token});
+
+        scssVariableStyles["$" + styleName] = getVarName(styleName, tokenName);
+      };
 
       for (const variable of variablesList1) {
         const variableCollectionId = variable.variableCollectionId;
@@ -482,89 +599,6 @@ export default function () {
           (item) => item.id === variableCollectionId
         );
         /** 생성 코드  */
-        const cssProcess = async (
-          length: number,
-          styleName: string,
-          variable: Variable,
-          mode: {
-            modeId: string;
-            name: string;
-          }
-        ) => {
-          const modeId = mode.modeId;
-          const modeName = mode.name
-            .toUpperCase()
-            .trim()
-            .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
-            .replace(/:/g, "__")
-            .replace(/ /g, "_");
-          // console.log(variable, "name::", toStyleName(variable));
-
-          // 생성된 스타일 이름과 모드를 포함해서 데이터를 읽고 저장하는 코드가 필요함
-          // 전체 이름 중복 검사를 위한 코드인데 지금 당장 할 필요가 있나?
-          // globalName[ toStyleName(variable)] = toStyleName(variable)
-
-          // 1. 토큰으로 구성
-          // 고유식별토큰이름으로 ${token}: value
-          const tokenName = toTokenId(variable, modeId);
-
-          tokens[tokenName] = await getStyleValue(variable, modeId);
-
-          // 2. 모드에 저장
-          // 스타일이라는 건 이제 고유 식별 이름
-          // 대시로 구성되는 것 a-b-c 로 구성하는 것
-          // 모드 이름 안에
-          // --{스타일}: $고유식별토큰
-          // 으로 생성할 거임 그 근거
-          if (length > 1) {
-            // 모드 이름으로 구조가 없으면 없으면 객체 생성
-            if (scssModeStyles[modeName] == null) {
-              scssModeStyles[modeName] = {} as any;
-            }
-
-            // 해당 모드가
-            if (
-              Object.entries(variable.valuesByMode).some(([key, _], index) => {
-                // 한개는 무조건 false
-                // 모드 아이디가 키와 맞을 때 > 그 모드 아이디는 첫번째에 있어야한다
-                if (index === 0) return key === modeId;
-                return false;
-              })
-            ) {
-              if (globalName[styleName] == null) globalName[styleName] = [];
-              globalName[styleName].push(variable);
-
-              if (globalName[styleName].length > 1) {
-                console.log("겹침 :", variable);
-              }
-            }
-
-            /** scss 이름에 해당 실제 벨류 매핑 > var 토큰이 값을 구성할 수 있게 함 */
-            scssModeStyles[modeName][styleName] = "$" + tokenName;
-
-            // 이름이 중첩되기 때문에 이전 값이 있으면 중첩될거임
-          } else if (length === 1) {
-            // mode가 하나라서 기본 값에 데이터를 넣는다
-            // 이름이 한개면 선택지가 없으니까 그냥 때려박음
-            if (globalName[styleName] == null) globalName[styleName] = [];
-            globalName[styleName].push(variable);
-
-            if (globalName[styleName].length > 1) {
-              console.log("겹침 :", variable);
-            }
-            defaultScssStyles[styleName] = "$" + tokenName;
-          }
-
-          // 공통 로직
-          // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
-          // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
-          // ${스타일}: var(--{스타일}, ${token});
-
-          scssVariableStyles["$" + styleName] = getVarName(
-            styleName,
-            tokenName
-          );
-        };
 
         // 일단 콜렉션은 로컬에만 존재함
         if (parent) {
@@ -575,7 +609,7 @@ export default function () {
           );
           if (parentCollection == null)
             return console.log(
-              "parent 로 검증되는 값이라 필요 없는데 타입 때문에 넣은 코드임 나오면 문제 있는 거임"
+              "parent 로 검증되는 값이라 필요 없는데 타입 때문에 넣은 코드라서 나오면 문제 있음"
             );
           const styleName = toStyleName(
             variable,
@@ -586,26 +620,21 @@ export default function () {
           // 모드에 데이터를 넣는다
 
           for (const mode of modes) {
-            // color 일단 컬러만 처리해야하므로
-            if (variable.resolvedType === "COLOR") {
-              await cssProcess(modes.length, styleName, variable, mode);
-            }
+            // color 일단 컬러만 처리해야하므로 그냥 숫자도 토큰화해보자
+            // if (variable.resolvedType === "COLOR") {
+            await cssProcess(modes.length, styleName, variable, mode);
+            // }
           }
         } else {
           // remote variable 체크 코드
           // css process써야해서 넣었음
           if (variable.resolvedType === "COLOR") {
-            const parentCollection = remoteParent;
             const mode = {
               modeId: Object.keys(variable.valuesByMode)[0],
               name: "If you find this letter, report it",
             };
 
-            const styleName = toStyleName(
-              variable,
-              parentCollection,
-              errorTokens
-            );
+            const styleName = toStyleName(variable, remoteParent, errorTokens);
             // 항상 기본 값으로 처리하고 그래도 모드 값은 가지고 있어라라는 의미
             // remote collection 읽는 코드 안넣어서 없음
             await cssProcess(1, styleName, variable, mode);
@@ -639,16 +668,126 @@ export default function () {
         return false;
       };
 
+      // 사용할 수 있는 모드 종류
+      // 사용할 수 있는 모든 별칭 scss 키 ( 모든 vari key 기도 함 )
+      //  ---
+
+      // 일단 토큰 처리 완료 됨
+      // token value 처리를 하지 않음 > 쌩 객체인 상태임
+      // 아직 처리된 걸로 파일을 만드는 작업을 하지 않음
+      //
+      // console.log(variablesList1);
+
+      // 텍스트, 이펙트 , 그리드는 아직 목적이 불분명함
+      // 일단 그라디언트는 필요하긴 해
+
+      const paintProcess = async (styleName: string, paint: PaintStyle) => {
+        const modeId = "stylePaint";
+        const modeName = "stylePaintName";
+
+        // console.log(variable, "name::", toStyleName(variable));
+
+        // 생성된 스타일 이름과 모드를 포함해서 데이터를 읽고 저장하는 코드가 필요함
+        // 전체 이름 중복 검사를 위한 코드인데 지금 당장 할 필요가 있나?
+        // globalName[ toStyleName(variable)] = toStyleName(variable)
+
+        // 1. 토큰으로 구성
+        // 고유식별토큰이름으로 ${token}: value
+
+        const paints = [...paint.paints];
+
+        // 토큰화 하긴 해야 함 근데 이건 딱히 변수로 선언되지 않고 한개만 존재해서...
+
+        // 콜론과 컴마가 특징
+        // S:f67c03c344efac0ad56a8a381bfb1781edb397ba,
+        // const tokenName = paint.id.replace(/:/g, "").replace(//g, "");
+        const tokenName = base64TokenEncode(hexToBase64(paint.key));
+
+        const data = getPaintValue(paints);
+
+        // const text =
+        //   "background-image: " +
+        //   data.backgroundImage +
+        //   ";\nbackground-blend-mode: " +
+        //   data.backgroundBlendMode +
+        //   ";";
+        // console.log(text);
+        // 토큰으로써 유효하진 않음
+        // 블랜드모드가.... 필요한가 이건 그냥 임의로 구현하던가 뭉개던가 안써도 되지 않을까하는 것
+
+        tokens[tokenName] = data.backgroundImage;
+
+        // 2. 모드에 저장
+        // 스타일이라는 건 이제 고유 식별 이름
+        // 대시로 구성되는 것 a-b-c 로 구성하는 것
+        // 모드 이름 안에
+        // --{스타일}: $고유식별토큰
+        // 으로 생성할 거임 그 근거
+        if (globalName[styleName] == null) globalName[styleName] = [];
+        globalName[styleName].push(paint);
+        if (globalName[styleName].length > 1) {
+          LLog("debug", "겹침 :", paint);
+        }
+        defaultScssStyles[styleName] = "$" + tokenName;
+        // 공통 로직
+        // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
+        // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
+        // ${스타일}: var(--{스타일}, ${token});
+        scssVariableStyles["$" + styleName] = getVarName(styleName, tokenName);
+      };
+
+      const getPaintStyleName = (paint: PaintStyle) => {
+        const styleName = toStyleName(
+          {
+            name: paint.name,
+            resolvedType: "STYLE_COLOR",
+          },
+          remoteParent,
+          errorTokens
+        );
+        return styleName;
+      };
+      /**
+       * 백그라운드를 위한 스타일을
+       * 1. 한번에 겹쳐서 구현한다
+       * 2. div 레이어 여러 개 나눠서 구현한다
+       *
+       * 번외: 블랜더모드가 필요한가?
+       * 토큰으로 구현하기 위해서는 어떻게 해야하는가
+       * 리니어 떡칠해야하는 부분이 있음
+       * 시각적인 통일을 하기 위해 리니어 떡칠됨 ㅇㅇ
+       *
+       * 블랜드 모드까지 쓰려면 scss로 써야하나? 어떻게?
+       * 굳이도 포함
+       * 블랜드랑 그라디언트를 분리하는게 좋을 것 같고 그 이유는 스펙 확인하려고
+       * 변수의 변수를 호출할 수 있는지 모르겠지만 뭐 된다면 {이름}_blend , {이름}_image 를 생각하고 있음
+       */
+      for (const colorStyle of stylesList1) {
+        // paintStyle 이더라도
+        console.log(colorStyle.name);
+        console.log(colorStyle);
+        const styleName = getPaintStyleName(colorStyle);
+
+        await paintProcess(styleName, colorStyle);
+      }
+
+      // for (const variable of variablesList1) {
+      //   await figma.variables.get
+      // }
+
+      // 프로세스 마지막에 처리되야하는 것
+
       const tokensValueMap = Object.entries(tokens).map(([key, value]) => {
         // 숫자 , 문자, 불린은 스타일 선언 대상 객체가 아님
         // 어떻게 처리할 지 생각해야할 듯
 
-        const arr = ["number", "string", "boolean"];
+        // string이 가능하게 바뀌었으므로 제거함
+        const arr = ["number", "boolean"];
         if (arr.includes(typeof value)) {
           console.log("나오면 에러임", value);
         }
 
-        // variable 여부 판단
+        // variable 여부 판단 > variable일 때의 로직
         if (isVariable(value)) {
           // const {mode} =  fromTokenId(key)
 
@@ -682,13 +821,12 @@ export default function () {
         } else if (isRGB(value)) {
           return [key, "#" + convertRgbColorToHexColor(value)];
         }
-
+        // 나머지
         return [key, value];
       });
 
       const designTokens = Object.fromEntries(tokensValueMap) as StringKeyValue;
 
-      LLog("svg", "tokens:", tokens);
       //  --- 아래 세 개가 같은 수준으로 설정 된다
       // 디자인 토큰 선언
       // scss 에서 css 만들 때 쓰는 토큰
@@ -713,12 +851,17 @@ export default function () {
         .filter(([key, value]) => value.length >= 2)
         .map(([key, variables]) => {
           const collections = variables.map((vari) => {
-            const collection = findOne(
-              collectionsList1,
-              (item) => item.id === vari.variableCollectionId
-            );
+            // 중복 이름 검사 로직임
+            //
+            const collection = findOne(collectionsList1, (item) => {
+              return item.id === (vari as Variable).variableCollectionId;
+            });
+            const isPaint = "type" in vari && vari.type === "PAINT";
+            const parentName = isPaint
+              ? "Local Style Paint"
+              : (collection?.name ?? "error");
             return {
-              collectionName: collection?.name ?? "error",
+              collectionName: parentName,
               // variableName: '변수 이름'
               variableName: vari.name,
             } as SameNameVariableInfo;
@@ -736,48 +879,9 @@ export default function () {
         defaultScssStyles,
         scssVariableStyles,
         // 에러를 따로 구분해야하나?
-
         errorTokens,
         sameNamesObject,
       });
-
-      // 사용할 수 있는 모드 종류
-      // 사용할 수 있는 모든 별칭 scss 키 ( 모든 vari key 기도 함 )
-      //  ---
-
-      // 일단 토큰 처리 완료 됨
-      // token value 처리를 하지 않음 > 쌩 객체인 상태임
-      // 아직 처리된 걸로 파일을 만드는 작업을 하지 않음
-      //
-      // console.log(variablesList1);
-
-      // 텍스트, 이펙트 , 그리드는 아직 목적이 불분명함
-      // 일단 그라디언트는 필요하긴 해
-
-      LLog("svg", stylesList1);
-      /**
-       * 백그라운드를 위한 스타일을
-       * 1. 한번에 겹쳐서 구현한다
-       * 2. div 레이어 여러 개 나눠서 구현한다
-       *
-       * 번외: 블랜더모드가 필요한가?
-       * 토큰으로 구현하기 위해서는 어떻게 해야하는가
-       * 리니어 떡칠해야하는 부분이 있음
-       * 시각적인 통일을 하기 위해 리니어 떡칠됨 ㅇㅇ
-       *
-       * 블랜드 모드까지 쓰려면 scss로 써야하나? 어떻게?
-       * 굳이도 포함
-       * 블랜드랑 그라디언트를 분리하는게 좋을 것 같고 그 이유는 스펙 확인하려고
-       * 변수의 변수를 호출할 수 있는지 모르겠지만 뭐 된다면 {이름}_blend , {이름}_image 를 생각하고 있음
-       */
-      // for (const colorStyle of stylesList1) {
-      //   // paintStyle 이더라도
-      //   console.log(colorStyle);
-      // }
-
-      // for (const variable of variablesList1) {
-      //   await figma.variables.get
-      // }
     });
     // #endregion
 
@@ -796,15 +900,14 @@ export default function () {
 
         const css = await target.getCSSAsync();
 
-        console.log(
-          "data:",
-          nodeName,
-          css,
-
-          target.boundVariables,
-          target.width,
-          target.height
-        );
+        // console.log(
+        //   "data:",
+        //   nodeName,
+        //   css,
+        //   target.boundVariables,
+        //   target.width,
+        //   target.height
+        // );
         // + 효과
         // 필터가 밖에 있어서 이름 뽑는 건 외부에서 해야 함
 

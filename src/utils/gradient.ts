@@ -1,3 +1,5 @@
+import { convertRgbColorToHexColor } from "@create-figma-plugin/utilities";
+
 /** rgbToHex(255, 153, 51) */
 const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) => {
   const hex = ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
@@ -25,33 +27,44 @@ const rgbaToHex = ({
   return hex + alphaHex;
 };
 
+const RGBToRBGA = (color: RGB, alpha: number) => {
+  return {
+    ...color,
+    a: roundToFourDecimals(alpha),
+  };
+};
+
 const colorTo255 = (color: RGBA) => {
   return [
     (color.r * 255) >> 0,
     (color.g * 255) >> 0,
     (color.b * 255) >> 0,
-    ,
-    color.a,
+    roundToFourDecimals(color.a),
   ];
 };
 const colorTo255Object = (color: RGBA) => ({
   r: (color.r * 255) >> 0,
   g: (color.g * 255) >> 0,
   b: (color.b * 255) >> 0,
-  a: color.a,
+  a: roundToFourDecimals(color.a),
 });
 
 const colorToCssRGBA = (color: RGBA) => {
   const arr = colorTo255(color);
-  return "rbga(" + arr.join(",") + ");";
+  console.log("color:", arr, "rbga(" + arr.join(",") + ")");
+  return "rbga(" + arr.join(",") + ")";
 };
 
-function calculateGradientDeg(matrix: Transform) {
-  function roundToFourDecimals(value: number) {
-    // 부호를 유지하면서 소수점 4자리까지 반올림
-    return Number(Math.sign(value) * Number(Math.abs(value).toFixed(4)));
-  }
+/**
+ * 부호를 유지하면서 소수점 4자리까지 반올림
+ * @param value
+ * @returns
+ */
+function roundToFourDecimals(value: number) {
+  return Number(Math.sign(value) * Number(Math.abs(value).toFixed(4)));
+}
 
+function calculateGradientDeg(matrix: Transform) {
   // 매트릭스의 요소 추출 및 반올림
   const m00 = roundToFourDecimals(matrix[0][0]);
   const m01 = roundToFourDecimals(matrix[0][1]);
@@ -73,7 +86,8 @@ function calculateGradientDeg(matrix: Transform) {
 }
 
 function getCSSColor(color: RGBA): string {
-  return rgbaToHex(colorTo255Object(color));
+  return colorToCssRGBA(color);
+  // return "#" + rgbaToHex(colorTo255Object(color));
 }
 
 function getGradientStop(stops: ReadonlyArray<ColorStop>): string {
@@ -84,7 +98,7 @@ function getGradientStop(stops: ReadonlyArray<ColorStop>): string {
       const color = getCSSColor(stop.color);
       return color + " " + position + "%";
     })
-    .join(",\n");
+    .join(", ");
   return colors;
 }
 
@@ -110,23 +124,52 @@ export function cssGradient(paint: GradientPaint): string {
   const gradientTransformString = calculateGradientDeg(gradientTransform);
   const gradientStopString = getGradientStop(gradientStops);
 
-  return `linear-gradient( ${gradientTransformString}deg,\n${gradientStopString})`;
+  return `linear-gradient(${gradientTransformString}deg, ${gradientStopString})`;
 }
 
-/** paintStyle 안에 paints가 Paint[] 임 */
+const fillLinear = (colorChip: string) => {
+  return `linear-gradient(${colorChip}, ${colorChip})`;
+};
+
+/** paintStyle 안에 paints가 Paint[]
+ * 호출할 때 필터링 걸어서 빈 리스트느 안넘어온다
+ *
+ * 임 */
 export const paintCheck = (paint: Paint, zero: boolean) => {
   // 가장 아래에 깔리는 객체는 일반 컬러여도 되고 해당 처리를 zero로 구분
 
+  const result = {
+    blend: paint.blendMode ?? "빈 블랜드 발생",
+  };
+
+  console.log("paintCheck:", paint, zero);
+  const opacity = paint.opacity ?? 1;
+
   if (zero && paint.type === "SOLID") {
     // 일반 컬러로 처리
-    return;
+    // const color = convert
+
+    return {
+      ...result,
+      background: colorToCssRGBA(RGBToRBGA(paint.color, opacity)),
+    };
   } else if (paint.type === "SOLID") {
     // 리니어 처리
-    return;
+
+    return {
+      ...result,
+      background: fillLinear(colorToCssRGBA(RGBToRBGA(paint.color, opacity))),
+    };
   } else if (paint.type.startsWith("GRADIENT_")) {
-    return;
+    return {
+      ...result,
+      background: cssGradient(paint as GradientPaint),
+    };
   } else {
     console.log("미구현");
-    return;
+    return {
+      ...result,
+      background: "미구현",
+    };
   }
 };

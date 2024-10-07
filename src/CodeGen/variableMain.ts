@@ -66,7 +66,10 @@ let count = 0;
  * number, string, boolean 값도 지원하는 차이
  */
 export const toStyleName = (
-  vari: Variable,
+  vari: {
+    name: string;
+    resolvedType: Variable["resolvedType"] | "STYLE_COLOR";
+  },
   // parent: VariableCollection,
   parent: {
     name: string;
