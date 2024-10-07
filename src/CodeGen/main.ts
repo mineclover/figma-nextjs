@@ -72,8 +72,10 @@ const areaInclude = (
 ): node is SectionNode | ComponentSetNode => {
   return area.includes(node.type);
 };
+
 /** 그 자체가 svg화 되야하는 대상 */
-const single = ["FRAME", "INSTANCE", "GROUP", "COMPONENT"];
+/** TODO: 이미지 리소스 대응 추가 필요  : RECTANGLE  */
+const single = ["FRAME", "INSTANCE", "GROUP", "COMPONENT", "RECTANGLE"];
 
 export type NodeInfo = {
   pageId: string;
