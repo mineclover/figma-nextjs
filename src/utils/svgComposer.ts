@@ -77,6 +77,7 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
   // 그냥 리스트에서 이름 있는 쪽으로 분기 처리
   const isUse = (useKeys as unknown as string[]).includes(props.path);
   const isObject = (objectKeys as unknown as string[]).includes(props.path);
+  const isImage = (imageKeys as unknown as string[]).includes(props.path);
 
   const alt = props.alt == null ? props.path : props.alt;
 
@@ -114,6 +115,22 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
       >
         <use href={src} xlinkHref={src} />
       </svg>
+    );
+  }
+
+   if (isImage) {
+    const imagePath = "/images/";
+    const path = props.path as (typeof imageKeys)[number];
+
+    const fullPath = imagePath + path;
+    const srcset = scales.map(scale =>  fullPath + scale + '.png ' + scale ).join(', ')
+
+    return (
+      <img
+        src={fullPath}
+        srcset={srcset}
+        alt="고해상도 디스플레이를 위한 반응형 이미지"
+      />
     );
   }
 
@@ -155,6 +172,7 @@ export const svgExporter = async (
   const zipFile = new JSZip();
   const useList = svgData.filter((item) => item.type === "use");
   const objectList = svgData.filter((item) => item.type === "object");
+  const imageList = svgData.filter((item) => item.type === "image");
   const useSvgList = useList.map((item) => item.raw);
 
   // .ts 파일 생성
@@ -195,10 +213,12 @@ export const svgExporter = async (
 
   const useKeys = useList.map((item) => '"' + item.name + '"');
   const objectKeys = objectList.map((item) => '"' + item.name + '"');
+  const imageKeys = imageList.map((item) => '"' + item.name + '"');
 
   let tsFile = "export type SvgTypes = " + types.join(" | ") + ";\n";
 
   tsFile += "export const useKeys = [" + useKeys.join(", ") + "] as const;";
+  tsFile += "export const imageKeys = [" + imageKeys.join(", ") + "] as const;";
   tsFile +=
     "export const objectKeys = [" + objectKeys.join(", ") + "] as const;";
 
@@ -206,7 +226,12 @@ export const svgExporter = async (
     "export type SvgPaths = SvgTypes['path']; // Svg들의 path 타입을 추출\n";
   tsFile +=
     "export type SvgPropsType<T extends SvgPaths> = Extract<SvgTypes, { path: T }>;\n";
+
+  // 이미지 키 매핑용
+
+  const scale = svgData[0].pngs.map((png) => '"_' + png.scale + "x" + '"');
   // useProps 객체 추출
+  tsFile += "export const scales = [" + scale.join(", ") + "];\n";
 
   const usePropsObject = useList.reduce((pre, cur) => {
     const key = cur.name;
@@ -233,11 +258,11 @@ export const svgExporter = async (
   }
 
   // image/~x{scale}.png 생성
-  const imageFolder = zipFile.folder(dev ? "public/image" : "image");
+  const imageFolder = zipFile.folder(dev ? "public/images" : "images");
   if (imageFolder) {
     for (const svg of svgData) {
       for (const png of svg.pngs) {
-        imageFolder.file(svg.name + "x" + png.scale + ".png", png.png);
+        imageFolder.file(svg.name + "_" + png.scale + "x" + ".png", png.png);
       }
     }
   }

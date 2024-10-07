@@ -7,6 +7,7 @@ import {
   IconTarget16,
   Layer,
   IconPencil32,
+  IconLayerAnimated16,
 } from "@create-figma-plugin/ui";
 
 import {
@@ -26,7 +27,8 @@ type Props = {
 
 const typeIcon = (type: NonNullable<Props["data"]>["type"]) => {
   if (type === "use") return <IconLayerInstance16></IconLayerInstance16>;
-  if (type === "object") return <IconLayerImage16></IconLayerImage16>;
+  if (type === "object") return <IconLayerAnimated16></IconLayerAnimated16>;
+  if (type === "image") return <IconLayerImage16></IconLayerImage16>;
   return <IconTarget16></IconTarget16>;
 };
 
@@ -102,6 +104,7 @@ const InputSelect = ({ data, generateTrigger }: Props) => {
           setHover(true);
         }}
         onBlur={(e) => {
+          console.log("hover");
           e.currentTarget.value = text;
           setHover(false);
 

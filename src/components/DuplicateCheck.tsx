@@ -3,6 +3,7 @@ import { SVGResult } from "../CodeGen/main";
 import { useState } from "preact/hooks";
 import {
   Container,
+  IconLayerAnimated16,
   IconLayerImage16,
   IconLayerInstance16,
   TextColor,
@@ -23,12 +24,6 @@ interface Props {
   resultSvg?: SVGResult["svgs"];
   generateTrigger: Function;
 }
-
-const typeIcon = (type: NonNullable<Props["resultSvg"]>[number]["type"]) => {
-  if (type === "use") return <IconLayerInstance16></IconLayerInstance16>;
-  if (type === "object") return <IconLayerImage16></IconLayerImage16>;
-  return <IconTarget16></IconTarget16>;
-};
 
 const DuplicateCheck = ({ resultSvg, generateTrigger }: Props) => {
   const [hover, setHover] = useState(false);

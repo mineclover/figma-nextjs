@@ -309,7 +309,7 @@ export default function () {
           // const svgDom = parser.parseFromString(svg, "image/svg+xml");
           // LLog("svg","dom:", svgDom);
 
-          const scales = [1, 1.5, 2, 3];
+          const scales = [1, 2, 3];
           const pngs = [] as SVGResult["svgs"][number]["pngs"];
           for (const scale of scales) {
             const png = await node.exportAsync({

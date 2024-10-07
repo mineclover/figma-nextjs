@@ -144,6 +144,7 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
 // object 단점 호출이 쪼개짐 > 이미지 수준의 오버헤드
 // 완전 단순한 svg는 use로 unsupported 로 관리하던 건 object로 넘길 수 있다는 소리임
 
+const SVG_CASE_IMAGE = "image";
 const SVG_CASE_OBJECT = "object";
 const SVG_CASE_USE = "use";
 
@@ -240,6 +241,58 @@ export const SvgScan = (ast: ParseElement): SvgCase => {
     }
   }
   return SVG_CASE_USE;
+};
+
+const parse5IamgeValue = {
+  tagName: ["image"],
+  attrsStartsWith: ["data:image/png;base64,"],
+};
+
+export const getIsSvgIamge = (ast: ParseElement): boolean => {
+  const children = ast.childNodes as ParseElement[];
+  // 접두사
+  // unsupported가 하나라도 있으면 이 파일은 object를 통해 임포트 한다
+  if (
+    ast.attrs.some((attr) => {
+      const isUnsupported = parse5IamgeValue.attrsStartsWith.some((prefix) => {
+        const startsWithPrefix = attr.value.startsWith(prefix);
+        LLog("debug", "startsWithPrefix::", attr, prefix);
+        if (startsWithPrefix) {
+          LLog(
+            "debug",
+            "Attribute value starts with unsupported prefix:",
+            prefix,
+            attr.value
+          );
+        }
+        return startsWithPrefix;
+      });
+      return isUnsupported;
+    })
+  ) {
+    return true;
+  }
+  // 태그네임
+  // 태그 네임에 특정이름이 포함되면
+
+  if (parse5IamgeValue.tagName.includes(ast.tagName)) {
+    return true;
+  }
+  if (Array.isArray(children) && children.length > 0) {
+    // 줄바꿈 생략
+    const useNodes = children.filter((item) => {
+      if (item.nodeName === "#text") {
+        const textNode = item as unknown as TextNode;
+        return textNode.value !== "\n";
+      }
+      return true;
+    });
+    LLog("debug", "children:", useNodes);
+    if (useNodes.length > 0) {
+      return useNodes.some((item2) => getIsSvgIamge(item2));
+    }
+  }
+  return false;
 };
 
 // 색상 추출 해야함 일단 어디서 시작하든 가장 먼저 추출된 거 기준으로 키 설정 되는거임
@@ -487,10 +540,10 @@ export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
   )[0] as ParseElement;
   LLog("svg", "svgTag:", svgTag);
   const svgType = SvgScan(svgTag);
-
+  const isImage = getIsSvgIamge(svgTag);
   const result = {
     raw: "",
-    type: svgType,
+    type: isImage ? SVG_CASE_IMAGE : svgType,
     attrs: attrList,
     origin: svg,
   };

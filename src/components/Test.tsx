@@ -1,13 +1,14 @@
 import { h } from "preact";
-import { Prettify } from "../../types/utilType";
-
-import {
-  objectKeys,
-  SvgPaths,
-  SvgPropsType,
-  useKeys,
-  usePropsObject,
-} from "./tsFile";
+export type SvgTypes = { path: "20vDesignSystem_Icon__Sticker_Image_Text_48" };
+export const useKeys = [] as const;
+export const imageKeys = [
+  "20vDesignSystem_Icon__Sticker_Image_Text_48",
+] as const;
+export const objectKeys = [] as const;
+export type SvgPaths = SvgTypes["path"]; // Svg들의 path 타입을 추출
+export type SvgPropsType<T extends SvgPaths> = Extract<SvgTypes, { path: T }>;
+export const scales = ["1x", "2x", "3x"];
+export const usePropsObject = {};
 import { CSSProperties } from "react";
 
 type IconProps = {
@@ -15,6 +16,7 @@ type IconProps = {
   fill?: boolean;
   className?: string;
   style?: CSSProperties;
+  options?: FilterOptions;
 };
 
 type NullableString = string | boolean | undefined;
@@ -40,6 +42,33 @@ const fillStyles = (isFill?: boolean) => {
   return {};
 };
 
+type FilterOptions = {
+  blur?: number | string;
+  brightness?: number | string;
+  contrast?: number | string;
+  grayscale?: number | string;
+  invert?: number | string;
+  saturate?: number | string;
+  sepia?: number | string;
+  opacity?: number | string;
+  "drop-shadow"?: string;
+  "hue-rotate"?: string;
+};
+
+const filterStyle = (options?: FilterOptions) => {
+  if (!options) return {};
+  const { opacity, ...filters } = options;
+
+  const filter = Object.entries(filters)
+    .map(([key, value]) => `${key}(${value})`)
+    .join(" ");
+
+  return {
+    filter: filter,
+    opacity: opacity,
+  };
+};
+
 /**
  * svg를 저장하는 위치에 따라 다르게 정의해야함
  *
@@ -51,6 +80,7 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
   // 그냥 리스트에서 이름 있는 쪽으로 분기 처리
   const isUse = (useKeys as unknown as string[]).includes(props.path);
   const isObject = (objectKeys as unknown as string[]).includes(props.path);
+  const isImage = (imageKeys as unknown as string[]).includes(props.path);
 
   const alt = props.alt == null ? props.path : props.alt;
 
@@ -67,7 +97,6 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
 
     // 대충 propsKey : cssKey 임
     const varNames = Object.entries(usePropsObject[path]);
-
     const varStyles = {} as Record<string, string>;
 
     for (const [pk, cssKey] of varNames) {
@@ -78,12 +107,42 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
 
     return (
       <svg
-        style={{ ...fillStyles(props.fill), ...varStyles, ...props.style }}
+        style={{
+          ...fillStyles(props.fill),
+          ...filterStyle(props.options),
+          ...varStyles,
+          ...props.style,
+        }}
         className={clc(props.className)}
         aria-label={alt}
       >
         <use href={src} xlinkHref={src} />
       </svg>
+    );
+  }
+
+  if (isImage) {
+    const imagePath = "/images/";
+    const path = props.path as (typeof imageKeys)[number];
+
+    const fullPath = imagePath + path;
+    const srcset = scales
+      .map((scale) => fullPath + scale + ".png " + scale)
+      .join(", ");
+
+    return (
+      <img
+        src={fullPath + scales[0] + ".png"}
+        srcset={srcset}
+        alt={alt}
+        style={{
+          ...fillStyles(props.fill),
+          ...filterStyle(props.options),
+          ...props.style,
+        }}
+        className={clc(props.className)}
+        aria-label={alt}
+      />
     );
   }
 
@@ -102,6 +161,7 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
         role="img"
         style={{
           ...fillStyles(props.fill),
+          ...filterStyle(props.options),
           pointerEvents: "none",
           ...props.style,
         }}
@@ -113,9 +173,3 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
 };
 
 export default Icon;
-
-const Test = () => {
-  return <Icon path="newFeed_Feed__Boost_Active"></Icon>;
-};
-
-type Test = Prettify<IconProps>;
