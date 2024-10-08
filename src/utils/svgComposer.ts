@@ -118,21 +118,27 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
     );
   }
 
-   if (isImage) {
-    const imagePath = "/images/";
-    const path = props.path as (typeof imageKeys)[number];
+  	if (isImage) {
+		const imagePath = '/images/'
+		const path = props.path as (typeof imageKeys)[number]
 
-    const fullPath = imagePath + path;
-    const srcset = scales.map(scale =>  fullPath + scale + '.png ' + scale ).join(', ')
+		const fullPath = imagePath + path
+		const srcset = scales.map((scale) => fullPath + scale + '.png ' + scale.slice(1)).join(', ')
 
-    return (
-      <img
-        src={fullPath}
-        srcset={srcset}
-        alt="고해상도 디스플레이를 위한 반응형 이미지"
-      />
-    );
-  }
+		return (
+			<img
+				srcSet={srcset}
+				src={fullPath + scales[0] + '.png'}
+				alt={alt}
+				style={{
+					...fillStyles(props.fill),
+					...filterStyle(props.options),
+					...props.style,
+				}}
+				className={clc(props.className)}
+			/>
+		)
+	}
 
   if (isObject) {
     // Object 저장 방식에 맞춰서 처리

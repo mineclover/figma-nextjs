@@ -135,8 +135,8 @@ function scssExporter({
 
   const zipFile = new JSZip();
   zipFile.file("_figmaToken.scss", figmaToken);
-  zipFile.file("default.scss", defaultScss);
-  zipFile.file("useToken.scss", useToken);
+  zipFile.file("_figmaDefault.scss", defaultScss);
+  zipFile.file("_useToken.scss", useToken);
   zipFile.file("useToken.ts", constants);
 
   zipFile.generateAsync({ type: "blob" }).then(function callback(blob) {
@@ -171,11 +171,11 @@ function scssObjecttoText({
    *
    */
   //
-
+  console.log(defaultScssStyles);
   defaultScss +=
-    "@use './figmaToken' as *;\n\n.default {" +
+    "@use './figmaToken' as *;\n@use '../abstracts/figmaToken' as *;\n\n.default {" +
     Object.entries(defaultScssStyles).reduce(
-      (prev1, [key2, token2]) => prev1 + "\n--" + key2 + ":" + token2 + ";",
+      (prev1, [key2, token2]) => prev1 + "\n--" + key2 + ": #{" + token2 + "};",
       ""
     ) +
     "\n}\n\n";
@@ -190,7 +190,8 @@ function scssObjecttoText({
         key +
         "{" +
         Object.entries(tokenArr).reduce(
-          (prev1, [key1, token]) => prev1 + "\n--" + key1 + ":" + token + ";",
+          (prev1, [key1, token]) =>
+            prev1 + "\n--" + key1 + ": #{" + token + "};",
           ""
         ) +
         "\n}\n\n";

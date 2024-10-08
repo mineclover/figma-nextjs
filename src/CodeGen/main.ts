@@ -56,7 +56,7 @@ import {
   toTokenId,
 } from "./variableMain";
 import { base64TokenEncode, hexToBase64 } from "../utils/data";
-import { paintCheck } from "../utils/gradient";
+import { colorTo255Object, paintCheck, rgbaToHex } from "../utils/gradient";
 
 /** 값을 고유하다고 가정하고 찾아진 하나만  */
 const findOne = <T extends Object>(arr: T[], fn: (item: T) => boolean) => {
@@ -588,8 +588,11 @@ export default function () {
         // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
         // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
         // ${스타일}: var(--{스타일}, ${token});
-
-        scssVariableStyles["$" + styleName] = getVarName(styleName, tokenName);
+        if (scssVariableStyles["$" + styleName] == null)
+          scssVariableStyles["$" + styleName] = getVarName(
+            styleName,
+            tokenName
+          );
       };
 
       for (const variable of variablesList1) {
@@ -819,7 +822,7 @@ export default function () {
 
           return [key, "var(--" + styleName + ")"];
         } else if (isRGB(value)) {
-          return [key, "#" + convertRgbColorToHexColor(value)];
+          return [key, "#" + rgbaToHex(colorTo255Object(value))];
         }
         // 나머지
         return [key, value];

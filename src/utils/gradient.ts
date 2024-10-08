@@ -7,7 +7,7 @@ const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) => {
 };
 
 /** rgbaToHex(255, 153, 51, 1) */
-const rgbaToHex = ({
+export const rgbaToHex = ({
   r,
   g,
   b,
@@ -16,25 +16,26 @@ const rgbaToHex = ({
   r: number;
   g: number;
   b: number;
-  a: number;
+  a?: number;
 }) => {
   const hex = rgbToHex({ r, g, b });
+  if (a == null || a === 1) return hex;
   const alphaHex = Math.round(a * 255)
     .toString(16)
-    .padStart(2, "0");
+    .padStart(2, "0")
+    .toUpperCase();
 
-  if (a === 1) return hex;
   return hex + alphaHex;
 };
 
-const RGBToRBGA = (color: RGB, alpha: number) => {
+const RGBToRGBA = (color: RGB, alpha: number) => {
   return {
     ...color,
     a: roundToFourDecimals(alpha),
   };
 };
 
-const colorTo255 = (color: RGBA) => {
+export const colorTo255 = (color: RGBA) => {
   return [
     (color.r * 255) >> 0,
     (color.g * 255) >> 0,
@@ -42,17 +43,27 @@ const colorTo255 = (color: RGBA) => {
     roundToFourDecimals(color.a),
   ];
 };
-const colorTo255Object = (color: RGBA) => ({
-  r: (color.r * 255) >> 0,
-  g: (color.g * 255) >> 0,
-  b: (color.b * 255) >> 0,
-  a: roundToFourDecimals(color.a),
-});
+export const colorTo255Object = (color: RGB | RGBA) => {
+  if ("a" in color)
+    return {
+      r: (color.r * 255) >> 0,
+      g: (color.g * 255) >> 0,
+      b: (color.b * 255) >> 0,
+      a: roundToFourDecimals(color.a),
+    };
+
+  return {
+    r: (color.r * 255) >> 0,
+    g: (color.g * 255) >> 0,
+    b: (color.b * 255) >> 0,
+    a: 1,
+  };
+};
 
 const colorToCssRGBA = (color: RGBA) => {
   const arr = colorTo255(color);
-  console.log("color:", arr, "rbga(" + arr.join(",") + ")");
-  return "rbga(" + arr.join(",") + ")";
+  console.log("color:", arr, "rgba(" + arr.join(",") + ")");
+  return "rgba(" + arr.join(",") + ")";
 };
 
 /**
@@ -86,8 +97,8 @@ function calculateGradientDeg(matrix: Transform) {
 }
 
 function getCSSColor(color: RGBA): string {
-  return colorToCssRGBA(color);
-  // return "#" + rgbaToHex(colorTo255Object(color));
+  // return colorToCssRGBA(color);
+  return "#" + rgbaToHex(colorTo255Object(color));
 }
 
 function getGradientStop(stops: ReadonlyArray<ColorStop>): string {
@@ -95,6 +106,7 @@ function getGradientStop(stops: ReadonlyArray<ColorStop>): string {
     .map((stop) => {
       console.log(stop.position);
       const position = Math.round(stop.position * 100 * 100) / 100;
+      // const color = getCSSColor(stop.color);
       const color = getCSSColor(stop.color);
       return color + " " + position + "%";
     })
@@ -151,14 +163,14 @@ export const paintCheck = (paint: Paint, zero: boolean) => {
 
     return {
       ...result,
-      background: colorToCssRGBA(RGBToRBGA(paint.color, opacity)),
+      background: colorToCssRGBA(RGBToRGBA(paint.color, opacity)),
     };
   } else if (paint.type === "SOLID") {
     // 리니어 처리
 
     return {
       ...result,
-      background: fillLinear(colorToCssRGBA(RGBToRBGA(paint.color, opacity))),
+      background: fillLinear(colorToCssRGBA(RGBToRGBA(paint.color, opacity))),
     };
   } else if (paint.type.startsWith("GRADIENT_")) {
     return {

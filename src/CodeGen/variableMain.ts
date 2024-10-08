@@ -81,6 +81,7 @@ export const toStyleName = (
   // _를 어떻게 처리할지는 좀 고민되긴 하네 딱히 규칙은 필요 없음
   const name = vari.name
     .trim()
+    .replace(/\+/g, "plus")
     .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
     .replace(/:/g, "__")
     .replace(/ /g, "_")
