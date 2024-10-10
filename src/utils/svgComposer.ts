@@ -264,20 +264,23 @@ export const svgExporter = async (
   }
 
   // image/~x{scale}.png 생성
-  const imageFolder = zipFile.folder(dev ? "public/images" : "images");
-  if (imageFolder) {
-    for (const svg of svgData) {
-      for (const png of svg.pngs) {
-        imageFolder.file(svg.name + "_" + png.scale + "x" + ".png", png.png);
+  if (imageList.length) {
+    const imageFolder = zipFile.folder(dev ? "public/images" : "images");
+    if (imageFolder) {
+      for (const svg of imageList) {
+        for (const png of svg.pngs) {
+          imageFolder.file(svg.name + "_" + png.scale + "x" + ".png", png.png);
+        }
       }
     }
   }
-
   // object/~.svg 생성
-  const objectFolder = zipFile.folder(dev ? "public/object" : "object");
-  if (objectFolder) {
-    for (const svg of objectList) {
-      objectFolder.file(svg.name + ".svg", svg.raw);
+  if (objectList.length) {
+    const objectFolder = zipFile.folder(dev ? "public/object" : "object");
+    if (objectFolder) {
+      for (const svg of objectList) {
+        objectFolder.file(svg.name + ".svg", svg.raw);
+      }
     }
   }
 
