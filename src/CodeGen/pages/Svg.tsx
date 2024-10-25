@@ -261,11 +261,14 @@ function Plugin() {
 
       <FileUploadDropzone
         onSelectedFiles={async (e) => {
+          console.log(e);
           // 중복 아이디 삭제하면서 여러 json 추가 가능
           const data = await JsonToObject(e);
           // 읽은 json 들에서 sections만 읽어서 array로 궈성
+
           const setting = data[0];
           // const jsonSections = data.flatMap((i) => i.sections);
+          console.log("setting::", setting);
           const jsonSections = setting.sections;
           setSections((array) => addUniqueArraySection(array, jsonSections));
           const jsonFilter = setting.filter;

@@ -338,3 +338,12 @@ export async function* getAll2(): AsyncGenerator<Pages> {
     yield { node: page, path: detailPathExtend(page, nullPaths, i) };
   }
 }
+
+export const safetyParse = <T>(input: string): T[] => {
+  if (input === "") return [];
+  try {
+    return JSON.parse(input);
+  } catch {
+    return [];
+  }
+};

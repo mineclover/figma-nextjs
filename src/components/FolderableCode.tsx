@@ -58,7 +58,7 @@ export const attrsToStyle = (name: string, attrs: Props["attrs"]) => {
 
     type +=
       varToName(key) +
-      " : " +
+      " ?: " +
       (typeofNumber(attrs[key]) ? "number" : "string") +
       ";";
   });
