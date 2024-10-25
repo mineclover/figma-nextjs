@@ -81,6 +81,7 @@ export const toStyleName = (
   // _를 어떻게 처리할지는 좀 고민되긴 하네 딱히 규칙은 필요 없음
   const name = vari.name
     .trim()
+    .replace(/[\s\u00A0\u200B]+/g, "")
     .replace(/\+/g, "plus")
     .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
     .replace(/:/g, "__")
@@ -142,10 +143,11 @@ export const toNodeName = (
   // property 구분
   // 일단 선택된거 쓰고
   let currentNode = node;
-  if (node.parent && FilterTypeIndex(node.parent.type) === 5) {
-    // 부모가 컴포넌트면 팝해서 써라
-    currentNode = paths.pop() as SceneNode;
-  }
+  // 이 기능 쓰지 않는 걸로.. 인스턴스 컴포넌트 구조에서
+  // if (node.parent && FilterTypeIndex(node.parent.type) === 5) {
+  //   // 부모가 컴포넌트면 팝해서 써라
+  //   currentNode = paths.pop() as SceneNode;
+  // }
   if (currentNode == null) currentNode = node;
   LLog("svg", "currentNode::", currentNode, paths);
 
