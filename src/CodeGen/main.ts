@@ -84,7 +84,14 @@ const areaInclude = (
 
 /** 그 자체가 svg화 되야하는 대상 */
 /** TODO: 이미지 리소스 대응 추가 필요  : RECTANGLE  */
-const single = ["FRAME", "INSTANCE", "GROUP", "COMPONENT", "RECTANGLE"];
+const single = [
+  "FRAME",
+  "INSTANCE",
+  "GROUP",
+  "COMPONENT",
+  "RECTANGLE",
+  "VECTOR",
+];
 
 export type NodeInfo = {
   pageId: string;
@@ -318,7 +325,7 @@ export default function () {
           // const svgDom = parser.parseFromString(svg, "image/svg+xml");
           // LLog("svg","dom:", svgDom);
 
-          const scales = [1, 2];
+          const scales = [2];
           const pngs = [] as SVGResult["svgs"][number]["pngs"];
           for (const scale of scales) {
             const png = await node.exportAsync({
