@@ -18,16 +18,27 @@ type Props = {
   name: string;
   attrs: SVGResult["svgs"][number]["attrs"];
 };
+type TypeOptions = SVGResult["svgs"][number]["type"];
 
-const typeTemplate = "type $PascalName = { path: $name; $types }";
+const typeTemplate = "type $PascalName = ({ path: $name; $types } & $kind )";
 
-export const attrsToStyle = (name: string, attrs: Props["attrs"]) => {
+const typeMap = {
+  svg: "SVGProps",
+  use: "ObjectProps",
+  image: "ImageProps",
+} as const;
+
+export const attrsToStyle = (
+  name: string,
+  attrs: Props["attrs"],
+  kind: TypeOptions
+) => {
   const styles = {} as Record<string, string | number>;
   let css = "." + name + " {";
   // 타입 선언은 타입 선언인데 이걸 정확한 위치로 어떻게 이동시키느냐가 문제임
   // 일단 키 이름이 다르고, 키 타입도 달라서 문제가 됨
   // Icon 컴포넌트 내부에서 path로 분기처리하면서 유효 타입도 처리하는 방법이 있긴 함
-  let type = "{";
+  let type = "({";
 
   const types = [] as string[];
 
@@ -63,6 +74,7 @@ export const attrsToStyle = (name: string, attrs: Props["attrs"]) => {
       ";";
   });
   type += "}";
+  type += "& " + typeMap[kind as keyof typeof typeMap] + ")";
 
   return {
     css,
@@ -104,7 +116,7 @@ const FolderableCode = ({ name, attrs }: Props) => {
           }
         }}
         // css , styles
-        value={JSON.stringify(attrsToStyle(name, attrs))}
+        value={JSON.stringify(attrsToStyle(name, attrs, "svg"))}
       ></TextboxMultiline>
       {/* 딸칵 스타일  */}
       <TextboxMultiline

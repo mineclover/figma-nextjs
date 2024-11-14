@@ -72,101 +72,112 @@ const filterStyle = (options?: FilterOptions) => {
  * public/~
  */
 const objectPath = "/object/";
-const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
-  // use 랑 object 분기 처리
-  // 그냥 리스트에서 이름 있는 쪽으로 분기 처리
-  const isUse = (useKeys as unknown as string[]).includes(props.path);
-  const isObject = (objectKeys as unknown as string[]).includes(props.path);
-  const isImage = (imageKeys as unknown as string[]).includes(props.path);
+const Icon = <T extends SvgPaths>({
+	alt,
+	path,
+	className,
+	style,
+	fill,
+	options,
+	...props
+}: SvgPropsType<T> & IconProps) => {
+	// use 랑 object 분기 처리
+	// 그냥 리스트에서 이름 있는 쪽으로 분기 처리
+	const isUse = (useKeys as unknown as string[]).includes(path)
+	const isObject = (objectKeys as unknown as string[]).includes(path)
+	const isImage = (imageKeys as unknown as string[]).includes(path)
 
-  const alt = props.alt == null ? props.path : props.alt;
+	const attrAlt = alt == null ? path : alt
 
-  if (isUse) {
-    // asset 저장 방식에 맞춰서 호출
-    // 만약 코드에 인라인으로 넣게 되면 바로 # 만 쓰면 된다
-    // 외부 경로에서 오는 것은 고려하지 않아도 되는게 CORS 에러 나서 외부 리소스를 SVGUSE로 쓸 수 없다
-    const assetPath = "/asset.svg#";
-    const path = props.path as (typeof useKeys)[number];
-    const src = assetPath + path;
+	if (isUse) {
+		// asset 저장 방식에 맞춰서 호출
+		// 만약 코드에 인라인으로 넣게 되면 바로 # 만 쓰면 된다
+		// 외부 경로에서 오는 것은 고려하지 않아도 되는게 CORS 에러 나서 외부 리소스를 SVGUSE로 쓸 수 없다
+		const assetPath = '/asset.svg?v=1#'
+		const attrPath = path as (typeof useKeys)[number]
+		const src = assetPath + attrPath
 
-    // var props 추출해서 스타일에 넣는 코드,
-    // use에만 적용하면 됨 > object에는 해당 코드를 제거했기 때문
+		// var props 추출해서 스타일에 넣는 코드,
+		// use에만 적용하면 됨 > object에는 해당 코드를 제거했기 때문
 
-    // 대충 propsKey : cssKey 임
-    const varNames = Object.entries(usePropsObject[path]);
-    const varStyles = {} as Record<string, string>;
+		// 대충 propsKey : cssKey 임
+		const varNames = Object.entries(usePropsObject[attrPath])
+		const varStyles = {} as Record<string, string>
 
-    for (const [pk, cssKey] of varNames) {
-      //@ts-ignore
-      const pkValue = props[pk];
-      varStyles["--" + cssKey] = pkValue;
-    }
+		for (const [pk, cssKey] of varNames) {
+			//@ts-ignore
+			const pkValue = props[pk]
+			varStyles['--' + cssKey] = pkValue
+		}
 
-    return (
-      <svg
-        style={{
-          ...fillStyles(props.fill),
-          ...filterStyle(props.options),
-          ...varStyles,
-          ...props.style,
-        }}
-        className={clc(props.className)}
-        aria-label={alt}
-      >
-        <use href={src} xlinkHref={src} />
-      </svg>
-    );
-  }
+		return (
+			<svg
+				style={{
+					...fillStyles(fill),
+					...filterStyle(options),
+					...varStyles,
+					...style,
+				}}
+				className={clc(className)}
+				aria-label={attrAlt}
+				{...(props as SVGProps)}
+			>
+				<use href={src} xlinkHref={src} />
+			</svg>
+		)
+	}
 
-  	if (isImage) {
+	if (isImage) {
 		const imagePath = '/images/'
-		const path = props.path as (typeof imageKeys)[number]
+		const attrPath = path as (typeof imageKeys)[number]
 
-		const fullPath = imagePath + path
+		const fullPath = imagePath + attrPath
 		const srcset = scales.map((scale) => fullPath + scale + '.png ' + scale.slice(1)).join(', ')
 
 		return (
 			<img
 				srcSet={srcset}
 				src={fullPath + scales[0] + '.png'}
-				alt={alt}
+				alt={attrAlt}
 				style={{
-					...fillStyles(props.fill),
-					...filterStyle(props.options),
-					...props.style,
+					...fillStyles(fill),
+					...filterStyle(options),
+					...style,
 				}}
-				className={clc(props.className)}
+				className={clc(className)}
+				{...(props as ImageProps)}
 			/>
 		)
 	}
 
-  if (isObject) {
-    // Object 저장 방식에 맞춰서 처리
-    const assetPath = objectPath;
-    const path = props.path as (typeof objectKeys)[number];
-    const src = assetPath + path + ".svg";
+	if (isObject) {
+		// Object 저장 방식에 맞춰서 처리
+		const assetPath = objectPath
+		const attrPath = path as (typeof objectKeys)[number]
+		const src = assetPath + attrPath + '.svg'
 
-    return (
-      <object
-        type={"image/svg+xml"}
-        data={src}
-        aria-label={alt}
-        className={clc(props.className)}
-        role="img"
-        style={{
-          ...fillStyles(props.fill),
-          ...filterStyle(props.options),
-          pointerEvents: "none",
-          ...props.style,
-        }}
-      ></object>
-    );
-  }
+		return (
+			<object
+				type={'image/svg+xml'}
+				data={src}
+				aria-label={attrAlt}
+				className={clc(className)}
+				role="img"
+				style={{
+					...fillStyles(fill),
+					...filterStyle(options),
+					pointerEvents: 'none',
+					...style,
+				}}
+				{...(props as ObjectProps)}
+			></object>
+		)
+	}
 
-  return <div>{props.path}가 존재하지 않습니다</div>;
-};
+	return <div>{path}가 존재하지 않습니다</div>
+}
 
-export default Icon;`;
+export default Icon`;
 
 // 사용 예시
 
@@ -213,7 +224,7 @@ export const svgExporter = async (
   // 타입 일괄 추출
 
   const types = svgData.map((item) => {
-    const spec = attrsToStyle(item.name, item.attrs);
+    const spec = attrsToStyle(item.name, item.attrs, item.type);
     return spec.type;
   });
 
@@ -221,7 +232,11 @@ export const svgExporter = async (
   const objectKeys = objectList.map((item) => '"' + item.name + '"');
   const imageKeys = imageList.map((item) => '"' + item.name + '"');
 
-  let tsFile = "export type SvgTypes = " + types.join(" | ") + ";\n";
+  let tsFile = `type SVGProps = JSX.IntrinsicElements['svg']
+type ObjectProps = JSX.IntrinsicElements['object']
+type ImageProps = JSX.IntrinsicElements['img']
+`;
+  tsFile += "export type SvgTypes = " + types.join(" | ") + ";\n";
 
   tsFile += "export const useKeys = [" + useKeys.join(", ") + "] as const;";
   tsFile += "export const imageKeys = [" + imageKeys.join(", ") + "] as const;";

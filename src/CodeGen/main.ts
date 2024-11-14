@@ -130,7 +130,7 @@ export type SVGResult = {
     alias: boolean;
     node: SceneNode;
     nodeInfo: NodeInfo;
-    type: Awaited<ReturnType<typeof toSingleSvg>>["type"];
+    type: "use" | "object" | "image" | string;
     attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
     raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
     origin: Awaited<ReturnType<typeof toSingleSvg>>["origin"];
