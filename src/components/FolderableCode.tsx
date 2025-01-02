@@ -24,7 +24,8 @@ const typeTemplate = "type $PascalName = ({ path: $name; $types } & $kind )";
 
 const typeMap = {
   svg: "SVGProps",
-  use: "ObjectProps",
+  use: "SVGProps",
+  object: "ObjectProps",
   image: "ImageProps",
 } as const;
 
@@ -75,6 +76,10 @@ export const attrsToStyle = (
   });
   type += "}";
   type += "& " + typeMap[kind as keyof typeof typeMap] + ")";
+
+  if (typeMap[kind as keyof typeof typeMap] == null) {
+    console.log(name, kind, attrs, typeMap[kind as keyof typeof typeMap]);
+  }
 
   return {
     css,
