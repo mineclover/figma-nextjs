@@ -4,7 +4,7 @@ import {
   Tabs,
   useWindowResize,
 } from "@create-figma-plugin/ui";
-import { h } from "preact";
+import { Fragment, h } from "preact";
 import { useState } from "preact/hooks";
 
 import Svg from "./pages/Svg";
@@ -20,7 +20,7 @@ import Variables from "./pages/Variables";
 import { emit } from "@create-figma-plugin/utilities";
 import { ResizeWindowHandler } from "./types";
 import Inspect from "./pages/Inspect";
-import Docs from "./pages/Docs";
+import Header from "../widget/Header";
 
 const fn = async (files: Array<File>) => {
   const text = await files[0].text();
@@ -37,7 +37,7 @@ function Plugin() {
     minWidth: 120,
     resizeBehaviorOnDoubleClick: "minimize",
   });
-  const nav = ["SVG 생성기", "변수 추출", "문서 저장"];
+  const nav = ["SVG 생성기", "변수 추출", "inspect"];
   // const nav = ["SVG 생성기", "변수 추출", "SVG 정보 자동완성"];
 
   const options: Array<TabsOption> = [
@@ -50,7 +50,7 @@ function Plugin() {
       value: nav[1],
     },
     {
-      children: <Docs></Docs>,
+      children: <Inspect></Inspect>,
       value: nav[2],
     },
     // {
@@ -69,7 +69,13 @@ function Plugin() {
     const newValue = event.currentTarget.value;
     setValue(newValue);
   }
-  return <Tabs onChange={handleChange} options={options} value={value} />;
+  return (
+    <Fragment>
+      <Header></Header>
+
+      <Tabs onChange={handleChange} options={options} value={value} />
+    </Fragment>
+  );
 }
 
 export default render(Plugin);

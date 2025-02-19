@@ -57,14 +57,7 @@ import {
 } from "./variableMain";
 import { base64TokenEncode, hexToBase64 } from "../utils/data";
 import { colorTo255Object, paintCheck, rgbaToHex } from "../utils/gradient";
-import {
-  AllMemo,
-  DocsMainAllData,
-  DocsOff,
-  DocsOn,
-  DocsUIUpdate,
-  MemoData,
-} from "./pages/docsHandlerType";
+
 import { safetyParse } from "../utils/JsonParse";
 
 /** 값을 고유하다고 가정하고 찾아진 하나만  */
@@ -919,17 +912,6 @@ export default function () {
 
         const css = await target.getCSSAsync();
 
-        // console.log(
-        //   "data:",
-        //   nodeName,
-        //   css,
-        //   target.boundVariables,
-        //   target.width,
-        //   target.height
-        // );
-        // + 효과
-        // 필터가 밖에 있어서 이름 뽑는 건 외부에서 해야 함
-
         emit<InspectMainData>("INSPECT_MAIN_DATA", {
           nodeName,
           alias,
@@ -955,54 +937,6 @@ export default function () {
       figma.off("selectionchange", InspectFunction);
     });
 
-    //#endregion
-
-    // Docs
-
-    //#region
-
-    const docsFunction = async () => {
-      const currentPage = figma.currentPage;
-      console.log(currentPage);
-
-      const plan1 = currentPage.getPluginData("plan");
-      const notes1 = currentPage.getPluginData("notes");
-      const resource1 = currentPage.getPluginData("resource");
-      const deploy1 = currentPage.getPluginData("deploy");
-
-      const plan = safetyParse<MemoData>(plan1);
-      const notes = safetyParse<MemoData>(notes1);
-      const resource = safetyParse<MemoData>(resource1);
-      const deploy = safetyParse<MemoData>(deploy1);
-
-      const memos = {
-        plan,
-        notes,
-        resource,
-        deploy,
-      } as AllMemo;
-
-      emit<DocsMainAllData>("DOCS_MAIN_DATA", memos);
-    };
-
-    // 키기
-    on<DocsOn>("DOCS_ON", () => {
-      docsFunction();
-      figma.on("currentpagechange", docsFunction);
-    });
-
-    // 수정
-    on<DocsUIUpdate>("DOCS_UI_UPDATE", (key, value) => {
-      console.log(key, value);
-      const currentPage = figma.currentPage;
-      currentPage.setPluginData(key, JSON.stringify(value));
-
-      docsFunction();
-    });
-
-    on<DocsOff>("DOCS_OFF", () => {
-      figma.off("currentpagechange", docsFunction);
-    });
     //#endregion
 
     showUI({
