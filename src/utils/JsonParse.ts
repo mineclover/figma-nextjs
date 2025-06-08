@@ -3,13 +3,13 @@
 // 아니면 세션이랑 컴포넌트만 서치하는 것도 괜찮음
 // 어짜피 그 외는 취급 안할꺼니까
 
-import { figmaProgress, notify } from "../FigmaPluginUtils";
-import { asyncIter, asyncIterGenerator, iter } from "./JF";
-import { sleep } from "./promise";
+import { figmaProgress, notify } from '../FigmaPluginUtils';
+import { asyncIter, asyncIterGenerator, iter } from './JF';
+import { sleep } from './promise';
 
 // "DOCUMENT","PAGE",를 뺀 건   figma.currentPage.selection 호환을 위해
-const selectType = ["SECTION", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
-const childrenIgnoreType = ["COMPONENT", "COMPONENT_SET", "INSTANCE"];
+const selectType = ['SECTION', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE'];
+const childrenIgnoreType = ['COMPONENT', 'COMPONENT_SET', 'INSTANCE'];
 
 // figmaID, realName, documentPath, path
 export type DetailPaths = {
@@ -28,38 +28,38 @@ export type DetailPaths = {
 
 const nullPaths = {
   /** 피그마 아이디로 구성 */
-  figmaID: "",
+  figmaID: '',
   /** 실제 이름 */
-  realName: "",
+  realName: '',
   /** 도큐먼트 용 이름 > 공백 제거 */
   documentPath: {
-    path: "",
-    origin: "",
+    path: '',
+    origin: ''
   },
   /** 실제 경로 > 공백 변형 */
-  path: "",
+  path: ''
 };
 export type DeepNode = { node: BaseNode; path: DetailPaths };
 /** 오로지 내부 식별용 유니크한 구분자 */
 
-export const slashSymbol = "\u25AA";
+export const slashSymbol = '\u25AA';
 
-export const sectionSymbol = "\u203D";
+export const sectionSymbol = '\u203D';
 // 🔄
-export const syncSymbol = "\u{1F504}";
+export const syncSymbol = '\u{1F504}';
 
 // 좀 더 모듈화 해봄
 
 export const symbolJoin = (...args: string[]) => {
-  const arr = args.filter((text) => text != null || text === "");
+  const arr = args.filter((text) => text != null || text === '');
   return arr.join(slashSymbol);
 };
 
 export const pathJoin = (...args: string[]) => {
   const arr = args.filter((text) => {
-    return text != null && text !== "";
+    return text != null && text !== '';
   });
-  const result = arr.join("/");
+  const result = arr.join('/');
 
   return result;
 };
@@ -67,46 +67,40 @@ export const pathJoin = (...args: string[]) => {
 /**
  * 대상 객체 내부 순회 1초 딜레이
  */
-export async function* delayPathDeepTraverse({
-  node,
-  path,
-}: DeepNode): AsyncIterableIterator<DeepNode> {
+export async function* delayPathDeepTraverse({ node, path }: DeepNode): AsyncIterableIterator<DeepNode> {
   // }: DeepNode): IterableIterator<DeepNode> {
   // 현재 노드 방문
-  figmaProgress("pathDeepTraverse");
+  figmaProgress('pathDeepTraverse');
   await sleep(1001);
   yield {
     node,
-    path,
+    path
   };
   // 자식 노드가 존재하는 경우
-  if ("children" in node && node.children && node.children.length) {
+  if ('children' in node && node.children && node.children.length) {
     // 자식 노드를 재귀적으로 탐색
     for (let i = 0; i < node.children.length; i++) {
       yield* delayPathDeepTraverse({
         node: node.children[i],
-        path: detailPathExtend(node.children[i], path, i),
+        path: detailPathExtend(node.children[i], path, i)
         // path: path + testSymbol + i,
       });
     }
   }
 }
 
-export function* pathDeepTraverse({
-  node,
-  path,
-}: DeepNode): IterableIterator<DeepNode> {
+export function* pathDeepTraverse({ node, path }: DeepNode): IterableIterator<DeepNode> {
   yield {
     node,
-    path,
+    path
   };
   // 자식 노드가 존재하는 경우
-  if ("children" in node && node.children && node.children.length) {
+  if ('children' in node && node.children && node.children.length) {
     // 자식 노드를 재귀적으로 탐색
     for (let i = 0; i < node.children.length; i++) {
       yield* pathDeepTraverse({
         node: node.children[i],
-        path: detailPathExtend(node.children[i], path, i),
+        path: detailPathExtend(node.children[i], path, i)
         // path: path + testSymbol + i,
       });
     }
@@ -122,19 +116,19 @@ const documentValid = (node: BaseNode) => {
   const type = node.type;
   const name = node.name.trim();
   // 섹션 페이지 도큐먼트는 이름을 그대로 씀
-  if (type === "DOCUMENT") {
+  if (type === 'DOCUMENT') {
     return name;
   }
 
-  if (type === "PAGE") {
+  if (type === 'PAGE') {
     return name;
   }
-  if (type === "SECTION") {
+  if (type === 'SECTION') {
     return sectionSymbol + name;
   }
 
   // 그냥 접두사 # 거나 / 면
-  if (name.startsWith("#") || name.startsWith("/")) {
+  if (name.startsWith('#') || name.startsWith('/')) {
     return name;
   }
   // 괄호 쳐져 있으거나 언더바가 앞에 있으면
@@ -145,7 +139,7 @@ const documentValid = (node: BaseNode) => {
   // ) {
   //   return "";
   // }
-  return "";
+  return '';
 };
 
 /**
@@ -157,7 +151,7 @@ const documentValid = (node: BaseNode) => {
 const pathValid = (path: string) => {
   const temp1 = path.split(slashSymbol).map((t) => {
     const temp11 = t.trim();
-    const temp12 = temp11.replace(/\s/g, "-").toLowerCase();
+    const temp12 = temp11.replace(/\s/g, '-').toLowerCase();
     return temp12;
   });
 
@@ -165,17 +159,17 @@ const pathValid = (path: string) => {
     .filter(
       // _로 시작하거나 괄호가 감싸져 있으면 false
       (t) => {
-        if (t.startsWith("__")) {
+        if (t.startsWith('__')) {
           return false;
         }
         // if (t.startsWith("(") && t.endsWith(")")) {
         //   return false;
         // }
-        if (t === "") return false;
+        if (t === '') return false;
         return true;
       }
     )
-    .join("/");
+    .join('/');
 
   return temp2;
 };
@@ -204,16 +198,12 @@ const originClear = (path: string) => {
   return path
     .split(slashSymbol)
     .map((t) => t.trim())
-    .filter((t) => t !== "")
+    .filter((t) => t !== '')
     .join(slashSymbol);
 };
 
-export const detailPathExtend = (
-  node: BaseNode,
-  path?: DetailPaths,
-  index?: number
-): DetailPaths => {
-  const indexValue = typeof index === "number" ? String(index) : "0";
+export const detailPathExtend = (node: BaseNode, path?: DetailPaths, index?: number): DetailPaths => {
+  const indexValue = typeof index === 'number' ? String(index) : '0';
 
   const documentPath = documentValid(node);
   const up = upPathTraverse(node, documentPath);
@@ -232,10 +222,10 @@ export const detailPathExtend = (
      */
     documentPath: {
       path: pathValid(up),
-      origin: originClear(up),
+      origin: originClear(up)
     },
     /** 실제 경로 > 공백 변형 */
-    path: indexValue,
+    path: indexValue
   };
 
   if (path) {
@@ -250,10 +240,10 @@ export const detailPathExtend = (
         //TODO: origin은 차후 피그마 경로를 위한 세션 경로 파싱 후 컴포넌트 이름 적용에 쓰여야 됨
         // 섹션 한계층을 무시하는 속성 때문에
         path: pathValid(up),
-        origin: originClear(up),
+        origin: originClear(up)
       },
       /** 실제 상대 경로 > 공백 변형 > 재귀 탐색용 */
-      path: symbolJoin(path.path, indexValue),
+      path: symbolJoin(path.path, indexValue)
     };
   }
   return current;
@@ -274,12 +264,12 @@ export const relativeExtend = (node: BaseNode) => {
 
   if (children) {
     if (children.length === 0) delete result.children;
-    else result["children"] = children.map((node) => node.id);
+    else result['children'] = children.map((node) => node.id);
   }
 
   if (parent) {
     if (parent == null) delete result.parent;
-    else result["parent"] = parent.id;
+    else result['parent'] = parent.id;
   }
 
   return result;
@@ -296,12 +286,12 @@ export const stylesExtend = (node: BaseNode) => {
 
   if (children) {
     if (children.length === 0) delete result.children;
-    else result["children"] = children.map((node) => node.id);
+    else result['children'] = children.map((node) => node.id);
   }
 
   if (parent) {
     if (parent == null) delete result.parent;
-    else result["parent"] = parent.id;
+    else result['parent'] = parent.id;
   }
 
   return result;
@@ -340,7 +330,7 @@ export async function* getAll2(): AsyncGenerator<Pages> {
 }
 
 export const safetyParse = <T>(input: string): T[] => {
-  if (input === "") return [];
+  if (input === '') return [];
   try {
     return JSON.parse(input);
   } catch {

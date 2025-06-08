@@ -1,6 +1,6 @@
 export const safeNumberConversion = (input: string) => {
   // 입력이 문자열이 아니면 그대로 반환
-  if (typeof input !== "string") {
+  if (typeof input !== 'string') {
     return input;
   }
 
@@ -18,7 +18,7 @@ export const safeNumberConversion = (input: string) => {
 
 /** input이 숫자로 바꿨을 때 숫자면 true */
 export const typeofNumber = (input: string) => {
-  return typeof safeNumberConversion(input) === "number";
+  return typeof safeNumberConversion(input) === 'number';
 };
 
 // -_ 잡아서 스플릿해서 파스칼로
@@ -29,7 +29,7 @@ export const pascal = (text: string) =>
       return t.charAt(0).toUpperCase() + t.slice(1);
       return t;
     })
-    .join("");
+    .join('');
 
 // -_ 잡아서 스플릿해서 카멜로 수정
 export const camel = (text: string) =>
@@ -39,18 +39,17 @@ export const camel = (text: string) =>
       if (index > 0) return t.charAt(0).toUpperCase() + t.slice(1);
       return t;
     })
-    .join("");
+    .join('');
 
 /** svg-color-1 이 들어왔을 때, s */
 export const varToName = (input: string) => {
-  return input.split("-").slice(1).join("");
+  return input.split('-').slice(1).join('');
 };
 
 /** 랜덤 텍스트 */
 export function generateRandomText(length: number) {
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }

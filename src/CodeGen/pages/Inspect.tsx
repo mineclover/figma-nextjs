@@ -1,16 +1,10 @@
-import { emit, on } from "@create-figma-plugin/utilities";
-import { h } from "preact";
-import { useEffect, useState } from "preact/hooks";
-import {
-  AutoCSSData,
-  InspectFilterUpdate,
-  InspectMainData,
-  InspectOff,
-  InspectOn,
-} from "./variableHandlerType";
-import { FilterType, pathNodeType } from "../../FigmaPluginUtils";
-import { Disclosure, Checkbox, Text } from "@create-figma-plugin/ui";
-import styles from "./svg.module.css";
+import { emit, on } from '@create-figma-plugin/utilities';
+import { h } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
+import { AutoCSSData, InspectFilterUpdate, InspectMainData, InspectOff, InspectOn } from './variableHandlerType';
+import { FilterType, pathNodeType } from '../../FigmaPluginUtils';
+import { Disclosure, Checkbox, Text } from '@create-figma-plugin/ui';
+import styles from './svg.module.css';
 
 type Props = {};
 
@@ -23,21 +17,21 @@ const Inspect = (props: Props) => {
     PAGE: true,
     SECTION: true,
     COMPONENT_SET: true,
-    COMPONENT: true,
+    COMPONENT: true
   });
 
   useEffect(() => {
-    emit<InspectOn>("INSPECT_ON");
-    const listener = on<InspectMainData>("INSPECT_MAIN_DATA", (data) => {
-      console.log("아무튼 들어옴", data);
+    emit<InspectOn>('INSPECT_ON');
+    const listener = on<InspectMainData>('INSPECT_MAIN_DATA', (data) => {
+      console.log('아무튼 들어옴', data);
       setSvgData(data);
     });
 
-    emit<InspectFilterUpdate>("INSPECT_FILTER", filter);
+    emit<InspectFilterUpdate>('INSPECT_FILTER', filter);
 
     return () => {
       listener();
-      emit<InspectOff>("INSPECT_OFF");
+      emit<InspectOff>('INSPECT_OFF');
     };
   }, []);
 
@@ -49,11 +43,11 @@ const Inspect = (props: Props) => {
         setFilter((data) => {
           const newData = { ...data, [keyName]: value };
 
-          emit<InspectFilterUpdate>("INSPECT_FILTER", newData);
+          emit<InspectFilterUpdate>('INSPECT_FILTER', newData);
 
           return newData;
         });
-      },
+      }
     };
   };
 
@@ -65,11 +59,10 @@ const Inspect = (props: Props) => {
           setFilterOpen(!(filterOpen === true));
         }}
         open={filterOpen}
-        title="Naming Option"
-      >
+        title="Naming Option">
         <div className={styles.svgNameWrap}>
           {pathNodeType
-            .filter((t) => t !== "COMPONENT")
+            .filter((t) => t !== 'COMPONENT')
             .map((key, index) => {
               return (
                 <div key={key} className={styles.svgNameFilter}>
@@ -80,7 +73,7 @@ const Inspect = (props: Props) => {
                   </Checkbox>
                 </div>
               );
-            })}{" "}
+            })}{' '}
         </div>
       </Disclosure>
 

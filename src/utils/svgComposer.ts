@@ -1,10 +1,10 @@
-import JSZip from "jszip";
-import { saveAs } from "file-saver";
-import { Project, SelectList } from "../CodeGen/types";
-import { SVGResult } from "../CodeGen/main";
-import { FilterType } from "../FigmaPluginUtils";
-import { camel, varToName } from "./textTools";
-import { attrsToStyle } from "../components/FolderableCode";
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import { Project, SelectList } from '../CodeGen/types';
+import { SVGResult } from '../CodeGen/main';
+import { FilterType } from '../FigmaPluginUtils';
+import { camel, varToName } from './textTools';
+import { attrsToStyle } from '../components/FolderableCode';
 
 const IconComp = `import { CSSProperties } from "react";
 
@@ -182,14 +182,14 @@ export default Icon`;
 // 사용 예시
 
 export const svgExporter = async (
-  svgData: SVGResult["svgs"],
+  svgData: SVGResult['svgs'],
   settings: { sections: SelectList[]; filter: FilterType; project: Project },
   dev?: boolean
 ) => {
   const zipFile = new JSZip();
-  const useList = svgData.filter((item) => item.type === "use");
-  const objectList = svgData.filter((item) => item.type === "object");
-  const imageList = svgData.filter((item) => item.type === "image");
+  const useList = svgData.filter((item) => item.type === 'use');
+  const objectList = svgData.filter((item) => item.type === 'object');
+  const imageList = svgData.filter((item) => item.type === 'image');
   const useSvgList = useList.map((item) => item.raw);
 
   // .ts 파일 생성
@@ -197,15 +197,15 @@ export const svgExporter = async (
   // asset.svg 생성
   const result = `<svg xmlns="http://www.w3.org/2000/svg">
   <defs>
-    ${useSvgList.join("\n")}
+    ${useSvgList.join('\n')}
   </defs>
 </svg>`;
 
   if (dev) {
-    const devFolder = zipFile.folder("public");
-    devFolder && devFolder.file("asset.svg", result);
+    const devFolder = zipFile.folder('public');
+    devFolder && devFolder.file('asset.svg', result);
   } else {
-    zipFile.file("asset.svg", result);
+    zipFile.file('asset.svg', result);
   }
 
   // 아이콘 메타데이터 리스트 정리
@@ -214,12 +214,9 @@ export const svgExporter = async (
     attrs: item.attrs,
     node: item.node,
     type: item.type,
-    nodeInfo: item.nodeInfo,
+    nodeInfo: item.nodeInfo
   }));
-  zipFile.file(
-    Date.now() + "_settings.json",
-    JSON.stringify({ ...settings, all })
-  );
+  zipFile.file(Date.now() + '_settings.json', JSON.stringify({ ...settings, all }));
 
   // 타입 일괄 추출
 
@@ -236,23 +233,20 @@ export const svgExporter = async (
 type ObjectProps = JSX.IntrinsicElements['object']
 type ImageProps = JSX.IntrinsicElements['img']
 `;
-  tsFile += "export type SvgTypes = " + types.join(" | ") + ";\n";
+  tsFile += 'export type SvgTypes = ' + types.join(' | ') + ';\n';
 
-  tsFile += "export const useKeys = [" + useKeys.join(", ") + "] as const;";
-  tsFile += "export const imageKeys = [" + imageKeys.join(", ") + "] as const;";
-  tsFile +=
-    "export const objectKeys = [" + objectKeys.join(", ") + "] as const;";
+  tsFile += 'export const useKeys = [' + useKeys.join(', ') + '] as const;';
+  tsFile += 'export const imageKeys = [' + imageKeys.join(', ') + '] as const;';
+  tsFile += 'export const objectKeys = [' + objectKeys.join(', ') + '] as const;';
 
-  tsFile +=
-    "export type SvgPaths = SvgTypes['path']; // Svg들의 path 타입을 추출\n";
-  tsFile +=
-    "export type SvgPropsType<T extends SvgPaths> = Extract<SvgTypes, { path: T }>;\n";
+  tsFile += "export type SvgPaths = SvgTypes['path']; // Svg들의 path 타입을 추출\n";
+  tsFile += 'export type SvgPropsType<T extends SvgPaths> = Extract<SvgTypes, { path: T }>;\n';
 
   // 이미지 키 매핑용
 
-  const scale = svgData[0].pngs.map((png) => '"_' + png.scale + "x" + '"');
+  const scale = svgData[0].pngs.map((png) => '"_' + png.scale + 'x' + '"');
   // useProps 객체 추출
-  tsFile += "export const scales = [" + scale.join(", ") + "];\n";
+  tsFile += 'export const scales = [' + scale.join(', ') + '];\n';
 
   const usePropsObject = useList.reduce((pre, cur) => {
     const key = cur.name;
@@ -261,46 +255,45 @@ type ImageProps = JSX.IntrinsicElements['img']
     });
     const encode = Object.fromEntries(decode);
     return Object.assign(pre, {
-      [key]: encode,
+      [key]: encode
     });
   }, {});
 
-  tsFile +=
-    "export const usePropsObject = " + JSON.stringify(usePropsObject) + ";";
+  tsFile += 'export const usePropsObject = ' + JSON.stringify(usePropsObject) + ';';
 
   // 유틸 코드
   tsFile += IconComp;
 
   if (dev) {
-    const devFolder = zipFile.folder("src");
-    devFolder && devFolder.file("Icon.tsx", tsFile);
+    const devFolder = zipFile.folder('src');
+    devFolder && devFolder.file('Icon.tsx', tsFile);
   } else {
-    zipFile.file("Icon.tsx", tsFile);
+    zipFile.file('Icon.tsx', tsFile);
   }
 
   // image/~x{scale}.png 생성
   if (imageList.length) {
-    const imageFolder = zipFile.folder(dev ? "public/images" : "images");
+    const imageFolder = zipFile.folder(dev ? 'public/images' : 'images');
     if (imageFolder) {
       for (const svg of imageList) {
         for (const png of svg.pngs) {
-          imageFolder.file(svg.name + "_" + png.scale + "x" + ".png", png.png);
+          imageFolder.file(svg.name + '_' + png.scale + 'x' + '.png', png.png);
         }
       }
     }
   }
   // object/~.svg 생성
   if (objectList.length) {
-    const objectFolder = zipFile.folder(dev ? "public/object" : "object");
+    const objectFolder = zipFile.folder(dev ? 'public/object' : 'object');
     if (objectFolder) {
       for (const svg of objectList) {
-        objectFolder.file(svg.name + ".svg", svg.raw);
+        objectFolder.file(svg.name + '.svg', svg.raw);
       }
     }
   }
 
-  zipFile.generateAsync({ type: "blob" }).then(function callback(blob) {
-    saveAs(blob, "export.zip");
+  zipFile.generateAsync({ type: 'blob' }).then(function callback(blob) {
+    saveAs(blob, 'export.zip');
   });
 };
 
@@ -309,7 +302,7 @@ type ImageProps = JSX.IntrinsicElements['img']
 
 type SvgType =
   | {
-      path: "newFeed_Feed__View1";
+      path: 'newFeed_Feed__View1';
 
       /** #FDFDFE */
       color1: string;
@@ -317,7 +310,7 @@ type SvgType =
       percent1: number;
     }
   | {
-      path: "newFeed_Feed__View2";
+      path: 'newFeed_Feed__View2';
       /** #FDFDFE */
       color1: string;
       /** 0.1 */
@@ -326,19 +319,19 @@ type SvgType =
       color2: string;
     }
   | {
-      path: "newFeed_Feed__View3";
+      path: 'newFeed_Feed__View3';
     }
   | {
-      path: "newFeed_Feed__View4";
+      path: 'newFeed_Feed__View4';
     };
 
-type UsePath = SvgType["path"]; // Use의 path 타입을 추출
+type UsePath = SvgType['path']; // Use의 path 타입을 추출
 
 type UseType<T extends UsePath> = Extract<SvgType, { path: T }>;
 
 // 사용 예시
-const example1: UseType<"newFeed_Feed__View1"> = {
-  path: "newFeed_Feed__View1",
-  color1: "#FDFDFE",
-  percent1: 0.1,
+const example1: UseType<'newFeed_Feed__View1'> = {
+  path: 'newFeed_Feed__View1',
+  color1: '#FDFDFE',
+  percent1: 0.1
 };

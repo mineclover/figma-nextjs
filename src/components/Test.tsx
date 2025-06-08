@@ -1,15 +1,13 @@
-import { h } from "preact";
-export type SvgTypes = { path: "20vDesignSystem_Icon__Sticker_Image_Text_48" };
+import { h } from 'preact';
+export type SvgTypes = { path: '20vDesignSystem_Icon__Sticker_Image_Text_48' };
 export const useKeys = [] as const;
-export const imageKeys = [
-  "20vDesignSystem_Icon__Sticker_Image_Text_48",
-] as const;
+export const imageKeys = ['20vDesignSystem_Icon__Sticker_Image_Text_48'] as const;
 export const objectKeys = [] as const;
-export type SvgPaths = SvgTypes["path"]; // Svg들의 path 타입을 추출
+export type SvgPaths = SvgTypes['path']; // Svg들의 path 타입을 추출
 export type SvgPropsType<T extends SvgPaths> = Extract<SvgTypes, { path: T }>;
-export const scales = ["1x", "2x", "3x"];
+export const scales = ['1x', '2x', '3x'];
 export const usePropsObject = {};
-import { CSSProperties } from "react";
+import { CSSProperties } from 'react';
 
 type IconProps = {
   alt?: string;
@@ -29,15 +27,15 @@ type NullableString = string | boolean | undefined;
  */
 const clc = (...classNames: NullableString[]) => {
   return classNames
-    .filter((text): text is string => typeof text === "string")
+    .filter((text): text is string => typeof text === 'string')
     .map((txt) => txt.trim())
-    .join(" ");
+    .join(' ');
 };
 
 const fillStyles = (isFill?: boolean) => {
   if (isFill)
     return {
-      objectFit: "cover",
+      objectFit: 'cover'
     } as const;
   return {};
 };
@@ -51,8 +49,8 @@ type FilterOptions = {
   saturate?: number | string;
   sepia?: number | string;
   opacity?: number | string;
-  "drop-shadow"?: string;
-  "hue-rotate"?: string;
+  'drop-shadow'?: string;
+  'hue-rotate'?: string;
 };
 
 const filterStyle = (options?: FilterOptions) => {
@@ -61,11 +59,11 @@ const filterStyle = (options?: FilterOptions) => {
 
   const filter = Object.entries(filters)
     .map(([key, value]) => `${key}(${value})`)
-    .join(" ");
+    .join(' ');
 
   return {
     filter: filter,
-    opacity: opacity,
+    opacity: opacity
   };
 };
 
@@ -74,7 +72,7 @@ const filterStyle = (options?: FilterOptions) => {
  *
  * public/~
  */
-const objectPath = "/object/";
+const objectPath = '/object/';
 const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
   // use 랑 object 분기 처리
   // 그냥 리스트에서 이름 있는 쪽으로 분기 처리
@@ -88,7 +86,7 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
     // asset 저장 방식에 맞춰서 호출
     // 만약 코드에 인라인으로 넣게 되면 바로 # 만 쓰면 된다
     // 외부 경로에서 오는 것은 고려하지 않아도 되는게 CORS 에러 나서 외부 리소스를 SVGUSE로 쓸 수 없다
-    const assetPath = "/asset.svg#";
+    const assetPath = '/asset.svg#';
     const path = props.path as (typeof useKeys)[number];
     const src = assetPath + path;
 
@@ -102,7 +100,7 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
     for (const [pk, cssKey] of varNames) {
       //@ts-ignore
       const pkValue = props[pk];
-      varStyles["--" + cssKey] = pkValue;
+      varStyles['--' + cssKey] = pkValue;
     }
 
     return (
@@ -111,34 +109,31 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
           ...fillStyles(props.fill),
           ...filterStyle(props.options),
           ...varStyles,
-          ...props.style,
+          ...props.style
         }}
         className={clc(props.className)}
-        aria-label={alt}
-      >
+        aria-label={alt}>
         <use href={src} xlinkHref={src} />
       </svg>
     );
   }
 
   if (isImage) {
-    const imagePath = "/images/";
+    const imagePath = '/images/';
     const path = props.path as (typeof imageKeys)[number];
 
     const fullPath = imagePath + path;
-    const srcset = scales
-      .map((scale) => fullPath + scale + ".png " + scale)
-      .join(", ");
+    const srcset = scales.map((scale) => fullPath + scale + '.png ' + scale).join(', ');
 
     return (
       <img
-        src={fullPath + scales[0] + ".png"}
+        src={fullPath + scales[0] + '.png'}
         srcset={srcset}
         alt={alt}
         style={{
           ...fillStyles(props.fill),
           ...filterStyle(props.options),
-          ...props.style,
+          ...props.style
         }}
         className={clc(props.className)}
         aria-label={alt}
@@ -150,11 +145,11 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
     // Object 저장 방식에 맞춰서 처리
     const assetPath = objectPath;
     const path = props.path as (typeof objectKeys)[number];
-    const src = assetPath + path + ".svg";
+    const src = assetPath + path + '.svg';
 
     return (
       <object
-        type={"image/svg+xml"}
+        type={'image/svg+xml'}
         data={src}
         aria-label={alt}
         className={clc(props.className)}
@@ -162,10 +157,9 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
         style={{
           ...fillStyles(props.fill),
           ...filterStyle(props.options),
-          pointerEvents: "none",
-          ...props.style,
-        }}
-      ></object>
+          pointerEvents: 'none',
+          ...props.style
+        }}></object>
     );
   }
 

@@ -1,7 +1,7 @@
-import { JSX } from "react";
-import { ExtractProps, Prettify } from "./utilType";
-import { extendsComponent, AtomMap, tagMap } from "./functions";
-import { ComponentChild } from "preact";
+import { JSX } from 'react';
+import { ExtractProps, Prettify } from './utilType';
+import { extendsComponent, AtomMap, tagMap } from './functions';
+import { ComponentChild } from 'preact';
 
 export type HTMLTags = Prettify<keyof JSX.IntrinsicElements>;
 export type ExtendsTagNames = keyof extendsComponent;

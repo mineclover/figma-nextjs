@@ -1,15 +1,6 @@
-import {
-  Bold,
-  Columns,
-  Disclosure,
-  IconAdjust32,
-  IconButton,
-  Muted,
-  Stack,
-  Textbox,
-} from "@create-figma-plugin/ui";
-import { h } from "preact";
-import { useState } from "preact/hooks";
+import { Bold, Columns, Disclosure, IconAdjust32, IconButton, Muted, Stack, Textbox } from '@create-figma-plugin/ui';
+import { h } from 'preact';
+import { useState } from 'preact/hooks';
 
 type Props = {};
 
@@ -37,7 +28,7 @@ type PathOptions = {
 
 const Header = (props: Props) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [value, setValue] = useState<string>("Text");
+  const [value, setValue] = useState<string>('Text');
   function handleValueInput(newValue: string) {
     console.log(newValue);
     setValue(newValue);
@@ -45,11 +36,7 @@ const Header = (props: Props) => {
   return (
     <div>
       <div>
-        <Disclosure
-          onClick={(e) => setOpen((state) => !state)}
-          open={open}
-          title="Path Setting"
-        >
+        <Disclosure onClick={(e) => setOpen((state) => !state)} open={open} title="Path Setting">
           <Stack space="extraSmall">
             <Columns>
               <Muted>Asset Path : </Muted>
@@ -64,11 +51,7 @@ const Header = (props: Props) => {
       </div>
 
       <div>
-        <Textbox
-          onValueInput={handleValueInput}
-          value={value}
-          variant="underline"
-        />
+        <Textbox onValueInput={handleValueInput} value={value} variant="underline" />
       </div>
     </div>
   );

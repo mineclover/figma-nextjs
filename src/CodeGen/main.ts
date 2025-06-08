@@ -1,12 +1,6 @@
-import {
-  once,
-  on,
-  showUI,
-  emit,
-  convertRgbColorToHexColor,
-} from "@create-figma-plugin/utilities";
+import { once, on, showUI, emit, convertRgbColorToHexColor } from '@create-figma-plugin/utilities';
 
-import { toSingleSvg, toSvg } from "../utils/toSvg";
+import { toSingleSvg, toSvg } from '../utils/toSvg';
 import {
   ScanHandler,
   SectionSelectUiRequestHandler,
@@ -21,25 +15,19 @@ import {
   ProjectMainHandler,
   ResizeWindowHandler,
   SelectNodeSetNameHandler,
-  EndSignalHandler,
-} from "./types";
-import {
-  FileMetaSearch,
-  FilePathSearch,
-  FilterType,
-  FilterTypeIndex,
-  findMainComponent,
-} from "../FigmaPluginUtils";
-import { LLog } from "../utils/console";
+  EndSignalHandler
+} from './types';
+import { FileMetaSearch, FilePathSearch, FilterType, FilterTypeIndex, findMainComponent } from '../FigmaPluginUtils';
+import { LLog } from '../utils/console';
 import {
   InspectFilterUpdate,
   InspectMainData,
   InspectOff,
   InspectOn,
   VariableGetRequestHandler,
-  VariableGetResponseHandler,
-} from "./pages/variableHandlerType";
-import { typeofNumber } from "../utils/textTools";
+  VariableGetResponseHandler
+} from './pages/variableHandlerType';
+import { typeofNumber } from '../utils/textTools';
 import {
   ErrorTokensValue,
   TokenValue,
@@ -53,12 +41,12 @@ import {
   toNodeName,
   toStyleName,
   VID,
-  toTokenId,
-} from "./variableMain";
-import { base64TokenEncode, hexToBase64 } from "../utils/data";
-import { colorTo255Object, paintCheck, rgbaToHex } from "../utils/gradient";
+  toTokenId
+} from './variableMain';
+import { base64TokenEncode, hexToBase64 } from '../utils/data';
+import { colorTo255Object, paintCheck, rgbaToHex } from '../utils/gradient';
 
-import { safetyParse } from "../utils/JsonParse";
+import { safetyParse } from '../utils/JsonParse';
 
 /** 값을 고유하다고 가정하고 찾아진 하나만  */
 const findOne = <T extends Object>(arr: T[], fn: (item: T) => boolean) => {
@@ -68,23 +56,14 @@ const findOne = <T extends Object>(arr: T[], fn: (item: T) => boolean) => {
 };
 
 /** 하위 객체 탐색 필요 대상 */
-const area = ["SECTION", "COMPONENT_SET"];
-const areaInclude = (
-  node: SceneNode
-): node is SectionNode | ComponentSetNode => {
+const area = ['SECTION', 'COMPONENT_SET'];
+const areaInclude = (node: SceneNode): node is SectionNode | ComponentSetNode => {
   return area.includes(node.type);
 };
 
 /** 그 자체가 svg화 되야하는 대상 */
 /** TODO: 이미지 리소스 대응 추가 필요  : RECTANGLE  */
-const single = [
-  "FRAME",
-  "INSTANCE",
-  "GROUP",
-  "COMPONENT",
-  "RECTANGLE",
-  "VECTOR",
-];
+const single = ['FRAME', 'INSTANCE', 'GROUP', 'COMPONENT', 'RECTANGLE', 'VECTOR'];
 
 export type NodeInfo = {
   pageId: string;
@@ -97,18 +76,18 @@ export type NodeInfo = {
 const responseNode = (target: SceneNode) => {
   const docs = FileMetaSearch(target);
   if (docs) {
-    return emit<FigmaSelectMainResponseHandler>("SECTION_SELECT_UI_RESPONSE", {
+    return emit<FigmaSelectMainResponseHandler>('SECTION_SELECT_UI_RESPONSE', {
       id: target.id,
       name: target.name,
       pageId: docs.page.id,
-      pageName: docs.page.name,
+      pageName: docs.page.name
     });
   } else {
-    return emit<FigmaSelectMainResponseHandler>("SECTION_SELECT_UI_RESPONSE", {
+    return emit<FigmaSelectMainResponseHandler>('SECTION_SELECT_UI_RESPONSE', {
       id: target.id,
       name: target.name,
-      pageId: "",
-      pageName: "",
+      pageId: '',
+      pageName: ''
     });
   }
 };
@@ -123,33 +102,30 @@ export type SVGResult = {
     alias: boolean;
     node: SceneNode;
     nodeInfo: NodeInfo;
-    type: "use" | "object" | "image" | string;
-    attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
-    raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
-    origin: Awaited<ReturnType<typeof toSingleSvg>>["origin"];
+    type: 'use' | 'object' | 'image' | string;
+    attrs: Awaited<ReturnType<typeof toSingleSvg>>['attrs'];
+    raw: Awaited<ReturnType<typeof toSingleSvg>>['raw'];
+    origin: Awaited<ReturnType<typeof toSingleSvg>>['origin'];
     pngs: { scale: number; png: Uint8Array }[];
   }[];
 };
 
 export default function () {
-  if (["dev", "figma"].includes(figma.editorType)) {
+  if (['dev', 'figma'].includes(figma.editorType)) {
     const globalFilter = {} as FilterType;
 
-    on<ResizeWindowHandler>(
-      "RESIZE_WINDOW",
-      function (windowSize: { width: number; height: number }) {
-        const { width, height } = windowSize;
-        figma.ui.resize(width, height);
-      }
-    );
+    on<ResizeWindowHandler>('RESIZE_WINDOW', function (windowSize: { width: number; height: number }) {
+      const { width, height } = windowSize;
+      figma.ui.resize(width, height);
+    });
 
     // SVG
     // #region
-    on<SectionSelectUiRequestHandler>("SECTION_SELECT_UI_REQUEST", async () => {
+    on<SectionSelectUiRequestHandler>('SECTION_SELECT_UI_REQUEST', async () => {
       const current = figma.currentPage.selection;
 
       if (current.length <= 0) {
-        return figma.notify("선택된 노드가 없습니다");
+        return figma.notify('선택된 노드가 없습니다');
       }
 
       // 하위에 그룹이 있으면 문제가 되는거지 프레임이 그룹이면 문제는 없음
@@ -158,14 +134,12 @@ export default function () {
       if ([...area, ...single].includes(current[0].type)) {
         const target = current[0] as SectionNode;
 
-        if (current[0].type === "INSTANCE") {
+        if (current[0].type === 'INSTANCE') {
           const mainComponent = await findMainComponent(current[0]);
           if (mainComponent) {
             if (mainComponent.remote) {
               responseNode(current[0]);
-              figma.notify(
-                "이 인스턴스의 메인 컴포넌트는 현재 프로젝트 외부 라이브러리입니다. 문서화 시 찾기 어려움"
-              );
+              figma.notify('이 인스턴스의 메인 컴포넌트는 현재 프로젝트 외부 라이브러리입니다. 문서화 시 찾기 어려움');
             } else {
               // 메인 컴포넌트인데 remote가 아닐 경우 조회 하는데 page가 다르면 데이터를 읽지 못하나?
               // table, memory 모두 리부팅 하면 해결 되긴 함
@@ -178,78 +152,64 @@ export default function () {
       }
     });
 
-    on<SelectNodeByIdZoomHandler>(
-      "SELECT_NODE_BY_ID_ZOOM",
-      async (nodeId, pageId) => {
-        const page = figma.root.findChild(
-          (node) => node.id === pageId && node.type === "PAGE"
-        ) as PageNode | null;
+    on<SelectNodeByIdZoomHandler>('SELECT_NODE_BY_ID_ZOOM', async (nodeId, pageId) => {
+      const page = figma.root.findChild((node) => node.id === pageId && node.type === 'PAGE') as PageNode | null;
 
-        if (!page) {
-          return;
-        }
-        //
-
-        // 테스트
-        // const time = new Date().getTime();
-        // 페이지 이동 시켜줘야 줌이 됨
-        await figma.setCurrentPageAsync(page);
-        // 현재 페이지를 찾은 페이지로 설정
-        // figma 내에서 노드 찾기
-        const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode;
-        // const node = page.findOne((n) => n.id === nodeId);
-
-        if (node) {
-          // 노드로 화면 줌
-          figma.currentPage.selection = [node];
-          figma.viewport.scrollAndZoomIntoView([node]);
-          // figma.notify(`${page.name}  /  ${node.name}`);
-          // const time2 = new Date().getTime();
-          // LLog("svg",time2 - time);
-        }
+      if (!page) {
+        return;
       }
-    );
+      //
 
-    on<SelectNodeSetNameHandler>(
-      "SELECT_NODE_SET_NAME",
-      async (nodeId, pageId, name, TransactionID) => {
-        const page = figma.root.findChild(
-          (node) => node.id === pageId && node.type === "PAGE"
-        ) as PageNode | null;
+      // 테스트
+      // const time = new Date().getTime();
+      // 페이지 이동 시켜줘야 줌이 됨
+      await figma.setCurrentPageAsync(page);
+      // 현재 페이지를 찾은 페이지로 설정
+      // figma 내에서 노드 찾기
+      const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode;
+      // const node = page.findOne((n) => n.id === nodeId);
 
-        if (!page) {
-          return;
-        }
-        //
-
-        // 테스트
-        // const time = new Date().getTime();
-        // 페이지 이동 시켜줘야 줌이 됨
-        await figma.setCurrentPageAsync(page);
-        // 현재 페이지를 찾은 페이지로 설정
-        // figma 내에서 노드 찾기
-        const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode;
-        node.setPluginData("name", name);
-
-        emit<EndSignalHandler>(TransactionID);
+      if (node) {
+        // 노드로 화면 줌
+        figma.currentPage.selection = [node];
+        figma.viewport.scrollAndZoomIntoView([node]);
+        // figma.notify(`${page.name}  /  ${node.name}`);
+        // const time2 = new Date().getTime();
+        // LLog("svg",time2 - time);
       }
-    );
+    });
+
+    on<SelectNodeSetNameHandler>('SELECT_NODE_SET_NAME', async (nodeId, pageId, name, TransactionID) => {
+      const page = figma.root.findChild((node) => node.id === pageId && node.type === 'PAGE') as PageNode | null;
+
+      if (!page) {
+        return;
+      }
+      //
+
+      // 테스트
+      // const time = new Date().getTime();
+      // 페이지 이동 시켜줘야 줌이 됨
+      await figma.setCurrentPageAsync(page);
+      // 현재 페이지를 찾은 페이지로 설정
+      // figma 내에서 노드 찾기
+      const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode;
+      node.setPluginData('name', name);
+
+      emit<EndSignalHandler>(TransactionID);
+    });
 
     on<SectionSelectSvgUiRequestHandler>(
-      "SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
+      'SECTION_SELECT_SVG_UI_GENERATE_REQUEST',
       async (sections, filter) => {
         const nodes: SceneNode[] = []; // 노드를 저장할 배열 추가
         const pageIdMap = {} as Record<string, NodeInfo>;
 
-        const addPageMap = (
-          node: SceneNode,
-          pageId: string,
-          nodeId: string
-        ) => {
+        const addPageMap = (node: SceneNode, pageId: string, nodeId: string) => {
           nodes.push(node);
           pageIdMap[node.id] = {
             pageId: pageId,
-            seleteNodeId: nodeId,
+            seleteNodeId: nodeId
           };
         };
         /**
@@ -259,9 +219,7 @@ export default function () {
           // for...of 루프 사용
           const { pageId, id } = section;
 
-          const page = figma.root.findChild(
-            (node) => node.id === pageId && node.type === "PAGE"
-          ) as PageNode | null;
+          const page = figma.root.findChild((node) => node.id === pageId && node.type === 'PAGE') as PageNode | null;
 
           if (!page) {
             continue; // 다음 섹션으로 넘어감
@@ -301,7 +259,7 @@ export default function () {
         // nodes 배열을 사용하여 후속 작업 수행
         // 각 노드 > svg 대상
 
-        const svgs = [] as SVGResult["svgs"];
+        const svgs = [] as SVGResult['svgs'];
         /** 노드 순회하면서 svg 생성한다 컬러 프로퍼티 svg를 생성함 */
         for (const node of nodes) {
           // 패스 작업
@@ -319,15 +277,15 @@ export default function () {
           // LLog("svg","dom:", svgDom);
 
           const scales = [2];
-          const pngs = [] as SVGResult["svgs"][number]["pngs"];
+          const pngs = [] as SVGResult['svgs'][number]['pngs'];
           for (const scale of scales) {
             const png = await node.exportAsync({
-              format: "PNG",
-              constraint: { type: "SCALE", value: scale },
+              format: 'PNG',
+              constraint: { type: 'SCALE', value: scale }
             });
             pngs.push({
               scale,
-              png,
+              png
             });
           }
 
@@ -337,7 +295,7 @@ export default function () {
             alias,
             nodeInfo: pageIdMap[node.id],
             ...svg,
-            pngs,
+            pngs
           });
           // 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
 
@@ -348,10 +306,7 @@ export default function () {
 
         /** SVG react 버전 생성 */
 
-        emit<SectionSelectSvgMainResponseHandler>(
-          "SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE",
-          svgs
-        );
+        emit<SectionSelectSvgMainResponseHandler>('SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE', svgs);
       }
 
       // Object.assign(svgResult, { settings: input, svgs });
@@ -359,36 +314,35 @@ export default function () {
       // svg export
     );
 
-    on<ProjectUIHandler>("PROJECT_INFO_UI_RESPONSE", async function async() {
+    on<ProjectUIHandler>('PROJECT_INFO_UI_RESPONSE', async function async() {
       const project = {
         fileKey: figma.fileKey,
-        projectName: figma.root.name,
+        projectName: figma.root.name
       };
 
-      emit<ProjectMainHandler>("PROJECT_INFO_MAIN_RESPONSE", project);
+      emit<ProjectMainHandler>('PROJECT_INFO_MAIN_RESPONSE', project);
     });
 
-    on<MessageHandler>("POST_MESSAGE", function (text: string) {
+    on<MessageHandler>('POST_MESSAGE', function (text: string) {
       const NotificationHandler = figma.notify(text, {
         timeout: 200,
         button: {
-          text: "x",
+          text: 'x',
           action: () => {
             NotificationHandler.cancel();
-          },
-        },
+          }
+        }
       });
     });
     // #endregion
 
     // Variables
     // #region
-    on<VariableGetRequestHandler>("VARIABLE_GET_REQUEST", async function () {
+    on<VariableGetRequestHandler>('VARIABLE_GET_REQUEST', async function () {
       const remoteParent = {
-        name: "figma_remote_parent",
+        name: 'figma_remote_parent'
       };
-      const collectionsList1 =
-        await figma.variables.getLocalVariableCollectionsAsync();
+      const collectionsList1 = await figma.variables.getLocalVariableCollectionsAsync();
       const localVariablesList = await figma.variables.getLocalVariablesAsync();
       // 아직 문서화되지 않은 api
 
@@ -420,33 +374,30 @@ export default function () {
 
         const paintStyles = paints
           .filter((paint) => {
-            if (typeof paint.visible === "undefined")
-              console.log("visible 없는 Paint", paint);
+            if (typeof paint.visible === 'undefined') console.log('visible 없는 Paint', paint);
             return paint.visible;
           })
-          .map((paint, index, origin) =>
-            paintCheck(paint, index === origin.length - 1)
-          )
+          .map((paint, index, origin) => paintCheck(paint, index === origin.length - 1))
           .reduce(
             (prev, cur) => {
               const next = {
                 background: [...prev.background, cur.background],
-                blend: [...prev.blend, cur.blend.toLowerCase()],
+                blend: [...prev.blend, cur.blend.toLowerCase()]
               };
 
               return next;
             },
             {
               background: [] as string[],
-              blend: [] as string[],
+              blend: [] as string[]
             }
           );
 
         const { background, blend } = paintStyles;
 
         return {
-          backgroundImage: background.join(", "),
-          backgroundBlendMode: blend.join(", "),
+          backgroundImage: background.join(', '),
+          backgroundBlendMode: blend.join(', ')
         };
       };
 
@@ -457,14 +408,11 @@ export default function () {
        * @param modeName
        * @returns
        */
-      const getStyleValue = async (
-        vari: Variable,
-        modeName: string
-      ): Promise<TokenValue> => {
+      const getStyleValue = async (vari: Variable, modeName: string): Promise<TokenValue> => {
         const value = vari.valuesByMode[modeName];
         if (value == null) {
-          LLog("svg", "Error check", vari, modeName, value);
-          return "ERROR";
+          LLog('svg', 'Error check', vari, modeName, value);
+          return 'ERROR';
         }
 
         if (getIsVariable(value)) {
@@ -481,15 +429,11 @@ export default function () {
           } else if (value.type) {
             // 있으면 찾고 없으면 가져와서 넣어라
 
-            const nextRemoteValue = await figma.variables.getVariableByIdAsync(
-              value.id
-            );
-            return nextRemoteValue
-              ? nextRemoteValue
-              : "권한이 없거나 변수에 문제가 있음";
+            const nextRemoteValue = await figma.variables.getVariableByIdAsync(value.id);
+            return nextRemoteValue ? nextRemoteValue : '권한이 없거나 변수에 문제가 있음';
           }
 
-          return "분기 처리 실패 ERROR";
+          return '분기 처리 실패 ERROR';
         }
         return value;
       };
@@ -533,9 +477,9 @@ export default function () {
         const modeName = mode.name
           .toUpperCase()
           .trim()
-          .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
-          .replace(/:/g, "__")
-          .replace(/ /g, "_");
+          .replace(/[^a-zA-Z0-9_: \-\/]/g, '')
+          .replace(/:/g, '__')
+          .replace(/ /g, '_');
         // console.log(variable, "name::", toStyleName(variable));
 
         // 생성된 스타일 이름과 모드를 포함해서 데이터를 읽고 저장하는 코드가 필요함
@@ -573,12 +517,12 @@ export default function () {
             globalName[styleName].push(variable);
 
             if (globalName[styleName].length > 1) {
-              LLog("debug", "겹침 :", variable);
+              LLog('debug', '겹침 :', variable);
             }
           }
 
           /** scss 이름에 해당 실제 벨류 매핑 > var 토큰이 값을 구성할 수 있게 함 */
-          scssModeStyles[modeName][styleName] = "$" + tokenName;
+          scssModeStyles[modeName][styleName] = '$' + tokenName;
 
           // 이름이 중첩되기 때문에 이전 값이 있으면 중첩될거임
         } else if (length === 1) {
@@ -588,46 +532,31 @@ export default function () {
           globalName[styleName].push(variable);
 
           if (globalName[styleName].length > 1) {
-            LLog("debug", "겹침 :", variable);
+            LLog('debug', '겹침 :', variable);
           }
-          defaultScssStyles[styleName] = "$" + tokenName;
+          defaultScssStyles[styleName] = '$' + tokenName;
         }
 
         // 공통 로직
         // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
         // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
         // ${스타일}: var(--{스타일}, ${token});
-        if (scssVariableStyles["$" + styleName] == null)
-          scssVariableStyles["$" + styleName] = getVarName(
-            styleName,
-            tokenName
-          );
+        if (scssVariableStyles['$' + styleName] == null)
+          scssVariableStyles['$' + styleName] = getVarName(styleName, tokenName);
       };
 
       for (const variable of variablesList1) {
         const variableCollectionId = variable.variableCollectionId;
-        const parent = findOne(
-          collectionsList1,
-          (item) => item.id === variableCollectionId
-        );
+        const parent = findOne(collectionsList1, (item) => item.id === variableCollectionId);
         /** 생성 코드  */
 
         // 일단 콜렉션은 로컬에만 존재함
         if (parent) {
           const modes = parent.modes;
-          const parentCollection = findOne(
-            collectionsList1,
-            (item) => item.id === variable.variableCollectionId
-          );
+          const parentCollection = findOne(collectionsList1, (item) => item.id === variable.variableCollectionId);
           if (parentCollection == null)
-            return console.log(
-              "parent 로 검증되는 값이라 필요 없는데 타입 때문에 넣은 코드라서 나오면 문제 있음"
-            );
-          const styleName = toStyleName(
-            variable,
-            parentCollection,
-            errorTokens
-          );
+            return console.log('parent 로 검증되는 값이라 필요 없는데 타입 때문에 넣은 코드라서 나오면 문제 있음');
+          const styleName = toStyleName(variable, parentCollection, errorTokens);
 
           // 모드에 데이터를 넣는다
 
@@ -640,10 +569,10 @@ export default function () {
         } else {
           // remote variable 체크 코드
           // css process써야해서 넣었음
-          if (variable.resolvedType === "COLOR") {
+          if (variable.resolvedType === 'COLOR') {
             const mode = {
               modeId: Object.keys(variable.valuesByMode)[0],
-              name: "If you find this letter, report it",
+              name: 'If you find this letter, report it'
             };
 
             const styleName = toStyleName(variable, remoteParent, errorTokens);
@@ -660,23 +589,12 @@ export default function () {
       // variable 처리
 
       const isVariable = (variab: TokenValue): variab is Variable => {
-        if (
-          typeof variab === "object" &&
-          "id" in variab &&
-          variab.id.startsWith(VID)
-        )
-          return true;
+        if (typeof variab === 'object' && 'id' in variab && variab.id.startsWith(VID)) return true;
         return false;
       };
 
       const isRGB = (variab: TokenValue): variab is RGB | RGBA => {
-        if (
-          typeof variab === "object" &&
-          "r" in variab &&
-          "g" in variab &&
-          "b" in variab
-        )
-          return true;
+        if (typeof variab === 'object' && 'r' in variab && 'g' in variab && 'b' in variab) return true;
         return false;
       };
 
@@ -694,8 +612,8 @@ export default function () {
       // 일단 그라디언트는 필요하긴 해
 
       const paintProcess = async (styleName: string, paint: PaintStyle) => {
-        const modeId = "stylePaint";
-        const modeName = "stylePaintName";
+        const modeId = 'stylePaint';
+        const modeName = 'stylePaintName';
 
         // console.log(variable, "name::", toStyleName(variable));
 
@@ -738,21 +656,21 @@ export default function () {
         if (globalName[styleName] == null) globalName[styleName] = [];
         globalName[styleName].push(paint);
         if (globalName[styleName].length > 1) {
-          LLog("debug", "겹침 :", paint);
+          LLog('debug', '겹침 :', paint);
         }
-        defaultScssStyles[styleName] = "$" + tokenName;
+        defaultScssStyles[styleName] = '$' + tokenName;
         // 공통 로직
         // 3. 이름으로 토큰 선언해서 실질적으로 시스템으로써 쓸 수 있게 해주는 구간
         // var에 쓰는 이름이랑 scss이름이랑 실질적으로 같은게 맞다
         // ${스타일}: var(--{스타일}, ${token});
-        scssVariableStyles["$" + styleName] = getVarName(styleName, tokenName);
+        scssVariableStyles['$' + styleName] = getVarName(styleName, tokenName);
       };
 
       const getPaintStyleName = (paint: PaintStyle) => {
         const styleName = toStyleName(
           {
             name: paint.name,
-            resolvedType: "STYLE_COLOR",
+            resolvedType: 'STYLE_COLOR'
           },
           remoteParent,
           errorTokens
@@ -794,9 +712,9 @@ export default function () {
         // 어떻게 처리할 지 생각해야할 듯
 
         // string이 가능하게 바뀌었으므로 제거함
-        const arr = ["number", "boolean"];
+        const arr = ['number', 'boolean'];
         if (arr.includes(typeof value)) {
-          console.log("나오면 에러임", value);
+          console.log('나오면 에러임', value);
         }
 
         // variable 여부 판단 > variable일 때의 로직
@@ -807,20 +725,13 @@ export default function () {
 
           if (value.remote) {
             // asdf 가능
-            LLog("dubug", [key, value]);
+            LLog('dubug', [key, value]);
           }
 
           const localParentCollection =
-            findOne(
-              collectionsList1,
-              (item) => item.id === value.variableCollectionId
-            ) ?? remoteParent;
+            findOne(collectionsList1, (item) => item.id === value.variableCollectionId) ?? remoteParent;
 
-          const styleName = toStyleName(
-            value,
-            localParentCollection,
-            errorTokens
-          );
+          const styleName = toStyleName(value, localParentCollection, errorTokens);
 
           // var(이름, 그 값의 원본은?)
 
@@ -829,9 +740,9 @@ export default function () {
           // 일단 무한루프는 피그마에서 막혀있음
           // 모드에 의한 분기를 처리하지 못하기 때문에
 
-          return [key, "var(--" + styleName + ")"];
+          return [key, 'var(--' + styleName + ')'];
         } else if (isRGB(value)) {
-          return [key, "#" + rgbaToHex(colorTo255Object(value))];
+          return [key, '#' + rgbaToHex(colorTo255Object(value))];
         }
         // 나머지
         return [key, value];
@@ -845,20 +756,20 @@ export default function () {
       // 모드 선언
       // 모드 설정 없는 기본 값 선언
       LLog(
-        "svg",
-        "designTokens:",
+        'svg',
+        'designTokens:',
         designTokens,
-        "scssModeStyles:",
+        'scssModeStyles:',
         scssModeStyles,
-        "defaultScssStyles",
+        'defaultScssStyles',
         defaultScssStyles
       );
 
       //  scss 에서 css 만들 때 쓰는 토큰
       // 그리고 그걸 사용할 수 있으면서 별칭으로 정의되있는 scss
-      LLog("svg", "scssVariableStyles:", scssVariableStyles);
+      LLog('svg', 'scssVariableStyles:', scssVariableStyles);
       // 에러 토큰
-      LLog("svg", "errorTokens:", errorTokens);
+      LLog('svg', 'errorTokens:', errorTokens);
       const sameNames = Object.entries(globalName)
         .filter(([key, value]) => value.length >= 2)
         .map(([key, variables]) => {
@@ -868,31 +779,27 @@ export default function () {
             const collection = findOne(collectionsList1, (item) => {
               return item.id === (vari as Variable).variableCollectionId;
             });
-            const isPaint = "type" in vari && vari.type === "PAINT";
-            const parentName = isPaint
-              ? "Local Style Paint"
-              : (collection?.name ?? "error");
+            const isPaint = 'type' in vari && vari.type === 'PAINT';
+            const parentName = isPaint ? 'Local Style Paint' : (collection?.name ?? 'error');
             return {
               collectionName: parentName,
               // variableName: '변수 이름'
-              variableName: vari.name,
+              variableName: vari.name
             } as SameNameVariableInfo;
           });
           return [key, collections] as const;
         });
 
-      const sameNamesObject = Object.fromEntries(
-        sameNames
-      ) as ErrorTokenData["sameNamesObject"];
+      const sameNamesObject = Object.fromEntries(sameNames) as ErrorTokenData['sameNamesObject'];
 
-      emit<VariableGetResponseHandler>("VARIABLE_GET_RESPONSE", {
+      emit<VariableGetResponseHandler>('VARIABLE_GET_RESPONSE', {
         designTokens,
         scssModeStyles,
         defaultScssStyles,
         scssVariableStyles,
         // 에러를 따로 구분해야하나?
         errorTokens,
-        sameNamesObject,
+        sameNamesObject
       });
     });
     // #endregion
@@ -904,44 +811,41 @@ export default function () {
 
         // target.setPluginData("hello", "world");
 
-        const { resultName: nodeName, alias } = toNodeName(
-          target,
-          globalFilter
-        );
+        const { resultName: nodeName, alias } = toNodeName(target, globalFilter);
         // width , height
 
         const css = await target.getCSSAsync();
 
-        emit<InspectMainData>("INSPECT_MAIN_DATA", {
+        emit<InspectMainData>('INSPECT_MAIN_DATA', {
           nodeName,
           alias,
           css,
           width: target.width,
-          height: target.height,
+          height: target.height
         });
       }
     };
     // Variables
     // #region
-    on<InspectOn>("INSPECT_ON", () => {
-      figma.on("selectionchange", InspectFunction);
+    on<InspectOn>('INSPECT_ON', () => {
+      figma.on('selectionchange', InspectFunction);
     });
 
-    on<InspectFilterUpdate>("INSPECT_FILTER", (data) => {
+    on<InspectFilterUpdate>('INSPECT_FILTER', (data) => {
       Object.assign(globalFilter, data);
       InspectFunction();
     });
 
     //이게 여러번 실행해도 끌 수 있는가
-    on<InspectOff>("INSPECT_OFF", () => {
-      figma.off("selectionchange", InspectFunction);
+    on<InspectOff>('INSPECT_OFF', () => {
+      figma.off('selectionchange', InspectFunction);
     });
 
     //#endregion
 
     showUI({
       width: 300,
-      height: 800,
+      height: 800
     });
   }
   // 코드 제너레이터 코드를 넣을 수 있음

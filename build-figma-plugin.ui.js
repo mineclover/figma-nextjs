@@ -4,5 +4,5 @@ module.exports = function (buildOptions) {
     define: {
       global: 'window'
     }
-  }
-}
+  };
+};

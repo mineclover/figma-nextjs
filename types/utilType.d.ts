@@ -8,10 +8,7 @@ export type Prettify<T> = {
  * type JSX_A = FirstParameter<(a:string)=>void>
 
  *  */
-export type FirstParameter<T extends (...args: any) => any> = T extends (
-  first: infer P,
-  ...args: any
-) => any
+export type FirstParameter<T extends (...args: any) => any> = T extends (first: infer P, ...args: any) => any
   ? P
   : never;
 
@@ -35,35 +32,24 @@ const JSXGroups = {
 type JSX_A = ExtractProps<typeof JSXGroups, "a">;
 * type Props를 추론함
  *  */
-export type ExtractProps<T, K extends keyof T> = T[K] extends (
-  props: infer P
-) => any
-  ? P
-  : never;
+export type ExtractProps<T, K extends keyof T> = T[K] extends (props: infer P) => any ? P : never;
 
 /**
  * object로 감싸지 않고 그냥 JSX 해싱
  * type JSX_B = SingleExtractProps<(typeof JSXGroups)["a"]>;
  * >> type Props 를 추론함
  */
-export type SingleExtractProps<T> = T extends (props: infer P) => any
-  ? P
-  : never;
+export type SingleExtractProps<T> = T extends (props: infer P) => any ? P : never;
 
 // 가장 컴포넌트의 첫번째 파라미터인(props)를 추출
 export type ExtractComponentTypeProps<T> =
-  T extends React.ComponentType<infer P>
-    ? P
-    : T extends (...args: any[]) => any
-      ? Parameters<T>[0]
-      : never;
+  T extends React.ComponentType<infer P> ? P : T extends (...args: any[]) => any ? Parameters<T>[0] : never;
 
 /**
  * 리엑트 컴포넌트의 props에서 K 타입을 NonNullable로 추출
  * event: Parameters<NonNullableComponentTypeExtractProps<typeof Tabs, "onChange">>[0]
  * event: Parameters<NonNullable<JSX.IntrinsicElements['input']['onChange']>>[0]
  */
-export type NonNullableComponentTypeExtract<
-  T,
-  K extends keyof ExtractComponentTypeProps<T>
-> = NonNullable<ExtractComponentTypeProps<T>[K]>;
+export type NonNullableComponentTypeExtract<T, K extends keyof ExtractComponentTypeProps<T>> = NonNullable<
+  ExtractComponentTypeProps<T>[K]
+>;

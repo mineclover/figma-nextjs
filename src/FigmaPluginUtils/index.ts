@@ -12,15 +12,15 @@ export const FileMetaSearch = (
   const parent = node.parent;
 
   if (parent != null) {
-    if (parent.type === "PAGE") {
+    if (parent.type === 'PAGE') {
       const name = parent;
       return FileMetaSearch(parent, name);
     } else {
       return FileMetaSearch(parent, page, document);
     }
-  } else if (node.type === "DOCUMENT") {
+  } else if (node.type === 'DOCUMENT') {
     const name = node;
-    if (!page) throw Error("DOCUMENT is null");
+    if (!page) throw Error('DOCUMENT is null');
     return { page, document: name };
   }
   return undefined;
@@ -32,24 +32,21 @@ export const FileMetaSearch = (
  * @param section
  * @returns
  */
-export const FilePathSearch = (
-  node: BaseNode,
-  pathNode: PathNodeinfo[] = []
-): PathNodeinfo[] => {
+export const FilePathSearch = (node: BaseNode, pathNode: PathNodeinfo[] = []): PathNodeinfo[] => {
   const parent = node.parent;
 
   if (parent != null) {
-    if (pathNodeType.includes(parent.type as PathNodeinfo["type"])) {
+    if (pathNodeType.includes(parent.type as PathNodeinfo['type'])) {
       // 맞으면 추가
       pathNode.push({
-        type: parent.type as PathNodeinfo["type"],
-        name: parent.name,
+        type: parent.type as PathNodeinfo['type'],
+        name: parent.name
       });
       /**
        * 저장 다했으니 순회 종료
        * 텍스트 순서 맞춰주는 목적으로 reverse 함
        */
-      if (parent.type === "DOCUMENT") return pathNode.reverse();
+      if (parent.type === 'DOCUMENT') return pathNode.reverse();
       return FilePathSearch(parent, pathNode);
     } else {
       // 아니면 그냥 진행
@@ -60,8 +57,8 @@ export const FilePathSearch = (
   return pathNode;
 };
 
-import { Prettify } from "../../types/utilType";
-import { FigmaNodeType, FigmaNodeTypeMapping } from "./FigmaNodes";
+import { Prettify } from '../../types/utilType';
+import { FigmaNodeType, FigmaNodeTypeMapping } from './FigmaNodes';
 
 export const notify = (message: string, closeLabel: string, timeout = 2000) => {
   const NotificationHandler = figma.notify(message, {
@@ -70,8 +67,8 @@ export const notify = (message: string, closeLabel: string, timeout = 2000) => {
       text: closeLabel,
       action: () => {
         NotificationHandler.cancel();
-      },
-    },
+      }
+    }
   });
 };
 
@@ -86,7 +83,7 @@ export const figmaProgress = (name: string, reset?: boolean) => {
 
 /** 인스턴스의 컴포넌트를 반환 */
 export async function findMainComponent(instance: InstanceNode) {
-  while (instance.type === "INSTANCE") {
+  while (instance.type === 'INSTANCE') {
     const main = await instance.getMainComponentAsync();
     if (main) {
       return main;
@@ -97,8 +94,7 @@ export async function findMainComponent(instance: InstanceNode) {
 
 type 참조 = Prettify<BaseNodeMixin>;
 
-export interface RecursiveFigmaNode<T extends BaseNode["type"]>
-  extends BaseNodeMixin {
+export interface RecursiveFigmaNode<T extends BaseNode['type']> extends BaseNodeMixin {
   type: T;
   children: RecursiveFigmaNode<T>[];
 }
@@ -132,21 +128,15 @@ type TestNode = Prettify<BaseNodeMixin>;
 
 type PathNodeinfo = {
   type:
-    | PageNode["type"]
-    | DocumentNode["type"]
-    | ComponentSetNode["type"]
-    | ComponentNode["type"]
-    | SectionNode["type"];
+    | PageNode['type']
+    | DocumentNode['type']
+    | ComponentSetNode['type']
+    | ComponentNode['type']
+    | SectionNode['type'];
   name: string;
 };
 
-export const pathNodeType = [
-  "DOCUMENT",
-  "PAGE",
-  "SECTION",
-  "COMPONENT_SET",
-  "COMPONENT",
-] as const;
+export const pathNodeType = ['DOCUMENT', 'PAGE', 'SECTION', 'COMPONENT_SET', 'COMPONENT'] as const;
 
 export type FilterType = {
   DOCUMENT: boolean;
@@ -158,10 +148,10 @@ export type FilterType = {
 
 // 노드로 해야하나..
 export const FilterTypeIndex = (text: string) => {
-  if (text === "DOCUMENT") return 1;
-  if (text === "PAGE") return 2;
-  if (text === "SECTION") return 3;
-  if (text === "COMPONENT_SET") return 4;
-  if (text === "COMPONENT") return 5;
+  if (text === 'DOCUMENT') return 1;
+  if (text === 'PAGE') return 2;
+  if (text === 'SECTION') return 3;
+  if (text === 'COMPONENT_SET') return 4;
+  if (text === 'COMPONENT') return 5;
   return 0;
 };

@@ -1,34 +1,30 @@
-import { Fragment, h } from "preact";
-import { useEffect, useRef, useState } from "preact/hooks";
-import { SVGResult } from "../CodeGen/main";
+import { Fragment, h } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { SVGResult } from '../CodeGen/main';
 import {
   IconLayerInstance16,
   IconLayerImage16,
   IconTarget16,
   Layer,
   IconPencil32,
-  IconLayerAnimated16,
-} from "@create-figma-plugin/ui";
+  IconLayerAnimated16
+} from '@create-figma-plugin/ui';
 
-import {
-  promiseOnceSample,
-  SelectNodeByIdZoomHandler,
-  SelectNodeSetNameHandler,
-} from "../CodeGen/types";
-import { compareStringArrays, emit } from "@create-figma-plugin/utilities";
-import { generateRandomText } from "../utils/textTools";
+import { promiseOnceSample, SelectNodeByIdZoomHandler, SelectNodeSetNameHandler } from '../CodeGen/types';
+import { compareStringArrays, emit } from '@create-figma-plugin/utilities';
+import { generateRandomText } from '../utils/textTools';
 
 type Props = {
-  data: SVGResult["svgs"][number] & {
+  data: SVGResult['svgs'][number] & {
     isDuplicate: boolean;
   };
   generateTrigger: Function;
 };
 
-const typeIcon = (type: NonNullable<Props["data"]>["type"]) => {
-  if (type === "use") return <IconLayerInstance16></IconLayerInstance16>;
-  if (type === "object") return <IconLayerAnimated16></IconLayerAnimated16>;
-  if (type === "image") return <IconLayerImage16></IconLayerImage16>;
+const typeIcon = (type: NonNullable<Props['data']>['type']) => {
+  if (type === 'use') return <IconLayerInstance16></IconLayerInstance16>;
+  if (type === 'object') return <IconLayerAnimated16></IconLayerAnimated16>;
+  if (type === 'image') return <IconLayerImage16></IconLayerImage16>;
   return <IconTarget16></IconTarget16>;
 };
 
@@ -37,8 +33,8 @@ const InputSelect = ({ data, generateTrigger }: Props) => {
   const [text, setText] = useState(data.name);
   const ref = useRef<HTMLInputElement>(null);
 
-  const activeColor = "var(--figma-color-bg-brand)";
-  const disabledColor = "transparent";
+  const activeColor = 'var(--figma-color-bg-brand)';
+  const disabledColor = 'transparent';
 
   const getColor = (bool: boolean) => {
     return hover ? activeColor : disabledColor;
@@ -47,45 +43,38 @@ const InputSelect = ({ data, generateTrigger }: Props) => {
   return (
     <div
       style={{
-        display: "flex",
+        display: 'flex',
         gap: 8,
-        border: "2px solid " + getColor(hover),
-        padding: "4px 8px",
-        alignItems: "center",
+        border: '2px solid ' + getColor(hover),
+        padding: '4px 8px',
+        alignItems: 'center'
       }}
       onClick={(e) => {
         e.preventDefault();
         if (!hover) {
-          emit<SelectNodeByIdZoomHandler>(
-            "SELECT_NODE_BY_ID_ZOOM",
-            data.node.id,
-            data.nodeInfo.pageId
-          );
+          emit<SelectNodeByIdZoomHandler>('SELECT_NODE_BY_ID_ZOOM', data.node.id, data.nodeInfo.pageId);
         }
       }}
       onDblClick={(e) => {
         ref.current?.focus();
-      }}
-    >
+      }}>
       {typeIcon(data.type)}
       <input
         ref={ref}
         defaultValue={text}
         style={{
-          color: data.isDuplicate
-            ? "var(--figma-color-bg-danger,red)"
-            : undefined,
+          color: data.isDuplicate ? 'var(--figma-color-bg-danger,red)' : undefined,
           backgroundColor: disabledColor,
-          display: "inline-flex",
-          flexGrow: 1,
+          display: 'inline-flex',
+          flexGrow: 1
         }}
         onKeyUp={async (e: h.JSX.TargetedKeyboardEvent<HTMLInputElement>) => {
-          if (e.key === "Enter") {
+          if (e.key === 'Enter') {
             setText(e.currentTarget.value);
 
             const key = generateRandomText(10);
             emit<SelectNodeSetNameHandler>(
-              "SELECT_NODE_SET_NAME",
+              'SELECT_NODE_SET_NAME',
               data.node.id,
               data.nodeInfo.pageId,
               e.currentTarget.value,
@@ -104,7 +93,7 @@ const InputSelect = ({ data, generateTrigger }: Props) => {
           setHover(true);
         }}
         onBlur={(e) => {
-          console.log("hover");
+          console.log('hover');
           e.currentTarget.value = text;
           setHover(false);
 
@@ -120,8 +109,7 @@ const InputSelect = ({ data, generateTrigger }: Props) => {
       <IconPencil32
         onClick={() => {
           ref.current?.focus();
-        }}
-      ></IconPencil32>
+        }}></IconPencil32>
     </div>
   );
 };

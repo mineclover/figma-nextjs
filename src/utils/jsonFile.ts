@@ -1,4 +1,4 @@
-import { LLog } from "./console";
+import { LLog } from './console';
 
 /**
  * JSON 텍스트를 파일로 만들어 브라우저에서 다운로드합니다. saveAs 로 대체함
@@ -11,15 +11,15 @@ export function downloadJsonFile(text: string): void {
     JSON.parse(text);
 
     // Blob 객체 생성
-    const blob = new Blob([text], { type: "application/json" });
+    const blob = new Blob([text], { type: 'application/json' });
 
     // URL 생성
     const url = URL.createObjectURL(blob);
 
     // 임시 링크 요소 생성
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
-    link.download = "figma_svg_info.json";
+    link.download = 'figma_svg_info.json';
 
     // 링크 클릭 이벤트 발생
     document.body.appendChild(link);
@@ -29,14 +29,14 @@ export function downloadJsonFile(text: string): void {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error("유효하지 않은 JSON 형식입니다:", error);
-    alert("유효하지 않은 JSON 형식입니다. 다시 확인해주세요.");
+    console.error('유효하지 않은 JSON 형식입니다:', error);
+    alert('유효하지 않은 JSON 형식입니다. 다시 확인해주세요.');
   }
 }
 
 export const JsonToObject = async (files: File[]) => {
   // json 만
-  const json = files.filter((file) => file.type === "application/json");
+  const json = files.filter((file) => file.type === 'application/json');
   const array = [];
   for (const file of json) {
     const text = await file.text();
@@ -59,7 +59,7 @@ export const handleFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
     return JsonToObject(fileArray);
   } else {
     // 파일이 선택되지 않은 경우 처리
-    LLog("svg", "파일이 선택되지 않았습니다.");
+    LLog('svg', '파일이 선택되지 않았습니다.');
   }
 };
 

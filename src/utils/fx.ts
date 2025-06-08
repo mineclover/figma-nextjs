@@ -14,8 +14,7 @@ export const curry: <T extends AnyFn>(f: T) => (a: any, ...args: any) => any =
 
 export const isIterable = (a: any) => a && a[Symbol.iterator];
 
-export const go1 = (a: any, f: AnyFn) =>
-  a instanceof Promise ? a.then(f) : f(a);
+export const go1 = (a: any, f: AnyFn) => (a instanceof Promise ? a.then(f) : f(a));
 
 export const reduceF = (acc: any, a: any, f: AnyFn) =>
   a instanceof Promise
@@ -81,13 +80,12 @@ L.map = curry(function* (f, iter) {
   }
 });
 
-export const nop = Symbol("nop");
+export const nop = Symbol('nop');
 
 L.filter = curry(function* (f, iter) {
   for (const a of iter) {
     const b = go1(a, f);
-    if (b instanceof Promise)
-      yield b.then((b) => (b ? a : Promise.reject(nop)));
+    if (b instanceof Promise) yield b.then((b) => (b ? a : Promise.reject(nop)));
     else if (b) yield a;
   }
 });
@@ -116,9 +114,7 @@ export const map = curry(pipe(L.map, takeAll));
 
 export const filter = curry(pipe(L.filter, takeAll));
 
-export const find = curry((f, iter) =>
-  go(iter, L.filter(f), take(1), ([a]) => a)
-);
+export const find = curry((f, iter) => go(iter, L.filter(f), take(1), ([a]) => a));
 
 export const flatten = pipe(L.flatten, takeAll);
 

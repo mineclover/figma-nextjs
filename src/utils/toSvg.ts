@@ -1,29 +1,16 @@
-import render from "dom-serializer";
+import render from 'dom-serializer';
 // import { rename } from "../utils/rename";
-import { parseDocument } from "htmlparser2";
-import { Element } from "domhandler";
+import { parseDocument } from 'htmlparser2';
+import { Element } from 'domhandler';
 
-import * as parse5 from "parse5";
-import type {
-  Element as ParseElement,
-  TextNode,
-} from "parse5/dist/tree-adapters/default";
-import { Attribute } from "parse5/dist/common/token";
-import { LLog } from "./console";
+import * as parse5 from 'parse5';
+import type { Element as ParseElement, TextNode } from 'parse5/dist/tree-adapters/default';
+import { Attribute } from 'parse5/dist/common/token';
+import { LLog } from './console';
 
-const unsupported = [
-  "mask",
-  "clip-path",
-  "filter",
-  "g",
-  "feflood",
-  "fegaussianblur",
-  "fecomposite",
-  "feblend",
-  "defs",
-];
+const unsupported = ['mask', 'clip-path', 'filter', 'g', 'feflood', 'fegaussianblur', 'fecomposite', 'feblend', 'defs'];
 
-type ErrorCase = "unsupported" | "ignore" | null;
+type ErrorCase = 'unsupported' | 'ignore' | null;
 
 type Inspection = {
   [key: string]: number;
@@ -31,17 +18,15 @@ type Inspection = {
 
 const currentOverrideOption = false;
 
-const SVG_COLOR_PREFIX = "svg-color";
-const PERCENT_PREFIX = "svg-percent";
-const CURRENT_COLOR = "currentColor";
+const SVG_COLOR_PREFIX = 'svg-color';
+const PERCENT_PREFIX = 'svg-percent';
+const CURRENT_COLOR = 'currentColor';
 
 export const childrenScan = (node: Element): ErrorCase => {
-  const children = node.children.filter(
-    (item) => item instanceof Element
-  ) as Element[];
+  const children = node.children.filter((item) => item instanceof Element) as Element[];
 
   // "svg", "symbol" 에서 Fill 삭제 하지 않음
-  const ignore = ["svg", "symbol"];
+  const ignore = ['svg', 'symbol'];
   if (currentOverrideOption && !ignore.includes(node.name)) {
     if (node.attribs.fill) {
       node.attribs.fill = CURRENT_COLOR;
@@ -53,18 +38,16 @@ export const childrenScan = (node: Element): ErrorCase => {
   }
 
   if (unsupported.includes(node.name)) {
-    return "unsupported";
+    return 'unsupported';
   }
   if (Array.isArray(children)) {
-    return children
-      .map((item) => childrenScan(item))
-      .filter((text) => text === "unsupported")[0];
+    return children.map((item) => childrenScan(item)).filter((text) => text === 'unsupported')[0];
   }
   return null;
 };
 const PromiseOpen = <T>(promiseArray: PromiseSettledResult<T>[]) => {
   return promiseArray.map((item) => {
-    if (item.status === "fulfilled") return item.value;
+    if (item.status === 'fulfilled') return item.value;
     return item;
   });
 };
@@ -86,18 +69,16 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
     let svg;
     try {
       svg = await item.exportAsync({
-        format: "SVG_STRING",
-        svgSimplifyStroke: true,
+        format: 'SVG_STRING',
+        svgSimplifyStroke: true
       });
     } catch (e) {
       console.error(e);
       svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>`;
     }
 
-    const ast = parseDocument(svg).children.filter(
-      (item) => item.type === "tag"
-    )[0] as Element;
-    ast.name = "symbol";
+    const ast = parseDocument(svg).children.filter((item) => item.type === 'tag')[0] as Element;
+    ast.name = 'symbol';
     ast.attribs.id = symbolID;
     delete ast.attribs.width;
     delete ast.attribs.height;
@@ -112,7 +93,7 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
 
     const r = childrenScan(ast);
 
-    if (r === "unsupported") {
+    if (r === 'unsupported') {
       unsupportedKeys.push(symbolID);
     }
 
@@ -130,7 +111,7 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
     id: symbolKeys,
     completed: PromiseOpen(promise),
     duplicate,
-    unsupportedKeys,
+    unsupportedKeys
   };
 };
 
@@ -144,9 +125,9 @@ export const toSvg = async (selection: readonly SceneNode[]) => {
 // object 단점 호출이 쪼개짐 > 이미지 수준의 오버헤드
 // 완전 단순한 svg는 use로 unsupported 로 관리하던 건 object로 넘길 수 있다는 소리임
 
-const SVG_CASE_IMAGE = "image";
-const SVG_CASE_OBJECT = "object";
-const SVG_CASE_USE = "use";
+const SVG_CASE_IMAGE = 'image';
+const SVG_CASE_OBJECT = 'object';
+const SVG_CASE_USE = 'use';
 
 type SvgCase = typeof SVG_CASE_OBJECT | typeof SVG_CASE_USE;
 type Attr = {
@@ -166,9 +147,9 @@ type Attr = {
 /** 필터 하위로 들어가는 속성은 생략하고 나머지에서 */
 
 const parse5Unsupported = {
-  tagName: ["mask", "clipPath", "filter", "g", "defs", "linearGradient"],
-  attrsTags: ["result", "in2", "filter"],
-  attrsStartsWith: ["url(#"],
+  tagName: ['mask', 'clipPath', 'filter', 'g', 'defs', 'linearGradient'],
+  attrsTags: ['result', 'in2', 'filter'],
+  attrsStartsWith: ['url(#']
 };
 
 export const SvgScan = (ast: ParseElement): SvgCase => {
@@ -179,15 +160,9 @@ export const SvgScan = (ast: ParseElement): SvgCase => {
   if (
     ast.attrs.some((attr) => {
       const isUnsupported = parse5Unsupported.attrsTags.includes(attr.name);
-      LLog(
-        "debug",
-        "태그 관리",
-        parse5Unsupported.attrsTags,
-        attr.name,
-        isUnsupported
-      );
+      LLog('debug', '태그 관리', parse5Unsupported.attrsTags, attr.name, isUnsupported);
       if (isUnsupported) {
-        LLog("debug", "Unsupported attribute found:", attr.name);
+        LLog('debug', 'Unsupported attribute found:', attr.name);
       }
       return isUnsupported;
     })
@@ -202,14 +177,9 @@ export const SvgScan = (ast: ParseElement): SvgCase => {
     ast.attrs.some((attr) => {
       const isUnsupported = parse5Unsupported.attrsStartsWith.some((prefix) => {
         const startsWithPrefix = attr.value.startsWith(prefix);
-        LLog("debug", "startsWithPrefix::", attr, prefix);
+        LLog('debug', 'startsWithPrefix::', attr, prefix);
         if (startsWithPrefix) {
-          LLog(
-            "debug",
-            "Attribute value starts with unsupported prefix:",
-            prefix,
-            attr.value
-          );
+          LLog('debug', 'Attribute value starts with unsupported prefix:', prefix, attr.value);
         }
         return startsWithPrefix;
       });
@@ -227,25 +197,23 @@ export const SvgScan = (ast: ParseElement): SvgCase => {
   if (Array.isArray(children) && children.length > 0) {
     // 줄바꿈 생략
     const useNodes = children.filter((item) => {
-      if (item.nodeName === "#text") {
+      if (item.nodeName === '#text') {
         const textNode = item as unknown as TextNode;
-        return textNode.value !== "\n";
+        return textNode.value !== '\n';
       }
       return true;
     });
-    LLog("debug", "children:", useNodes);
+    LLog('debug', 'children:', useNodes);
     if (useNodes.length > 0) {
-      return useNodes.some((item2) => SvgScan(item2) === "object")
-        ? "object"
-        : "use";
+      return useNodes.some((item2) => SvgScan(item2) === 'object') ? 'object' : 'use';
     }
   }
   return SVG_CASE_USE;
 };
 
 const parse5IamgeValue = {
-  tagName: ["image"],
-  attrsStartsWith: ["data:image/png;base64,"],
+  tagName: ['image'],
+  attrsStartsWith: ['data:image/png;base64,']
 };
 
 export const getIsSvgIamge = (ast: ParseElement): boolean => {
@@ -256,14 +224,9 @@ export const getIsSvgIamge = (ast: ParseElement): boolean => {
     ast.attrs.some((attr) => {
       const isUnsupported = parse5IamgeValue.attrsStartsWith.some((prefix) => {
         const startsWithPrefix = attr.value.startsWith(prefix);
-        LLog("debug", "startsWithPrefix::", attr, prefix);
+        LLog('debug', 'startsWithPrefix::', attr, prefix);
         if (startsWithPrefix) {
-          LLog(
-            "debug",
-            "Attribute value starts with unsupported prefix:",
-            prefix,
-            attr.value
-          );
+          LLog('debug', 'Attribute value starts with unsupported prefix:', prefix, attr.value);
         }
         return startsWithPrefix;
       });
@@ -281,13 +244,13 @@ export const getIsSvgIamge = (ast: ParseElement): boolean => {
   if (Array.isArray(children) && children.length > 0) {
     // 줄바꿈 생략
     const useNodes = children.filter((item) => {
-      if (item.nodeName === "#text") {
+      if (item.nodeName === '#text') {
         const textNode = item as unknown as TextNode;
-        return textNode.value !== "\n";
+        return textNode.value !== '\n';
       }
       return true;
     });
-    LLog("debug", "children:", useNodes);
+    LLog('debug', 'children:', useNodes);
     if (useNodes.length > 0) {
       return useNodes.some((item2) => getIsSvgIamge(item2));
     }
@@ -297,14 +260,10 @@ export const getIsSvgIamge = (ast: ParseElement): boolean => {
 
 // 색상 추출 해야함 일단 어디서 시작하든 가장 먼저 추출된 거 기준으로 키 설정 되는거임
 
-const grantingVar = (
-  ast: ParseElement,
-  storeAttrObject: Attr,
-  name: string
-) => {
-  const ignore = ["svg"];
-  const colorTarget = ["fill", "stroke", "stop-color"];
-  const percentTarget = ["opacity", "fill-opacity", "stroke-opacity"];
+const grantingVar = (ast: ParseElement, storeAttrObject: Attr, name: string) => {
+  const ignore = ['svg'];
+  const colorTarget = ['fill', 'stroke', 'stop-color'];
+  const percentTarget = ['opacity', 'fill-opacity', 'stroke-opacity'];
   const target = [...colorTarget, ...percentTarget];
   // 속성 값 배열
 
@@ -312,23 +271,21 @@ const grantingVar = (
     for (const innerAttr of ast.attrs) {
       // 컬러 타겟 속성이면
       if (colorTarget.includes(innerAttr.name)) {
-        LLog("svg", "색상으로 판단", colorTarget, innerAttr);
-        const existingColorKeys = Object.keys(storeAttrObject).filter((key) =>
-          key.startsWith(SVG_COLOR_PREFIX)
-        );
+        LLog('svg', '색상으로 판단', colorTarget, innerAttr);
+        const existingColorKeys = Object.keys(storeAttrObject).filter((key) => key.startsWith(SVG_COLOR_PREFIX));
         const isExisting = existingColorKeys.some((colorKey) => {
           //소문자로 고정
           return storeAttrObject[colorKey.toLowerCase()] === innerAttr.value;
         });
-        let newKey = "";
+        let newKey = '';
 
         // 만약 중복된 속성이 저장되있지 않으면 뉴 키에 속성을 저장한다
         if (!isExisting) {
-          LLog("svg", "길면서 중복이 없음", existingColorKeys.length);
+          LLog('svg', '길면서 중복이 없음', existingColorKeys.length);
           // 키 생성
           newKey = `${SVG_COLOR_PREFIX}-${Object.keys(existingColorKeys).length + 1}`;
         } else {
-          LLog("svg", "길면서 중복임", isExisting, existingColorKeys.length);
+          LLog('svg', '길면서 중복임', isExisting, existingColorKeys.length);
           for (const a of Object.entries(storeAttrObject)) {
             const [key, value] = a;
             if (value === innerAttr.value) {
@@ -344,19 +301,17 @@ const grantingVar = (
       } else if (percentTarget.includes(innerAttr.name)) {
         // tt
 
-        const existingPercentKeys = Object.keys(storeAttrObject).filter((key) =>
-          key.startsWith(PERCENT_PREFIX)
-        );
+        const existingPercentKeys = Object.keys(storeAttrObject).filter((key) => key.startsWith(PERCENT_PREFIX));
         const isExisting = existingPercentKeys.some((percentKey) => {
           return storeAttrObject[percentKey] === innerAttr.value;
         });
         let newKey = `${PERCENT_PREFIX}-${Object.keys(existingPercentKeys).length + 1}`;
         // 한개 이상부터 커런트컬러를 안쓴다
 
-        LLog("svg", "길이 충분", existingPercentKeys.length);
+        LLog('svg', '길이 충분', existingPercentKeys.length);
         // 만약 중복된 속성이 저장되있지 않으면 뉴 키에 속성을 저장한다
         if (isExisting) {
-          LLog("svg", "길면서 중복임", isExisting, existingPercentKeys.length);
+          LLog('svg', '길면서 중복임', isExisting, existingPercentKeys.length);
           // 중복이면 newKey는 객체에서 value 로 찾아서
           // newKey에 쓸 키를 가져온다
           for (const a of Object.entries(storeAttrObject)) {
@@ -390,20 +345,20 @@ export const svgToUse = (
 ): void => {
   const children = ast.childNodes as ParseElement[];
 
-  const ignore = ["svg"];
+  const ignore = ['svg'];
 
   // svg to symbol 작업
   if (ignore.includes(ast.tagName)) {
-    ast.tagName = "symbol";
+    ast.tagName = 'symbol';
     // 아이디는 추가해야하니까 제거 함
-    const target = ["width", "height", "xmlns", "id"];
+    const target = ['width', 'height', 'xmlns', 'id'];
     const after = ast.attrs.filter((it) => !target.includes(it.name));
     ast.attrs = [
       ...after,
       {
-        name: "id",
-        value: name,
-      },
+        name: 'id',
+        value: name
+      }
     ];
   } else {
     // svg 외에서 작업해야하하므로 else로 둠
@@ -438,9 +393,9 @@ export const svgToUse = (
   if (Array.isArray(children) && children.length !== 0) {
     // 줄바꿈 생략
     const useNodes = children.filter((item) => {
-      if (item.nodeName === "#text") {
+      if (item.nodeName === '#text') {
         const textNode = item as unknown as TextNode;
-        return textNode.value !== "\n";
+        return textNode.value !== '\n';
       }
       return true;
     });
@@ -457,11 +412,7 @@ export const svgToUse = (
  * @param name
  * @returns
  */
-export const svgToObject = (
-  ast: ParseElement,
-  storeAttrObject: Attr,
-  name: string
-): void => {
+export const svgToObject = (ast: ParseElement, storeAttrObject: Attr, name: string): void => {
   const children = ast.childNodes as ParseElement[];
 
   // svg 외에서 작업해야하하므로 else로 둠
@@ -497,9 +448,9 @@ export const svgToObject = (
   if (Array.isArray(children) && children.length !== 0) {
     // 줄바꿈 생략
     const useNodes = children.filter((item) => {
-      if (item.nodeName === "#text") {
+      if (item.nodeName === '#text') {
         const textNode = item as unknown as TextNode;
-        return textNode.value !== "\n";
+        return textNode.value !== '\n';
       }
       return true;
     });
@@ -518,8 +469,8 @@ export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
   let svg;
   try {
     svg = await selectNode.exportAsync({
-      format: "SVG_STRING",
-      svgSimplifyStroke: true,
+      format: 'SVG_STRING',
+      svgSimplifyStroke: true
     });
   } catch (e) {
     console.error(e);
@@ -528,24 +479,20 @@ export const toSingleSvg = async (selectNode: SceneNode, name: string) => {
 
   const parseResult = parse5.parse(svg);
   // html 용이여서 빈 html과 Head가 생김
-  LLog("svg", "parseResult:", parseResult);
+  LLog('svg', 'parseResult:', parseResult);
   const docu = parseResult.childNodes[0] as ParseElement;
-  LLog("svg", "docu:", docu);
-  const body = docu.childNodes.filter(
-    (item) => (item as ParseElement).tagName === "body"
-  )[0] as ParseElement;
-  LLog("svg", "body:", body);
-  const svgTag = body.childNodes.filter(
-    (item) => (item as ParseElement).tagName === "svg"
-  )[0] as ParseElement;
-  LLog("svg", "svgTag:", svgTag);
+  LLog('svg', 'docu:', docu);
+  const body = docu.childNodes.filter((item) => (item as ParseElement).tagName === 'body')[0] as ParseElement;
+  LLog('svg', 'body:', body);
+  const svgTag = body.childNodes.filter((item) => (item as ParseElement).tagName === 'svg')[0] as ParseElement;
+  LLog('svg', 'svgTag:', svgTag);
   const svgType = SvgScan(svgTag);
   const isImage = getIsSvgIamge(svgTag);
   const result = {
-    raw: "",
+    raw: '',
     type: isImage ? SVG_CASE_IMAGE : svgType,
     attrs: attrList,
-    origin: svg,
+    origin: svg
   };
 
   if (svgType === SVG_CASE_OBJECT) {

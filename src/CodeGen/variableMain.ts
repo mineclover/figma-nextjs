@@ -1,12 +1,8 @@
-import {
-  FilterType,
-  FilePathSearch,
-  FilterTypeIndex,
-} from "../FigmaPluginUtils";
-import { LLog } from "../utils/console";
-import { typeofNumber } from "../utils/textTools";
+import { FilterType, FilePathSearch, FilterTypeIndex } from '../FigmaPluginUtils';
+import { LLog } from '../utils/console';
+import { typeofNumber } from '../utils/textTools';
 
-export type TokenValue = Variable | Omit<VariableValue, "VariableAlias">;
+export type TokenValue = Variable | Omit<VariableValue, 'VariableAlias'>;
 
 export type StringKeyValue = Record<string, string>;
 export type ModeStyles = Record<string, StringKeyValue>;
@@ -34,7 +30,7 @@ export type VariableTokenData = {
   scssVariableStyles: StringKeyValue;
 };
 
-export const splitUnit = ", $";
+export const splitUnit = ', $';
 
 /**
  * const styleName = toStyleName(variable);
@@ -42,21 +38,19 @@ export const splitUnit = ", $";
  * css var name
  * */
 export const getVarName = (styleName: string, tokenName: string) => {
-  return "var(--" + styleName + splitUnit + tokenName + ");";
+  return 'var(--' + styleName + splitUnit + tokenName + ');';
 };
 
-export const getIsVariable = (
-  variable: VariableValue
-): variable is VariableAlias => {
+export const getIsVariable = (variable: VariableValue): variable is VariableAlias => {
   return (
-    typeof variable === "object" &&
-    (("type" in variable) as unknown as VariableAlias) &&
-    (variable as unknown as VariableAlias).type === "VARIABLE_ALIAS"
+    typeof variable === 'object' &&
+    (('type' in variable) as unknown as VariableAlias) &&
+    (variable as unknown as VariableAlias).type === 'VARIABLE_ALIAS'
   );
 };
 
-export const VCID = "VariableCollectionId:";
-export const VID = "VariableID:";
+export const VCID = 'VariableCollectionId:';
+export const VID = 'VariableID:';
 
 let count = 0;
 /**
@@ -68,7 +62,7 @@ let count = 0;
 export const toStyleName = (
   vari: {
     name: string;
-    resolvedType: Variable["resolvedType"] | "STYLE_COLOR";
+    resolvedType: Variable['resolvedType'] | 'STYLE_COLOR';
   },
   // parent: VariableCollection,
   parent: {
@@ -81,47 +75,43 @@ export const toStyleName = (
   // _를 어떻게 처리할지는 좀 고민되긴 하네 딱히 규칙은 필요 없음
   const name = vari.name
     .trim()
-    .replace(/[\s\u00A0\u200B]+/g, "")
-    .replace(/\+/g, "plus")
-    .replace(/[^a-zA-Z0-9_: \-\/]/g, "")
-    .replace(/:/g, "__")
-    .replace(/ /g, "_")
-    .replace(/\//g, "-");
+    .replace(/[\s\u00A0\u200B]+/g, '')
+    .replace(/\+/g, 'plus')
+    .replace(/[^a-zA-Z0-9_: \-\/]/g, '')
+    .replace(/:/g, '__')
+    .replace(/ /g, '_')
+    .replace(/\//g, '-');
   // .replace(/\//g, "_")
   // 대문자 처리하고
-  const errorPrefix = "NAME_ERROR_";
+  const errorPrefix = 'NAME_ERROR_';
 
   // 특수문자만 남아있는 경우도 제거
-  const test = name.replace(/[^a-zA-Z0-9]/g, "");
+  const test = name.replace(/[^a-zA-Z0-9]/g, '');
   // 숫자만 있는 경우
   // 길이가 0이거나 숫자거나
-  if (test.length === 0 || typeofNumber(test) || name.startsWith("/")) {
+  if (test.length === 0 || typeofNumber(test) || name.startsWith('/')) {
     // 에러 토큰... 처리를 어떻게 하는가 뭐 일단 에러인 건 맞아
     count++;
 
     if (!parent) {
-      return "PARANT NULL ERROR" + count;
+      return 'PARANT NULL ERROR' + count;
     }
 
     if (errorTokens[parent.name] == null) {
       errorTokens[parent.name] = [];
     }
 
-    errorTokens[parent.name].push([
-      errorPrefix + count,
-      vari.name,
-      vari.resolvedType,
-    ]);
+    errorTokens[parent.name].push([errorPrefix + count, vari.name, vari.resolvedType]);
     return errorPrefix + count;
   }
 
   return name
-    .split("/")
+    .split('/')
     .map((text, index) => {
       // 0빼고 나머지
       return index ? text.charAt(0).toUpperCase() + text.slice(1) : text;
     })
-    .join("");
+    .join('');
 };
 
 export const toNodeName = (
@@ -149,44 +139,43 @@ export const toNodeName = (
   //   currentNode = paths.pop() as SceneNode;
   // }
   if (currentNode == null) currentNode = node;
-  LLog("svg", "currentNode::", currentNode, paths);
+  LLog('svg', 'currentNode::', currentNode, paths);
 
-  const pluginSaveName = currentNode.getPluginData("name").trim();
+  const pluginSaveName = currentNode.getPluginData('name').trim();
 
   /** 있으면 덮어씀 */
-  if (pluginSaveName !== "")
+  if (pluginSaveName !== '')
     return {
       resultName: pluginSaveName,
-      alias: true,
+      alias: true
     };
 
-  const names = currentNode.name.split(", ");
+  const names = currentNode.name.split(', ');
 
   // 키=벨류, 키=벨류 구조의 텍스트에서 벨류만 파싱하는 코드임
   // 문서에 =이 없으면 공백이 나옴
-  LLog("svg", names);
+  LLog('svg', names);
   const tempName = names
-    .map((t) => t.split("=")[1])
-    .join("_")
+    .map((t) => t.split('=')[1])
+    .join('_')
     .trim();
   // tempName이 공백이면 기존 이름을 조인하는 코드임
 
   const name =
-    tempName === ""
+    tempName === ''
       ? names
           .map((t) => t.trim())
-          .join("_")
+          .join('_')
           .trim()
       : tempName;
   const path = paths
-    .map((item) => item.name.replace(/[^a-za-zA-Z0-9_]/g, "").trim())
-    .map((t, index) => (t !== "" ? t : "❌" + paths[index].type + "❌"))
-    .join("_");
-  const firstName = path ? path + "__" : "";
+    .map((item) => item.name.replace(/[^a-za-zA-Z0-9_]/g, '').trim())
+    .map((t, index) => (t !== '' ? t : '❌' + paths[index].type + '❌'))
+    .join('_');
+  const firstName = path ? path + '__' : '';
   return {
-    resultName:
-      firstName + name.replace(/ /g, "").replace(/-/g, "_").replace(/\//g, "_"),
-    alias: false,
+    resultName: firstName + name.replace(/ /g, '').replace(/-/g, '_').replace(/\//g, '_'),
+    alias: false
   };
 };
 
@@ -196,26 +185,23 @@ export const toNodeName = (
  *  스코프 디펜던시 있음
  */
 export const toTokenId = (vari: Variable, modeKey: string) => {
-  const variableCollectionId = vari.variableCollectionId
-    .replace(VCID, "VCID")
-    .replace(":", "_");
-  const variableID = vari.id.replace(VID, "VID").replace(/:/g, "_");
+  const variableCollectionId = vari.variableCollectionId.replace(VCID, 'VCID').replace(':', '_');
+  const variableID = vari.id.replace(VID, 'VID').replace(/:/g, '_');
 
-  const isRemote =
-    variableCollectionId.includes("/") && variableID.includes("/");
+  const isRemote = variableCollectionId.includes('/') && variableID.includes('/');
 
   // const modeValue = vari.valuesByMode[modeKey];
   // console.log("mode:", modeValue);
-  const modeName = "M" + modeKey.replace(/:/g, "_");
+  const modeName = 'M' + modeKey.replace(/:/g, '_');
 
   if (isRemote) {
-    const remoteVcid = "R_VCID" + variableCollectionId.split("/")[1];
-    const remoteVid = "R_VID" + variableID.split("/")[1];
+    const remoteVcid = 'R_VCID' + variableCollectionId.split('/')[1];
+    const remoteVid = 'R_VID' + variableID.split('/')[1];
 
-    return [remoteVcid, remoteVid, modeName].join("__");
+    return [remoteVcid, remoteVid, modeName].join('__');
   }
 
-  return [variableCollectionId, variableID, modeName].join("__");
+  return [variableCollectionId, variableID, modeName].join('__');
 };
 /**
  * 토큰에서 변수 정보를
@@ -224,17 +210,15 @@ export const toTokenId = (vari: Variable, modeKey: string) => {
  *  스코프 디펜던시 있음
  */
 export const fromTokenId = (tokenId: string) => {
-  const [tokenVCID, tokenVID, tokenMode] = tokenId.split("__");
-  const variableCollectionId = tokenVCID
-    .replace("VCID", VCID)
-    .replace(/_/g, ":");
-  const variableID = tokenVID.replace("VID", VID).replace(/_/g, ":");
-  const mode = tokenMode.replace("M", "");
+  const [tokenVCID, tokenVID, tokenMode] = tokenId.split('__');
+  const variableCollectionId = tokenVCID.replace('VCID', VCID).replace(/_/g, ':');
+  const variableID = tokenVID.replace('VID', VID).replace(/_/g, ':');
+  const mode = tokenMode.replace('M', '');
 
   // 딱 식별키
   return {
     variableCollectionId,
     variableID,
-    mode,
+    mode
   };
 };

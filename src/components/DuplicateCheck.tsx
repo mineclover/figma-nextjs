@@ -1,27 +1,21 @@
-import { h } from "preact";
-import { SVGResult } from "../CodeGen/main";
-import { useState } from "preact/hooks";
+import { h } from 'preact';
+import { SVGResult } from '../CodeGen/main';
+import { useState } from 'preact/hooks';
 import {
   Container,
   IconLayerAnimated16,
   IconLayerImage16,
   IconLayerInstance16,
-  TextColor,
-} from "@create-figma-plugin/ui";
+  TextColor
+} from '@create-figma-plugin/ui';
 
-import { SelectNodeByIdZoomHandler } from "../CodeGen/types";
-import { emit } from "@create-figma-plugin/utilities";
-import {
-  IconTarget16,
-  Layer,
-  Muted,
-  Text,
-  VerticalSpace,
-} from "@create-figma-plugin/ui";
-import InputSelect from "./InputSelect";
+import { SelectNodeByIdZoomHandler } from '../CodeGen/types';
+import { emit } from '@create-figma-plugin/utilities';
+import { IconTarget16, Layer, Muted, Text, VerticalSpace } from '@create-figma-plugin/ui';
+import InputSelect from './InputSelect';
 
 interface Props {
-  resultSvg?: SVGResult["svgs"];
+  resultSvg?: SVGResult['svgs'];
   generateTrigger: Function;
 }
 
@@ -31,8 +25,7 @@ const DuplicateCheck = ({ resultSvg, generateTrigger }: Props) => {
   if (resultSvg) {
     const target = resultSvg
       .map((svg) => {
-        const isDuplicate =
-          svg.name && resultSvg.filter((s) => s.name === svg.name).length > 1;
+        const isDuplicate = svg.name && resultSvg.filter((s) => s.name === svg.name).length > 1;
         if (isDuplicate) return { ...svg, isDuplicate: true };
 
         return { ...svg, isDuplicate: false };
@@ -46,11 +39,7 @@ const DuplicateCheck = ({ resultSvg, generateTrigger }: Props) => {
         </Text>
         <VerticalSpace space="extraSmall" />
         {target.map((data) => (
-          <InputSelect
-            data={data}
-            key={data.node.id + data.name}
-            generateTrigger={generateTrigger}
-          />
+          <InputSelect data={data} key={data.node.id + data.name} generateTrigger={generateTrigger} />
         ))}
       </Container>
     );

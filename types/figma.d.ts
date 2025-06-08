@@ -18,7 +18,7 @@ export type ComponentSet = {
   styleType?: StyleType;
 };
 
-export type StyleType = "FIXED" | "FILL" | "HUG";
+export type StyleType = 'FIXED' | 'FILL' | 'HUG';
 
 export type Document = {
   id?: string;
@@ -45,8 +45,8 @@ export type BackgroundColorClass = {
 
 type ChildType = SceneNode;
 
-type LayoutMode = "NONE" | "HORIZONTAL" | "VERTICAL";
-type LayoutWrap = "NO_WRAP" | "WRAP";
+type LayoutMode = 'NONE' | 'HORIZONTAL' | 'VERTICAL';
+type LayoutWrap = 'NO_WRAP' | 'WRAP';
 export type DocumentChild = {
   id?: string;
   name?: string;
@@ -100,7 +100,7 @@ export type Absolute = {
 
 type ChildBlendMode = BlendMode;
 
-type BackgroundType = Paint["type"];
+type BackgroundType = Paint['type'];
 
 export type Background = {
   blendMode?: BlendMode;
@@ -471,11 +471,11 @@ export type AmbitiousChild = {
   primaryAxisSizingMode?: StyleType;
   layoutWrap?: LayoutWrap;
 };
-type LayoutAlign = "MIN" | "CENTER" | "MAX" | "STRETCH" | "INHERIT";
+type LayoutAlign = 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'INHERIT';
 
 type PurpleComponentPropertyReferences =
   | {
-      [nodeProperty in "visible" | "characters" | "mainComponent"]?: string;
+      [nodeProperty in 'visible' | 'characters' | 'mainComponent']?: string;
     }
   | null;
 
@@ -544,7 +544,7 @@ export type Style = {
 };
 
 type LineHeightUnit = string;
-type Vertical = "TOP" | "CENTER" | "BOTTOM";
-type Horizontal = "LEFT" | "CENTER" | "RIGHT" | "JUSTIFIED";
-type TextAutoResize = "NONE" | "WIDTH_AND_HEIGHT" | "HEIGHT" | "TRUNCATE";
-type StrokeAlign = "CENTER" | "INSIDE" | "OUTSIDE";
+type Vertical = 'TOP' | 'CENTER' | 'BOTTOM';
+type Horizontal = 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
+type TextAutoResize = 'NONE' | 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE';
+type StrokeAlign = 'CENTER' | 'INSIDE' | 'OUTSIDE';

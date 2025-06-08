@@ -8,7 +8,7 @@ export type NullableString = string | boolean | undefined;
  */
 export const clc = (...classNames: NullableString[]) => {
   return classNames
-    .filter((text): text is string => typeof text === "string")
+    .filter((text): text is string => typeof text === 'string')
     .map((txt) => txt.trim())
-    .join(" ");
+    .join(' ');
 };

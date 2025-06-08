@@ -1,26 +1,13 @@
-import { Fragment, h } from "preact";
-import { SVGResult } from "../CodeGen/main";
-import { useState } from "preact/hooks";
-import {
-  Bold,
-  Container,
-  IconLayerImage16,
-  IconLayerInstance16,
-  Stack,
-  TextColor,
-} from "@create-figma-plugin/ui";
+import { Fragment, h } from 'preact';
+import { SVGResult } from '../CodeGen/main';
+import { useState } from 'preact/hooks';
+import { Bold, Container, IconLayerImage16, IconLayerInstance16, Stack, TextColor } from '@create-figma-plugin/ui';
 
-import { SelectNodeByIdZoomHandler } from "../CodeGen/types";
-import { emit } from "@create-figma-plugin/utilities";
-import {
-  IconTarget16,
-  Layer,
-  Muted,
-  Text,
-  VerticalSpace,
-} from "@create-figma-plugin/ui";
-import FolderableError from "./FolderableError";
-import { ErrorTokenData, VariableTokenData } from "../CodeGen/variableMain";
+import { SelectNodeByIdZoomHandler } from '../CodeGen/types';
+import { emit } from '@create-figma-plugin/utilities';
+import { IconTarget16, Layer, Muted, Text, VerticalSpace } from '@create-figma-plugin/ui';
+import FolderableError from './FolderableError';
+import { ErrorTokenData, VariableTokenData } from '../CodeGen/variableMain';
 
 type Props = {
   data?: VariableTokenData;
@@ -62,7 +49,7 @@ const TokenErrorCheck = ({ data, errors: errorDatas }: Props) => {
           </Text>
           <VerticalSpace space="extraSmall" />
           <Text>
-            예시: {"<{"}collection Name{"}>{"}name{"}"}
+            예시: {'<{'}collection Name{'}>{'}name{'}'}
           </Text>
           <VerticalSpace space="extraSmall" />
           <Stack space="extraSmall">
@@ -74,9 +61,9 @@ const TokenErrorCheck = ({ data, errors: errorDatas }: Props) => {
                       return (
                         <Text>
                           <Bold>
-                            {"<"}
+                            {'<'}
                             {item.collectionName}
-                            {">"}{" "}
+                            {'>'}{' '}
                           </Bold>
                           {item.variableName}
                         </Text>
@@ -98,16 +85,16 @@ const TokenErrorCheck = ({ data, errors: errorDatas }: Props) => {
           </Text>
           <VerticalSpace space="extraSmall" />
           <Text>
-            예시: {"{"}저장된 이름{"} | {"}피그마 이름{"} | {"}타입{"}"}
+            예시: {'{'}저장된 이름{'} | {'}피그마 이름{'} | {'}타입{'}'}
           </Text>
           <VerticalSpace space="extraSmall" />
           <Stack space="extraSmall">
             {errors.map(([name, variables]) => {
               return (
-                <FolderableError name={"<" + name + ">"}>
+                <FolderableError name={'<' + name + '>'}>
                   <Stack space="extraSmall">
                     {variables.map((item) => {
-                      return <Text>{item.join(" | ")}</Text>;
+                      return <Text>{item.join(' | ')}</Text>;
                     })}
                   </Stack>
                 </FolderableError>

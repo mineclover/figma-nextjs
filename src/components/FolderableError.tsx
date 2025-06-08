@@ -1,7 +1,7 @@
-import { Disclosure } from "@create-figma-plugin/ui";
+import { Disclosure } from '@create-figma-plugin/ui';
 
-import { ComponentChildren, h } from "preact";
-import { useState } from "react";
+import { ComponentChildren, h } from 'preact';
+import { useState } from 'react';
 
 type Props = {
   name: string;
@@ -16,8 +16,7 @@ const FolderableError = ({ name, children }: Props) => {
         setOpen(!(open === true));
       }}
       open={open}
-      title={name}
-    >
+      title={name}>
       {children}
     </Disclosure>
   );

@@ -1,6 +1,6 @@
-import { EventHandler, once } from "@create-figma-plugin/utilities";
-import { FilterType } from "../FigmaPluginUtils";
-import { SVGResult } from "./main";
+import { EventHandler, once } from '@create-figma-plugin/utilities';
+import { FilterType } from '../FigmaPluginUtils';
+import { SVGResult } from './main';
 
 export type SelectList = {
   id: string;
@@ -16,53 +16,43 @@ export type Project = {
 
 // 핸들러
 export interface CloseHandler extends EventHandler {
-  name: "CLOSE";
+  name: 'CLOSE';
   handler: () => void;
 }
 
 export interface SvgSymbolHandler extends EventHandler {
-  name: "SVG_SYMBOL_CODE";
+  name: 'SVG_SYMBOL_CODE';
   handler: () => void;
 }
 
 export interface ScanHandler extends EventHandler {
-  name: "FULL_SCAN";
-  handler: (
-    result: string,
-    duplicate: string[],
-    unsupportedKeys: string[],
-    id: string[]
-  ) => void;
+  name: 'FULL_SCAN';
+  handler: (result: string, duplicate: string[], unsupportedKeys: string[], id: string[]) => void;
 }
 
 export interface MessageHandler extends EventHandler {
-  name: "POST_MESSAGE";
+  name: 'POST_MESSAGE';
   handler: (text: string) => void;
 }
 
 export interface SectionSelectUiRequestHandler extends EventHandler {
-  name: "SECTION_SELECT_UI_REQUEST";
+  name: 'SECTION_SELECT_UI_REQUEST';
   handler: () => void;
 }
 
 export interface FigmaSelectMainResponseHandler extends EventHandler {
-  name: "SECTION_SELECT_UI_RESPONSE";
+  name: 'SECTION_SELECT_UI_RESPONSE';
   handler: (data: SelectList) => void;
 }
 
 export interface SelectNodeByIdZoomHandler extends EventHandler {
-  name: "SELECT_NODE_BY_ID_ZOOM";
+  name: 'SELECT_NODE_BY_ID_ZOOM';
   handler: (id: string, pageId: string) => void;
 }
 
 export interface SelectNodeSetNameHandler extends EventHandler {
-  name: "SELECT_NODE_SET_NAME";
-  handler: (
-    id: string,
-    pageId: string,
-    name: string,
-    TransactionID: string
-  ) => void;
+  name: 'SELECT_NODE_SET_NAME';
+  handler: (id: string, pageId: string, name: string, TransactionID: string) => void;
 }
 
 /**
@@ -74,17 +64,13 @@ export interface EndSignalHandler extends EventHandler {
 }
 
 /** 보낼 때 생성한 걸로 넘어올 때까지 promise 해라 임 */
-export const promiseOnce = (
-  id: string,
-  resolve: (value: string) => void,
-  reject: (reason?: any) => void
-) => {
+export const promiseOnce = (id: string, resolve: (value: string) => void, reject: (reason?: any) => void) => {
   once<EndSignalHandler>(id, () => {
-    resolve("성공");
+    resolve('성공');
   });
 
   setTimeout(() => {
-    reject("3s timeout");
+    reject('3s timeout');
   }, 3000);
 };
 
@@ -95,26 +81,26 @@ export const promiseOnceSample = (key: string) =>
   });
 
 export interface SectionSelectSvgUiRequestHandler extends EventHandler {
-  name: "SECTION_SELECT_SVG_UI_GENERATE_REQUEST";
-  handler: (selectedSections: SelectList[], filter: FilterType) => void;
+  name: 'SECTION_SELECT_SVG_UI_GENERATE_REQUEST';
+  handler: (selectedSections: SelectList[], filter: FilterType, path?: string) => void;
 }
 
 export interface SectionSelectSvgMainResponseHandler extends EventHandler {
-  name: "SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE";
-  handler: (svgs: SVGResult["svgs"]) => void;
+  name: 'SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE';
+  handler: (svgs: SVGResult['svgs']) => void;
 }
 
 export interface ProjectUIHandler extends EventHandler {
-  name: "PROJECT_INFO_UI_RESPONSE";
+  name: 'PROJECT_INFO_UI_RESPONSE';
   handler: () => void;
 }
 
 export interface ProjectMainHandler extends EventHandler {
-  name: "PROJECT_INFO_MAIN_RESPONSE";
+  name: 'PROJECT_INFO_MAIN_RESPONSE';
   handler: (project: Project) => void;
 }
 
 export interface ResizeWindowHandler extends EventHandler {
-  name: "RESIZE_WINDOW";
+  name: 'RESIZE_WINDOW';
   handler: (windowSize: { width: number; height: number }) => void;
 }

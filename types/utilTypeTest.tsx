@@ -1,4 +1,4 @@
-import { h } from "preact";
+import { h } from 'preact';
 import {
   Button,
   Columns,
@@ -12,12 +12,8 @@ import {
   TextboxMultiline,
   IconPlus32,
   IconTarget32
-} from "@create-figma-plugin/ui";
-import {
-  ExtractProps,
-  NonNullableComponentTypeExtract,
-  SingleExtractProps
-} from "./utilType";
+} from '@create-figma-plugin/ui';
+import { ExtractProps, NonNullableComponentTypeExtract, SingleExtractProps } from './utilType';
 
 type Props = {
   hello: string;
@@ -31,8 +27,8 @@ const JSXGroups = {
   a: UtilTypeTest
 };
 
-type JSX_A = ExtractProps<typeof JSXGroups, "a">;
+type JSX_A = ExtractProps<typeof JSXGroups, 'a'>;
 
-type JSX_B = NonNullableComponentTypeExtract<(typeof JSXGroups)["a"], "hello">;
+type JSX_B = NonNullableComponentTypeExtract<(typeof JSXGroups)['a'], 'hello'>;
 
 export default UtilTypeTest;

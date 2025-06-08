@@ -1,7 +1,7 @@
-import { TuplifyUnion } from "@fxts/core/dist/types/types/ExcludeObject";
-import Head from "@fxts/core/dist/types/types/Head";
-import Tail from "@fxts/core/dist/types/types/Tail";
-import { LLog } from "./console";
+import { TuplifyUnion } from '@fxts/core/dist/types/types/ExcludeObject';
+import Head from '@fxts/core/dist/types/types/Head';
+import Tail from '@fxts/core/dist/types/types/Tail';
+import { LLog } from './console';
 
 /**
  * 이터러블 뽑는 코드
@@ -15,12 +15,12 @@ export function* iter<T>(iter: T[] | IterableIterator<T>) {
 }
 
 export function* prevIter<T>(iter: T[] | IterableIterator<T>) {
-  yield "start";
+  yield 'start';
   for (const value of iter) {
     yield value;
     yield value;
   }
-  yield "end";
+  yield 'end';
 }
 
 export function* combinationIter<T>(iter: IterableIterator<T>) {
@@ -29,7 +29,7 @@ export function* combinationIter<T>(iter: IterableIterator<T>) {
     const current = iter.next();
     yield {
       prev: prev as T,
-      current: current.value as T,
+      current: current.value as T
     };
   }
 }
@@ -44,7 +44,7 @@ export const objectExtendIterGenerator = <T, P>(fn: (input: T) => P) => {
     for (const value of iter) {
       yield {
         ...value,
-        ...fn(value),
+        ...fn(value)
       };
     }
   };
@@ -62,12 +62,8 @@ export const objectIterGenerator = <T, P>(fn: (input: T) => P) => {
 };
 
 /** async 을 쓸때 주의할 것은 */
-export const objectIterGenerator2 = <T, P>(
-  fn: (input: T) => Promise<P> | P
-) => {
-  return async function* (
-    iter: AsyncIterableIterator<T> | IterableIterator<T>
-  ): AsyncGenerator<P, void, unknown> {
+export const objectIterGenerator2 = <T, P>(fn: (input: T) => Promise<P> | P) => {
+  return async function* (iter: AsyncIterableIterator<T> | IterableIterator<T>): AsyncGenerator<P, void, unknown> {
     for await (const value of iter) {
       yield await fn(value);
     }
@@ -75,11 +71,11 @@ export const objectIterGenerator2 = <T, P>(
 };
 // Helper functions
 function isAsyncIterable(obj: any): obj is AsyncIterable<any> {
-  return obj && typeof obj[Symbol.asyncIterator] === "function";
+  return obj && typeof obj[Symbol.asyncIterator] === 'function';
 }
 
 function isIterable(obj: any): obj is Iterable<any> {
-  return obj && typeof obj[Symbol.iterator] === "function";
+  return obj && typeof obj[Symbol.iterator] === 'function';
 }
 
 /** Generator to Generator
@@ -95,9 +91,7 @@ export const objectIterGenerator3 = <T, P>(
     | Promise<P>
     | P
 ) => {
-  return async function* (
-    iter: AsyncIterableIterator<T> | IterableIterator<T>
-  ): AsyncGenerator<P, void, undefined> {
+  return async function* (iter: AsyncIterableIterator<T> | IterableIterator<T>): AsyncGenerator<P, void, undefined> {
     for await (const value of iter) {
       const result = await fn(value);
       if (isAsyncIterable(result) || isIterable(result)) {
@@ -112,9 +106,7 @@ export const objectIterGenerator3 = <T, P>(
 /**
  * 실행된 함수의 결과만
  */
-export const asyncFunctionIterGenerator = <T, P>(
-  fn: (input: T) => Promise<P> | P
-) => {
+export const asyncFunctionIterGenerator = <T, P>(fn: (input: T) => Promise<P> | P) => {
   return async function* (iter: IterableIterator<T>) {
     for await (const value of iter) {
       let result = await fn(value);
@@ -125,7 +117,7 @@ export const asyncFunctionIterGenerator = <T, P>(
 
 function* PromiseUnPack(list: PromiseSettledResult<any>[]) {
   for (const item of list) {
-    if (item.status === "fulfilled") yield item.value;
+    if (item.status === 'fulfilled') yield item.value;
     else yield item;
   }
 }
@@ -137,11 +129,11 @@ export const isPromise = <T>(a: T | Promise<T>): a is Promise<T> => {
 
   if (
     a != null &&
-    typeof a === "object" &&
+    typeof a === 'object' &&
     //@ts-ignore
-    typeof a.then === "function" &&
+    typeof a.then === 'function' &&
     //@ts-ignore
-    typeof a.catch === "function"
+    typeof a.catch === 'function'
   ) {
     return true;
   }
@@ -206,7 +198,7 @@ type HasPromise<T extends any[]> =
     ? false
     : Head<T> extends Promise<unknown>
       ? true
-      : T["length"] extends 0
+      : T['length'] extends 0
         ? false
         : HasPromise<Tail<T>>;
 // type PossiblyHasPromise<T extends any[]> = Head<T> extends never ? false : HasPromise<TuplifyUnion<Head<T>>> extends true ? true : T["length"] extends 0 ? false : PossiblyHasPromise<Tail<T>>;
