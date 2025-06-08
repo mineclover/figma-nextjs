@@ -69,7 +69,7 @@ function Plugin() {
   });
   const [selectOpen, setSelectOpen] = useState<boolean>(true);
   const [filterOpen, setFilterOpen] = useState<boolean>(true);
-  const [path, setPath] = useState<string>('');
+  const [path, setPath] = useState<`/${string}`>();
   const [sections, setSections] = useState<SelectList[]>([]);
   const [x, update] = useState(0);
   const [filter, setFilter] = useState<FilterType>({
@@ -92,7 +92,7 @@ function Plugin() {
   useEffect(() => {
     emit<ProjectUIHandler>('PROJECT_INFO_UI_RESPONSE');
 
-    emit<SectionSelectSvgUiRequestHandler>('SECTION_SELECT_SVG_UI_GENERATE_REQUEST', sections, filter, path);
+    emit<SectionSelectSvgUiRequestHandler>('SECTION_SELECT_SVG_UI_GENERATE_REQUEST', sections, filter);
 
     on<SectionSelectSvgMainResponseHandler>('SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE', (result) => {
       setResultSvg(result);
@@ -130,9 +130,23 @@ function Plugin() {
     <Container space="medium">
       <VerticalSpace space="extraLarge" />
       <Text>{project.projectName}</Text>
+      <VerticalSpace space="small" />
+      <Textbox
+        value={path || ''}
+        placeholder="경로 입력 (ex: /v2)"
+        onChange={(e) => {
+          let value = e.currentTarget.value;
+
+          if (value.length > 0 && !value.startsWith('/')) {
+            value = '/' + value;
+          }
+
+          setPath(value as `/${string}`);
+        }}></Textbox>
       <VerticalSpace space="medium" />
       <Text>section select</Text>
       <VerticalSpace space="medium" />
+
       <Textbox
         icon={<IconPlus32></IconPlus32>}
         value={'섹션 추가'}
@@ -195,7 +209,8 @@ function Plugin() {
               svgExporter(resultSvg, {
                 sections,
                 filter,
-                project
+                project,
+                path
               });
           }}>
           {/* 만드는 중 */}
@@ -275,7 +290,8 @@ function Plugin() {
                 {
                   sections,
                   filter,
-                  project
+                  project,
+                  path
                 },
                 true
               );

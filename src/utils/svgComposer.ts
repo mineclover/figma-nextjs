@@ -6,7 +6,25 @@ import { FilterType } from '../FigmaPluginUtils';
 import { camel, varToName } from './textTools';
 import { attrsToStyle } from '../components/FolderableCode';
 
-const IconComp = `import { CSSProperties } from "react";
+// 사용 예시
+
+export const svgExporter = async (
+  svgData: SVGResult['svgs'],
+  settings: { sections: SelectList[]; filter: FilterType; project: Project; path?: `/${string}` },
+  dev?: boolean
+) => {
+  const zipFile = new JSZip();
+  const useList = svgData.filter((item) => item.type === 'use');
+  const objectList = svgData.filter((item) => item.type === 'object');
+  const imageList = svgData.filter((item) => item.type === 'image');
+  const useSvgList = useList.map((item) => item.raw);
+
+  /**
+   * 경로 추가하면 앞에 / 필수
+   */
+  const path = settings.path || '';
+
+  const IconComp = `import { CSSProperties } from "react";
 
 type IconProps = {
   alt?: string;
@@ -71,7 +89,7 @@ const filterStyle = (options?: FilterOptions) => {
  *
  * public/~
  */
-const objectPath = "/object/";
+const objectPath = "${path}/object/";
 const Icon = <T extends SvgPaths>({
 	alt,
 	path,
@@ -93,7 +111,7 @@ const Icon = <T extends SvgPaths>({
 		// asset 저장 방식에 맞춰서 호출
 		// 만약 코드에 인라인으로 넣게 되면 바로 # 만 쓰면 된다
 		// 외부 경로에서 오는 것은 고려하지 않아도 되는게 CORS 에러 나서 외부 리소스를 SVGUSE로 쓸 수 없다
-		const assetPath = '/asset.svg?v=1#'
+		const assetPath = '${path}/asset.svg?v=1#'
 		const attrPath = path as (typeof useKeys)[number]
 		const src = assetPath + attrPath
 
@@ -128,7 +146,7 @@ const Icon = <T extends SvgPaths>({
 	}
 
 	if (isImage) {
-		const imagePath = '/images/'
+		const imagePath = '${path}/images/'
 		const attrPath = path as (typeof imageKeys)[number]
 
 		const fullPath = imagePath + attrPath
@@ -178,19 +196,6 @@ const Icon = <T extends SvgPaths>({
 }
 
 export default Icon`;
-
-// 사용 예시
-
-export const svgExporter = async (
-  svgData: SVGResult['svgs'],
-  settings: { sections: SelectList[]; filter: FilterType; project: Project },
-  dev?: boolean
-) => {
-  const zipFile = new JSZip();
-  const useList = svgData.filter((item) => item.type === 'use');
-  const objectList = svgData.filter((item) => item.type === 'object');
-  const imageList = svgData.filter((item) => item.type === 'image');
-  const useSvgList = useList.map((item) => item.raw);
 
   // .ts 파일 생성
 

@@ -82,7 +82,7 @@ export const promiseOnceSample = (key: string) =>
 
 export interface SectionSelectSvgUiRequestHandler extends EventHandler {
   name: 'SECTION_SELECT_SVG_UI_GENERATE_REQUEST';
-  handler: (selectedSections: SelectList[], filter: FilterType, path?: string) => void;
+  handler: (selectedSections: SelectList[], filter: FilterType) => void;
 }
 
 export interface SectionSelectSvgMainResponseHandler extends EventHandler {
