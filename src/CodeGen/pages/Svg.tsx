@@ -9,6 +9,7 @@ import {
 	IconTarget16,
 	SelectableItem,
 	Textbox,
+	TextboxMultiline,
 	Layer,
 	Disclosure,
 	FileUploadDropzone,
@@ -34,9 +35,14 @@ import {
 	SelectNodeByIdZoomHandler,
 	SectionSelectSvgUiRequestHandler,
 	SectionSelectSvgMainResponseHandler,
+	GenerateSvgFromLazyNodesUiRequestHandler,
+	GenerateSvgFromLazyNodesMainResponseHandler,
+	GetNodeInfoUiRequestHandler,
+	GetNodeInfoMainResponseHandler,
 	Project,
 	ProjectUIHandler,
 	ProjectMainHandler,
+	LazyNodeData,
 } from "../types";
 import {
 	addArrayFilterCurry,
@@ -48,7 +54,7 @@ import DragLayer from "../../components/DragLayer";
 import { LLog } from "../../utils/console";
 import { FilterType, pathNodeType } from "../../FigmaPluginUtils";
 import { svgExporter } from "../../utils/svgComposer";
-import { SVGResult } from "../main";
+import { SVGResult } from "../domain/entities/NodeInfo";
 import FolderableCode from "../../components/FolderableCode";
 import DuplicateCheck from "../../components/DuplicateCheck";
 
@@ -77,15 +83,7 @@ const addUniqueArraySection = addArrayFilterCurry<SelectList>(
 //event: h.JSX.TargetedMouseEvent<HTMLInputElement>
 
 function Plugin() {
-	const [project, setProject] = useState<Project>({
-		fileKey: "",
-		projectName: "",
-	});
-	const [selectOpen, setSelectOpen] = useState<boolean>(true);
-	const [filterOpen, setFilterOpen] = useState<boolean>(true);
-	const [path, setPath] = useState<`/${string}`>();
 	const [sections, setSections] = useState<SelectList[]>([]);
-	const [x, update] = useState(0);
 	const [filter, setFilter] = useState<FilterType>({
 		DOCUMENT: true,
 		PAGE: true,
@@ -93,11 +91,23 @@ function Plugin() {
 		COMPONENT_SET: true,
 		COMPONENT: true,
 	});
-	useEffect(() => {
-		generateTrigger();
-	}, [filter, sections]);
-
-	const [resultSvg, setResultSvg] = useState<SVGResult["svgs"]>();
+	const [project, setProject] = useState<Project>({
+		fileKey: "",
+		projectName: "",
+	});
+	const [path, setPath] = useState<`/${string}`>();
+	const [selectOpen, setSelectOpen] = useState<boolean>(false);
+	const [filterOpen, setFilterOpen] = useState<boolean>(false);
+	const [lazyNodes, setLazyNodes] = useState<LazyNodeData[]>([]); // 실제 SVG 대신 lazyNodes 저장
+	const [nodeInfoOpen, setNodeInfoOpen] = useState<boolean>(false);
+	const [selectedNodeInfo, setSelectedNodeInfo] = useState<{
+		id: string;
+		name: string;
+		type: string;
+		width: number;
+		height: number;
+		properties: Record<string, any>;
+	} | null>(null);
 
 	const generateTrigger = () => {
 		emit<SectionSelectSvgUiRequestHandler>(
@@ -107,19 +117,45 @@ function Plugin() {
 		);
 	};
 
+	const generateSvgFromLazyNodes = () => {
+		if (lazyNodes && lazyNodes.length > 0) {
+			emit<GenerateSvgFromLazyNodesUiRequestHandler>(
+				"GENERATE_SVG_FROM_LAZY_NODES_UI_REQUEST",
+				lazyNodes,
+				filter,
+			);
+		}
+	};
+
+	const getNodeInfo = (nodeId: string, pageId: string) => {
+		emit<GetNodeInfoUiRequestHandler>(
+			"GET_NODE_INFO_UI_REQUEST",
+			nodeId,
+			pageId,
+		);
+	};
+
 	useEffect(() => {
 		emit<ProjectUIHandler>("PROJECT_INFO_UI_RESPONSE");
-
-		emit<SectionSelectSvgUiRequestHandler>(
-			"SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
-			sections,
-			filter,
-		);
 
 		on<SectionSelectSvgMainResponseHandler>(
 			"SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE",
 			(result) => {
-				setResultSvg(result);
+				setLazyNodes(result);
+			},
+		);
+
+		on<GenerateSvgFromLazyNodesMainResponseHandler>(
+			"GENERATE_SVG_FROM_LAZY_NODES_MAIN_RESPONSE",
+			(svgResult) => {
+				// SVG 결과를 받아서 export 처리
+				const exportOptions = {
+					sections,
+					filter,
+					project,
+					...(path && { path }),
+				};
+				svgExporter(lazyNodes, exportOptions, svgResult);
 			},
 		);
 
@@ -130,7 +166,27 @@ function Plugin() {
 		on<ProjectMainHandler>("PROJECT_INFO_MAIN_RESPONSE", (data) => {
 			setProject(data);
 		});
+
+		on<GetNodeInfoMainResponseHandler>(
+			"GET_NODE_INFO_MAIN_RESPONSE",
+			(data) => {
+				setSelectedNodeInfo(data);
+			},
+		);
 	}, []);
+
+	// sections가 변경될 때마다 lazyNodes 업데이트
+	useEffect(() => {
+		if (sections.length > 0) {
+			emit<SectionSelectSvgUiRequestHandler>(
+				"SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
+				sections,
+				filter,
+			);
+		} else {
+			setLazyNodes([]);
+		}
+	}, [sections, filter]);
 
 	const deleteSection = (id: string) => {
 		const newArray = sections.filter((selectList) => {
@@ -187,35 +243,44 @@ function Plugin() {
 					setSelectOpen(!(selectOpen === true));
 				}}
 				open={selectOpen}
-				title="Select List"
+				title={`Select List (${sections.length} items)`}
 			>
 				<Container space="extraSmall" className={styles.extra}>
-					{sections.map(({ id, name, pageName, pageId }) => {
-						return (
-							<DragLayer
-								right={() => {
-									deleteSection(id);
-								}}
-								left={() => {
-									deleteSection(id);
-								}}
-								limit={80}
-								key={id}
-								description={pageName}
-								icon={<IconTarget16 />}
-								onClick={(e) => {
-									e.preventDefault();
-									emit<SelectNodeByIdZoomHandler>(
-										"SELECT_NODE_BY_ID_ZOOM",
-										id,
-										pageId,
-									);
-								}}
-							>
-								{name}
-							</DragLayer>
-						);
-					})}
+					{sections.length === 0 ? (
+						<Text>
+							<Muted>
+								선택된 노드가 없습니다. "섹션 추가" 버튼을 클릭하여 노드를
+								선택하세요.
+							</Muted>
+						</Text>
+					) : (
+						sections.map(({ id, name, pageName, pageId }) => {
+							return (
+								<DragLayer
+									right={() => {
+										deleteSection(id);
+									}}
+									left={() => {
+										deleteSection(id);
+									}}
+									limit={80}
+									key={id}
+									description={`${pageName} • ID: ${id}`}
+									icon={<IconTarget16 />}
+									onClick={(e) => {
+										e.preventDefault();
+										emit<SelectNodeByIdZoomHandler>(
+											"SELECT_NODE_BY_ID_ZOOM",
+											id,
+											pageId,
+										);
+									}}
+								>
+									{name}
+								</DragLayer>
+							);
+						})
+					)}
 				</Container>
 			</Disclosure>
 
@@ -238,18 +303,11 @@ function Plugin() {
 				<Button
 					fullWidth
 					onClick={() => {
-						if (resultSvg) {
-							const exportOptions = {
-								sections,
-								filter,
-								project,
-								...(path && { path }),
-							};
-							svgExporter(resultSvg, exportOptions);
+						if (lazyNodes && lazyNodes.length > 0) {
+							generateSvgFromLazyNodes();
 						}
 					}}
 				>
-					{/* 만드는 중 */}
 					Export SVG
 				</Button>
 			</Columns>
@@ -279,6 +337,82 @@ function Plugin() {
 				</div>
 			</Disclosure>
 
+			<Disclosure
+				onClick={(event) => {
+					setNodeInfoOpen(!(nodeInfoOpen === true));
+				}}
+				open={nodeInfoOpen}
+				title="Node Information"
+			>
+				<Container space="extraSmall">
+					{sections.length > 0 ? (
+						<div>
+							<Text>
+								<Muted>
+									선택된 노드 중 하나를 클릭하여 상세 정보를 확인하세요
+								</Muted>
+							</Text>
+							<VerticalSpace space="small" />
+							{sections.map(({ id, name, pageName, pageId }) => (
+								<Button
+									key={id}
+									fullWidth
+									secondary
+									onClick={() => getNodeInfo(id, pageId)}
+								>
+									{name} ({pageName})
+								</Button>
+							))}
+							{selectedNodeInfo && (
+								<div>
+									<VerticalSpace space="small" />
+									<Disclosure open={true} title="Selected Node Details">
+										<Container space="extraSmall">
+											<Text>
+												<strong>ID:</strong> {selectedNodeInfo.id}
+											</Text>
+											<Text>
+												<strong>Name:</strong> {selectedNodeInfo.name}
+											</Text>
+											<Text>
+												<strong>Type:</strong> {selectedNodeInfo.type}
+											</Text>
+											<Text>
+												<strong>Size:</strong> {selectedNodeInfo.width} ×{" "}
+												{selectedNodeInfo.height}
+											</Text>
+											{Object.keys(selectedNodeInfo.properties).length > 0 && (
+												<div>
+													<VerticalSpace space="small" />
+													<Text>
+														<strong>Properties:</strong>
+													</Text>
+													<TextboxMultiline
+														value={JSON.stringify(
+															selectedNodeInfo.properties,
+															null,
+															2,
+														)}
+														readOnly
+													/>
+												</div>
+											)}
+										</Container>
+									</Disclosure>
+								</div>
+							)}
+						</div>
+					) : (
+						<Text>
+							<Muted>
+								선택된 노드가 없습니다. "섹션 추가" 버튼을 클릭하여 노드를
+								선택하세요.
+							</Muted>
+						</Text>
+					)}
+				</Container>
+			</Disclosure>
+
 			<FileUploadDropzone
 				onSelectedFiles={async (e) => {
 					console.log(e);
@@ -293,6 +427,35 @@ function Plugin() {
 					setSections((array) => addUniqueArraySection(array, jsonSections));
 					const jsonFilter = setting.filter;
 					setFilter(jsonFilter);
+
+					// JSON import 후 lazyNodes 생성
+					if (setting.all && Array.isArray(setting.all)) {
+						const importedLazyNodes = setting.all.map((item: any) => ({
+							nodeId: item.node.id,
+							pageId: item.nodeInfo.pageId,
+							nodeInfo: item.nodeInfo,
+							filter: jsonFilter,
+						}));
+						setLazyNodes(importedLazyNodes);
+					} else {
+						// all 배열이 없으면 sections를 기반으로 lazyNodes 생성
+						const sectionsForLazyNodes = setting.sections || jsonSections;
+						if (sectionsForLazyNodes && sectionsForLazyNodes.length > 0) {
+							// sections를 기반으로 lazyNodes 생성하는 로직
+							const lazyNodesFromSections = sectionsForLazyNodes.map(
+								(section: any) => ({
+									nodeId: section.id,
+									pageId: section.pageId,
+									nodeInfo: {
+										pageId: section.pageId,
+										seleteNodeId: section.id,
+									},
+									filter: jsonFilter,
+								}),
+							);
+							setLazyNodes(lazyNodesFromSections);
+						}
+					}
 				}}
 			>
 				<Text align="center">
@@ -300,9 +463,26 @@ function Plugin() {
 				</Text>
 			</FileUploadDropzone>
 			<VerticalSpace space="small" />
-			{resultSvg && (
+			{lazyNodes && lazyNodes.length > 0 && (
+				<Disclosure
+					onClick={(event) => {
+						// lazyNodes 정보 표시 토글
+					}}
+					open={true}
+					title={`Lazy Nodes (${lazyNodes.length} items)`}
+				>
+					<Container space="extraSmall" className={styles.extra}>
+						<Text>
+							<Muted>
+								{`${lazyNodes.length}개의 노드가 지연 처리 대기 중입니다. Export SVG 버튼을 클릭하여 실제 SVG를 생성하세요.`}
+							</Muted>
+						</Text>
+					</Container>
+				</Disclosure>
+			)}
+			{lazyNodes && lazyNodes.length > 0 && (
 				<DuplicateCheck
-					resultSvg={resultSvg}
+					lazyNodes={lazyNodes}
 					generateTrigger={generateTrigger}
 				/>
 			)}
@@ -327,18 +507,11 @@ function Plugin() {
 				<Button
 					fullWidth
 					onClick={() => {
-						if (resultSvg) {
-							const exportOptions = {
-								sections,
-								filter,
-								project,
-								...(path && { path }),
-							};
-							svgExporter(resultSvg, exportOptions, true);
+						if (lazyNodes && lazyNodes.length > 0) {
+							generateSvgFromLazyNodes();
 						}
 					}}
 				>
-					{/* 만드는 중 */}
 					Dev Export SVG
 				</Button>
 			</Columns>

@@ -7,7 +7,7 @@ import styles from './test.module.css';
 
 import { MessageHandler } from '../CodeGen/types';
 import { emit } from '@create-figma-plugin/utilities';
-import { SVGResult } from '../CodeGen/main';
+import { SVGResult } from '../CodeGen/domain/entities/NodeInfo';
 import {
   safeNumberConversion,
   typeofNumber,

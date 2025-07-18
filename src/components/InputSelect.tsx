@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import { useRef, useState } from 'preact/hooks';
-import { SVGResult } from '../CodeGen/main';
+import { SVGResult } from '../CodeGen/domain/entities/NodeInfo';
 import {
   IconLayerInstance16,
   IconLayerImage16,

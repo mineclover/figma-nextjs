@@ -1,4 +1,6 @@
 import { on, showUI, emit } from "@create-figma-plugin/utilities";
+import { LazyNodeData, SVGResult } from "./domain/entities/NodeInfo";
+import { LazySvgGenerationUseCase } from "./application/useCases/LazySvgGenerationUseCase";
 
 import { toSingleSvg } from "../utils/toSvg";
 import type {
@@ -9,6 +11,10 @@ import type {
 	SectionSelectSvgUiRequestHandler,
 	SelectList,
 	SectionSelectSvgMainResponseHandler,
+	GenerateSvgFromLazyNodesUiRequestHandler,
+	GenerateSvgFromLazyNodesMainResponseHandler,
+	GetNodeInfoUiRequestHandler,
+	GetNodeInfoMainResponseHandler,
 	ProjectUIHandler,
 	ProjectMainHandler,
 	ResizeWindowHandler,
@@ -100,23 +106,7 @@ const responseNode = (target: SceneNode) => {
 	}
 };
 
-export type SVGResult = {
-	input: {
-		sections: SelectList[];
-		filter: FilterType;
-	};
-	svgs: {
-		name: string;
-		alias: boolean;
-		node: SceneNode;
-		nodeInfo: NodeInfo;
-		type: "use" | "object" | "image" | string;
-		attrs: Awaited<ReturnType<typeof toSingleSvg>>["attrs"];
-		raw: Awaited<ReturnType<typeof toSingleSvg>>["raw"];
-		origin: Awaited<ReturnType<typeof toSingleSvg>>["origin"];
-		pngs: { scale: number; png: Uint8Array }[];
-	}[];
-};
+// SVGResult 타입은 NodeInfo.ts에서 정의된 것을 사용
 
 export default function () {
 	if (["dev", "figma"].includes(figma.editorType)) {
@@ -226,7 +216,8 @@ export default function () {
 		on<SectionSelectSvgUiRequestHandler>(
 			"SECTION_SELECT_SVG_UI_GENERATE_REQUEST",
 			async (sections, filter) => {
-				const nodes: SceneNode[] = []; // 노드를 저장할 배열 추가
+				// 지연 처리를 위해 노드 정보만 수집
+				const lazyNodes: LazyNodeData[] = [];
 				const pageIdMap = {} as Record<string, NodeInfo>;
 
 				const addPageMap = (
@@ -234,17 +225,25 @@ export default function () {
 					pageId: string,
 					nodeId: string,
 				) => {
-					nodes.push(node);
+					lazyNodes.push({
+						nodeId: node.id,
+						pageId,
+						nodeInfo: {
+							pageId: pageId,
+							seleteNodeId: nodeId,
+						},
+						filter,
+					});
 					pageIdMap[node.id] = {
 						pageId: pageId,
 						seleteNodeId: nodeId,
 					};
 				};
+
 				/**
-				 * 선택된 섹션을 순회해서 노드 데이터를 수집
+				 * 선택된 섹션을 순회해서 노드 데이터를 수집 (실제 SVG 생성은 나중에)
 				 */
 				for (const section of sections) {
-					// for...of 루프 사용
 					const { pageId, id } = section;
 
 					const page = figma.root.findChild(
@@ -252,16 +251,13 @@ export default function () {
 					) as PageNode | null;
 
 					if (!page) {
-						continue; // 다음 섹션으로 넘어감
+						continue;
 					}
 					await figma.setCurrentPageAsync(page);
-					// 현재 페이지를 찾은 페이지로 설정
 
-					// figma 내에서 노드 찾기
 					const node = page.findOne((n) => n.id === id);
 
 					if (node) {
-						// 컴포넌트 셋 또는 섹션일 경우
 						if (areaInclude(node)) {
 							node.children.forEach((n) => {
 								addPageMap(n, pageId, node.id);
@@ -272,79 +268,115 @@ export default function () {
 					}
 				}
 
-				/**
-				 *  접근 방법 두 개임
-				 * 1. flat 한 다음 부모에 접근해서 이름을 얻는다
-				 * 2. 부모 정보 저장하고 그 아래에 자식 순회해서 이름 부여한다
-				 *  - 이 경우에는 부모가 area 에 속하면 가져오는 개념
-				 * # 이름 중복 문제가 있음
-				 *  - 파일 이름 > 페이지 > 섹션 > 섹션 > 컴포넌트 셋 > 컴포넌트
-				 *  - 다 쓰면 중복 안될 가능성이 높음
-				 *  - 소속을 나타내는 데이터는 전부 수집한다
-				 */
-				/**
-				 * 노드 데이터에서 섹션 데이터와 컴포넌트 셋의 데이터 내에 있는 노드에 접근하기 쉽게 평탄화
-				 */
-
-				// nodes 배열을 사용하여 후속 작업 수행
-				// 각 노드 > svg 대상
-
-				const svgs = [] as SVGResult["svgs"];
-				/** 노드 순회하면서 svg 생성한다 컬러 프로퍼티 svg를 생성함 */
-				for (const node of nodes) {
-					// 패스 작업
-					// 받아올 때 컴포넌트 소속이 뭔지 판단하기 위해 코드를 넣음
-					// 패스 역할을 하는 구성요소만 저장했고
-					// 컴포넌트는 그 경계에 있기 때문에 필요에 따라 설계함
-					// 일반적인 프레임, 랙탱글, 그룹 등은 name으로 추가됨
-					// 노드는 현재 선택한 노드
-
-					const { resultName, alias } = toNodeName(node, filter);
-
-					const svg = await toSingleSvg(node, resultName);
-					// const parser = new DOMParser();
-					// const svgDom = parser.parseFromString(svg, "image/svg+xml");
-					// LLog("svg","dom:", svgDom);
-
-					const scales = [2];
-					const pngs = [] as SVGResult["svgs"][number]["pngs"];
-					for (const scale of scales) {
-						const png = await node.exportAsync({
-							format: "PNG",
-							constraint: { type: "SCALE", value: scale },
-						});
-						pngs.push({
-							scale,
-							png,
-						});
-					}
-
-					svgs.push({
-						node: node,
-						name: resultName,
-						alias,
-						nodeInfo: pageIdMap[node.id],
-						...svg,
-						pngs,
-					});
-					// 클래스에 한글을 쓰냐 마냐는 컨벤션 따옴표로 감싸서 쓸 수 있음
-
-					// 선택된 값들에 대한 섹션 아이디가 있고
-					// 결과물로 svg 아이디가 있고 , Node 아이디가 있음
-				}
-				const input = { sections, filter };
-
-				/** SVG react 버전 생성 */
-
+				// 노드 정보만 전달 (실제 SVG 생성은 export 시점에)
 				emit<SectionSelectSvgMainResponseHandler>(
 					"SECTION_SELECT_SVG_MAIN_GENERATE_RESPONSE",
-					svgs,
+					lazyNodes, // 실제 SVG 대신 lazyNodes 전달
 				);
 			},
+		);
 
-			// Object.assign(svgResult, { settings: input, svgs });
-			// sections 는 json import export가 구현되있음
-			// svg export
+		// UI에서 lazyNodes를 기반으로 실제 SVG 생성을 요청하는 핸들러
+		on<GenerateSvgFromLazyNodesUiRequestHandler>(
+			"GENERATE_SVG_FROM_LAZY_NODES_UI_REQUEST",
+			async (lazyNodes, filter) => {
+				const lazySvgUseCase = new LazySvgGenerationUseCase();
+				const svgResult = await lazySvgUseCase.generateSVGOnDemand(
+					lazyNodes,
+					filter,
+				);
+
+				emit<GenerateSvgFromLazyNodesMainResponseHandler>(
+					"GENERATE_SVG_FROM_LAZY_NODES_MAIN_RESPONSE",
+					svgResult,
+				);
+			},
+		);
+
+		// UI에서 노드 정보를 요청하는 핸들러
+		on<GetNodeInfoUiRequestHandler>(
+			"GET_NODE_INFO_UI_REQUEST",
+			async (nodeId, pageId) => {
+				try {
+					const page = figma.root.findChild(
+						(node) => node.id === pageId && node.type === "PAGE",
+					) as PageNode | null;
+
+					if (!page) {
+						console.warn(`Page not found: ${pageId}`);
+						return;
+					}
+
+					await figma.setCurrentPageAsync(page);
+					const node = await figma.getNodeByIdAsync(nodeId);
+
+					if (!node) {
+						console.warn(`Node not found: ${nodeId}`);
+						return;
+					}
+
+					// 노드의 기본 정보 수집
+					const nodeInfo = {
+						id: node.id,
+						name: node.name,
+						type: node.type,
+						width: (node as any).width || 0,
+						height: (node as any).height || 0,
+						properties: {} as Record<string, any>,
+					};
+
+					// 노드 타입별 특정 속성 수집
+					if (node.type === "RECTANGLE") {
+						const rect = node as RectangleNode;
+						nodeInfo.properties = {
+							fills: rect.fills,
+							strokes: rect.strokes,
+							strokeWeight: rect.strokeWeight,
+							cornerRadius: rect.cornerRadius,
+						};
+					} else if (node.type === "TEXT") {
+						const text = node as TextNode;
+						nodeInfo.properties = {
+							characters: text.characters,
+							fontSize: text.fontSize,
+							fontName: text.fontName,
+							fills: text.fills,
+						};
+					} else if (node.type === "FRAME") {
+						const frame = node as FrameNode;
+						nodeInfo.properties = {
+							layoutMode: frame.layoutMode,
+							primaryAxisAlignItems: frame.primaryAxisAlignItems,
+							counterAxisAlignItems: frame.counterAxisAlignItems,
+							paddingLeft: frame.paddingLeft,
+							paddingRight: frame.paddingRight,
+							paddingTop: frame.paddingTop,
+							paddingBottom: frame.paddingBottom,
+							itemSpacing: frame.itemSpacing,
+						};
+					} else if (node.type === "COMPONENT") {
+						const component = node as ComponentNode;
+						nodeInfo.properties = {
+							description: component.description,
+							documentationLinks: component.documentationLinks,
+						};
+					} else if (node.type === "INSTANCE") {
+						const instance = node as InstanceNode;
+						nodeInfo.properties = {
+							componentId: (instance as any).componentId,
+							componentProperties: instance.componentProperties,
+							exposedInstances: instance.exposedInstances,
+						};
+					}
+
+					emit<GetNodeInfoMainResponseHandler>(
+						"GET_NODE_INFO_MAIN_RESPONSE",
+						nodeInfo,
+					);
+				} catch (error) {
+					console.error(`Error getting node info for ${nodeId}:`, error);
+				}
+			},
 		);
 
 		on<ProjectUIHandler>("PROJECT_INFO_UI_RESPONSE", async function async() {

@@ -1,5 +1,5 @@
 import { Fragment, h } from 'preact';
-import { SVGResult } from '../CodeGen/main';
+import { SVGResult } from '../CodeGen/domain/entities/NodeInfo';
 import { useState } from 'preact/hooks';
 import {
   Bold,

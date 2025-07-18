@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { SVGResult } from '../CodeGen/main';
+import { SVGResult } from '../CodeGen/domain/entities/NodeInfo';
 import { useState } from 'preact/hooks';
 import {
   Container,
@@ -19,44 +19,38 @@ import {
   VerticalSpace,
 } from '@create-figma-plugin/ui';
 import InputSelect from './InputSelect';
+import { LazyNodeData } from '../CodeGen/types';
 
 interface Props {
-  resultSvg?: SVGResult['svgs'];
+  lazyNodes?: LazyNodeData[];
   generateTrigger: Function;
 }
 
-const DuplicateCheck = ({ resultSvg, generateTrigger }: Props) => {
+const DuplicateCheck = ({ lazyNodes, generateTrigger }: Props) => {
   const [hover, setHover] = useState(false);
 
-  if (resultSvg) {
-    const target = resultSvg
-      .map((svg) => {
-        const isDuplicate =
-          svg.name && resultSvg.filter((s) => s.name === svg.name).length > 1;
-        if (isDuplicate) return { ...svg, isDuplicate: true };
-
-        return { ...svg, isDuplicate: false };
-      })
-      .sort((a, b) => (a.name < b.name ? -1 : 1));
-
+  if (!lazyNodes || lazyNodes.length === 0) {
     return (
       <Container space="extraSmall">
         <Text>
-          <Muted>Icons</Muted>
+          <Muted>노드가 선택되지 않았습니다</Muted>
         </Text>
-        <VerticalSpace space="extraSmall" />
-        {target.map((data) => (
-          <InputSelect
-            data={data}
-            key={data.node.id + data.name}
-            generateTrigger={generateTrigger}
-          />
-        ))}
       </Container>
     );
   }
 
-  return null;
+  // LazyNodeData는 실제 SVG 데이터가 아니므로 간단한 정보만 표시
+  return (
+    <Container space="extraSmall">
+      <Text>
+        <Muted>선택된 노드: {lazyNodes.length}개</Muted>
+      </Text>
+      <VerticalSpace space="extraSmall" />
+      <Text>
+        <Muted>Export 시점에 실제 SVG가 생성됩니다</Muted>
+      </Text>
+    </Container>
+  );
 };
 
 export default DuplicateCheck;

@@ -1,26 +1,39 @@
-import { SVGResult } from '../CodeGen/main';
 import {
   SelectList,
   FilterType,
   Project,
+  LazyNodeData,
+  SVGResult,
 } from '../CodeGen/domain/entities/NodeInfo';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { camel, varToName } from './textTools';
 import { attrsToStyle } from '../components/FolderableCode';
+import { LazySvgGenerationUseCase } from '../CodeGen/application/useCases/LazySvgGenerationUseCase';
 
 // 사용 예시
 
 export const svgExporter = async (
-  svgData: any,
+  lazyNodes: LazyNodeData[],
   settings: {
     sections: SelectList[];
     filter: FilterType;
     project: Project;
     path?: `/${string}`;
   },
+  svgResult?: SVGResult,
   dev?: boolean
 ) => {
+  // SVGResult가 제공되지 않은 경우에만 생성
+  if (!svgResult) {
+    const lazySvgUseCase = new LazySvgGenerationUseCase();
+    svgResult = await lazySvgUseCase.generateSVGOnDemand(
+      lazyNodes,
+      settings.filter
+    );
+  }
+
+  const svgData = svgResult.svgs;
   const zipFile = new JSZip();
   const useList = svgData.filter((item: any) => item.type === 'use');
   const objectList = svgData.filter((item: any) => item.type === 'object');
