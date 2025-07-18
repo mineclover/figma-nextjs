@@ -93,6 +93,7 @@ export async function findMainComponent(instance: InstanceNode) {
     }
     return null; // 메인 컴포넌트를 찾지 못한 경우
   }
+  return null; // INSTANCE가 아닌 경우
 }
 
 type 참조 = Prettify<BaseNodeMixin>;

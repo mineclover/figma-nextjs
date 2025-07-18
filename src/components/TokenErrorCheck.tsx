@@ -23,8 +23,8 @@ import FolderableError from './FolderableError';
 import { ErrorTokenData, VariableTokenData } from '../CodeGen/variableMain';
 
 type Props = {
-  data?: VariableTokenData;
-  errors?: ErrorTokenData;
+  data?: VariableTokenData | undefined;
+  errors?: ErrorTokenData | undefined;
 };
 
 const TokenErrorCheck = ({ data, errors: errorDatas }: Props) => {

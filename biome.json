@@ -17,8 +17,7 @@
     "rules": {
       "recommended": false,
       "correctness": {
-        "useExhaustiveDependencies": "error",
-        "noUnusedVariables": "warn"
+        "useExhaustiveDependencies": "error"
       },
       "style": {
         "useConst": "error",

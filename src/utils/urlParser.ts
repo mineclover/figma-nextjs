@@ -3,13 +3,13 @@ export interface GitHubURLComponents {
   projectName: string;
   branchOrHash: string;
   filePath: string;
-  lineNumber?: string;
+  lineNumber?: string | undefined;
 }
 
 export function parseGitHubCodeURL(url: string): GitHubURLComponents | null {
   // 서치 파라미터 제거 (해시 이전의 '?' 이후 부분 제거)
   const [urlWithoutSearch, hash] = url.split('#');
-  const cleanUrl = urlWithoutSearch.split('?')[0] + (hash ? '#' + hash : '');
+  const cleanUrl = `${urlWithoutSearch.split('?')[0]}${hash ? `#${hash}` : ''}`;
 
   // GitHub URL 패턴에 맞는 정규 표현식 (해시 포함)
   const githubRegex =
