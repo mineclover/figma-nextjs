@@ -1,4 +1,8 @@
 export class VariableProcessingUseCase {
+	constructor() {
+		// 빈 생성자
+	}
+
 	async execute(): Promise<{
 		designTokens: Record<string, string>;
 		scssModeStyles: Record<string, Record<string, string>>;

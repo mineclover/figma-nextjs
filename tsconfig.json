@@ -1,16 +1,22 @@
 {
-  "extends": "@create-figma-plugin/tsconfig",
+	"extends": "@create-figma-plugin/tsconfig",
 
-  "compilerOptions": {
-    "target": "ES6",
-    "paths": {
-      "react": ["./node_modules/preact/compat"],
-      "react-dom": ["./node_modules/preact/compat"]
-    },
-    "skipLibCheck": true,
+	"compilerOptions": {
+		"target": "ES6",
+		"paths": {
+			"react": ["./node_modules/preact/compat"],
+			"react-dom": ["./node_modules/preact/compat"]
+		},
+		"skipLibCheck": true,
+		"strict": true,
+		"noImplicitAny": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"exactOptionalPropertyTypes": true,
+		"typeRoots": ["node_modules/@figma", "node_modules/@types"]
+	},
 
-    "typeRoots": ["node_modules/@figma", "node_modules/@types"]
-  },
-
-  "include": ["src/**/*.ts", "src/**/*.tsx", "types/**.d.ts", "types/**/*.tsx"]
+	"include": ["src/**/*.ts", "src/**/*.tsx", "types/**.d.ts", "types/**/*.tsx"]
 }

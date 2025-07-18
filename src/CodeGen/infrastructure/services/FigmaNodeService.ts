@@ -11,7 +11,8 @@ export class FigmaNodeService {
 		}
 
 		await figma.setCurrentPageAsync(page);
-		return await figma.getNodeByIdAsync(nodeId);
+		const result = await figma.getNodeByIdAsync(nodeId);
+		return result || null;
 	}
 
 	getNodeInfo(node: any): NodeInfo {
