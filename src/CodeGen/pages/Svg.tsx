@@ -99,6 +99,7 @@ function Plugin() {
 	const [selectOpen, setSelectOpen] = useState<boolean>(false);
 	const [filterOpen, setFilterOpen] = useState<boolean>(false);
 	const [lazyNodes, setLazyNodes] = useState<LazyNodeData[]>([]); // 실제 SVG 대신 lazyNodes 저장
+	const [lazyNodesOpen, setLazyNodesOpen] = useState<boolean>(false);
 	const [nodeInfoOpen, setNodeInfoOpen] = useState<boolean>(false);
 	const [selectedNodeInfo, setSelectedNodeInfo] = useState<{
 		id: string;
@@ -284,6 +285,70 @@ function Plugin() {
 				</Container>
 			</Disclosure>
 
+			{lazyNodes.length > 0 && (
+				<div>
+					<VerticalSpace space="small" />
+					<Text>
+						<Muted>지연처리 대기중입니다 ~</Muted>
+					</Text>
+					<VerticalSpace space="small" />
+					<Disclosure
+						onClick={(event) => {
+							setLazyNodesOpen(!(lazyNodesOpen === true));
+						}}
+						open={lazyNodesOpen}
+						title={`Lazy Nodes (${lazyNodes.length} items)`}
+					>
+						<Container space="extraSmall" className={styles.extra}>
+							{lazyNodes.map((lazyNode, index) => {
+								// sections에서 해당 노드 정보 찾기
+								const section = sections.find((s) => s.id === lazyNode.nodeId);
+								return (
+									<DragLayer
+										right={() => {
+											// 실제 위치로 이동
+											if (section) {
+												emit<SelectNodeByIdZoomHandler>(
+													"SELECT_NODE_BY_ID_ZOOM",
+													section.id,
+													section.pageId,
+												);
+											}
+										}}
+										left={() => {
+											// 중복 감지 및 삭제
+											const duplicateIndex = lazyNodes.findIndex(
+												(node, i) =>
+													i !== index && node.nodeId === lazyNode.nodeId,
+											);
+											if (duplicateIndex !== -1) {
+												const newLazyNodes = lazyNodes.filter(
+													(_, i) => i !== duplicateIndex,
+												);
+												setLazyNodes(newLazyNodes);
+											}
+										}}
+										limit={80}
+										key={`${lazyNode.nodeId}-${index}`}
+										description={`${section?.pageName || "Unknown"} • ID: ${lazyNode.nodeId}`}
+										icon={<IconTarget16 />}
+										onClick={(e) => {
+											e.preventDefault();
+											// 이름 변경 기능 (실제로는 노드 정보 표시)
+											if (section) {
+												getNodeInfo(section.id, section.pageId);
+											}
+										}}
+									>
+										{section?.name || `Node ${lazyNode.nodeId}`}
+									</DragLayer>
+								);
+							})}
+						</Container>
+					</Disclosure>
+				</div>
+			)}
+
 			<Columns space="extraSmall">
 				{/* <Button
           fullWidth
@@ -463,29 +528,6 @@ function Plugin() {
 				</Text>
 			</FileUploadDropzone>
 			<VerticalSpace space="small" />
-			{lazyNodes && lazyNodes.length > 0 && (
-				<Disclosure
-					onClick={(event) => {
-						// lazyNodes 정보 표시 토글
-					}}
-					open={true}
-					title={`Lazy Nodes (${lazyNodes.length} items)`}
-				>
-					<Container space="extraSmall" className={styles.extra}>
-						<Text>
-							<Muted>
-								{`${lazyNodes.length}개의 노드가 지연 처리 대기 중입니다. Export SVG 버튼을 클릭하여 실제 SVG를 생성하세요.`}
-							</Muted>
-						</Text>
-					</Container>
-				</Disclosure>
-			)}
-			{lazyNodes && lazyNodes.length > 0 && (
-				<DuplicateCheck
-					lazyNodes={lazyNodes}
-					generateTrigger={generateTrigger}
-				/>
-			)}
 
 			<VerticalSpace space="small" />
 			<Columns space="extraSmall">
