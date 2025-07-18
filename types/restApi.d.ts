@@ -1002,7 +1002,11 @@ export interface components {
        * @default NONE
        * @enum {string}
        */
-      overflowDirection: 'HORIZONTAL_SCROLLING' | 'VERTICAL_SCROLLING' | 'HORIZONTAL_AND_VERTICAL_SCROLLING' | 'NONE';
+      overflowDirection:
+        | 'HORIZONTAL_SCROLLING'
+        | 'VERTICAL_SCROLLING'
+        | 'HORIZONTAL_AND_VERTICAL_SCROLLING'
+        | 'NONE';
       /**
        * @description Whether this layer uses auto-layout to position its children.
        * @default NONE
@@ -1281,7 +1285,8 @@ export interface components {
       components['schemas']['HasEffectsTrait'] &
       components['schemas']['HasMaskTrait'] &
       components['schemas']['TransitionSourceTrait'];
-    CornerRadiusShapeTraits: components['schemas']['DefaultShapeTraits'] & components['schemas']['CornerTrait'];
+    CornerRadiusShapeTraits: components['schemas']['DefaultShapeTraits'] &
+      components['schemas']['CornerTrait'];
     RectangularShapeTraits: components['schemas']['DefaultShapeTraits'] &
       components['schemas']['CornerTrait'] &
       components['schemas']['IndividualStrokesTrait'];
@@ -2010,7 +2015,11 @@ export interface components {
        * @description The string literal representing the paint's type. Always check the `type` before reading other properties.
        * @enum {string}
        */
-      type: 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL' | 'GRADIENT_ANGULAR' | 'GRADIENT_DIAMOND';
+      type:
+        | 'GRADIENT_LINEAR'
+        | 'GRADIENT_RADIAL'
+        | 'GRADIENT_ANGULAR'
+        | 'GRADIENT_DIAMOND';
       /** @description This field contains three vectors, each of which are a position in normalized object space (normalized object space is if the top left corner of the bounding box of the object is (0, 0) and the bottom right is (1,1)). The first position corresponds to the start of the gradient (value 0 for the purposes of calculating gradient stops), the second position is the end of the gradient (value 1), and the third handle position determines the width of the gradient. */
       gradientHandlePositions: components['schemas']['Vector'][];
       /** @description Positions of key points along the gradient axis with the colors anchored there. Colors along the gradient are interpolated smoothly between neighboring gradient stops. */
@@ -2343,7 +2352,12 @@ export interface components {
        * @description Text casing applied to the node, default is the original casing.
        * @enum {string}
        */
-      textCase?: 'UPPER' | 'LOWER' | 'TITLE' | 'SMALL_CAPS' | 'SMALL_CAPS_FORCED';
+      textCase?:
+        | 'UPPER'
+        | 'LOWER'
+        | 'TITLE'
+        | 'SMALL_CAPS'
+        | 'SMALL_CAPS_FORCED';
       /**
        * @description Text decoration applied to the node, default is none.
        * @default NONE
@@ -2525,7 +2539,8 @@ export interface components {
      * @enum {string}
      */
     ConnectorLineType: 'STRAIGHT' | 'ELBOWED';
-    ConnectorTextBackground: components['schemas']['CornerTrait'] & components['schemas']['MinimalFillsTrait'];
+    ConnectorTextBackground: components['schemas']['CornerTrait'] &
+      components['schemas']['MinimalFillsTrait'];
     /** @description A description of a main component. Helps you identify which component instances are attached to. */
     Component: {
       /** @description The key of the component */
@@ -2608,7 +2623,12 @@ export interface components {
       /** @enum {string} */
       type: 'ON_KEY_DOWN';
       /** @enum {string} */
-      device: 'KEYBOARD' | 'XBOX_ONE' | 'PS4' | 'SWITCH_PRO' | 'UNKNOWN_CONTROLLER';
+      device:
+        | 'KEYBOARD'
+        | 'XBOX_ONE'
+        | 'PS4'
+        | 'SWITCH_PRO'
+        | 'UNKNOWN_CONTROLLER';
       keyCodes: number[];
     };
     OnMediaHitTrigger: {
@@ -2641,7 +2661,13 @@ export interface components {
           type: 'UPDATE_MEDIA_RUNTIME';
           destinationId: string | null;
           /** @enum {string} */
-          mediaAction: 'PLAY' | 'PAUSE' | 'TOGGLE_PLAY_PAUSE' | 'MUTE' | 'UNMUTE' | 'TOGGLE_MUTE_UNMUTE';
+          mediaAction:
+            | 'PLAY'
+            | 'PAUSE'
+            | 'TOGGLE_PLAY_PAUSE'
+            | 'MUTE'
+            | 'UNMUTE'
+            | 'TOGGLE_MUTE_UNMUTE';
         }
       | {
           /** @enum {string} */
@@ -2688,7 +2714,9 @@ export interface components {
      * @enum {string}
      */
     Navigation: 'NAVIGATE' | 'SWAP' | 'OVERLAY' | 'SCROLL_TO' | 'CHANGE_TO';
-    Transition: components['schemas']['SimpleTransition'] | components['schemas']['DirectionalTransition'];
+    Transition:
+      | components['schemas']['SimpleTransition']
+      | components['schemas']['DirectionalTransition'];
     /** @description Describes an animation used when navigating in a prototype. */
     SimpleTransition: {
       /** @enum {string} */
@@ -2770,7 +2798,13 @@ export interface components {
      * @description Defines the types of data a VariableData object can hold
      * @enum {string}
      */
-    VariableDataType: 'BOOLEAN' | 'FLOAT' | 'STRING' | 'COLOR' | 'VARIABLE_ALIAS' | 'EXPRESSION';
+    VariableDataType:
+      | 'BOOLEAN'
+      | 'FLOAT'
+      | 'STRING'
+      | 'COLOR'
+      | 'VARIABLE_ALIAS'
+      | 'EXPRESSION';
     /**
      * @description Defines the types of data a VariableData object can eventually equal
      * @enum {string}
@@ -2828,7 +2862,11 @@ export interface components {
        * @default bottom-right
        * @enum {string}
        */
-      comment_pin_corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+      comment_pin_corner:
+        | 'top-left'
+        | 'top-right'
+        | 'bottom-left'
+        | 'bottom-right';
     };
     /** @description Position of a region comment relative to the frame to which it is attached. */
     FrameOffsetRegion: {
@@ -2845,7 +2883,11 @@ export interface components {
        * @default bottom-right
        * @enum {string}
        */
-      comment_pin_corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+      comment_pin_corner:
+        | 'top-left'
+        | 'top-right'
+        | 'bottom-left'
+        | 'bottom-right';
     };
     /** @description A comment or reply left by a user. */
     Comment: {
@@ -3056,7 +3098,13 @@ export interface components {
      * @description An enum representing the possible events that a webhook can subscribe to
      * @enum {string}
      */
-    WebhookV2Event: 'PING' | 'FILE_UPDATE' | 'FILE_VERSION_UPDATE' | 'FILE_DELETE' | 'LIBRARY_PUBLISH' | 'FILE_COMMENT';
+    WebhookV2Event:
+      | 'PING'
+      | 'FILE_UPDATE'
+      | 'FILE_VERSION_UPDATE'
+      | 'FILE_DELETE'
+      | 'LIBRARY_PUBLISH'
+      | 'FILE_COMMENT';
     /**
      * @description An enum representing the possible statuses you can set a webhook to:
      *     - `ACTIVE`: The webhook is healthy and receive all events
@@ -4568,7 +4616,9 @@ export interface components {
             };
             /** @description A map of variable collection ids to variable collections */
             variableCollections: {
-              [key: string]: components['schemas']['PublishedVariableCollection'];
+              [
+                key: string
+              ]: components['schemas']['PublishedVariableCollection'];
             };
           };
         };

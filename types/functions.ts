@@ -133,7 +133,7 @@ export const tagMap = {
   u: 'u',
   ul: 'ul',
   // prettier-ignore
-  "var": 'var',
+  var: 'var',
   video: 'video',
   wbr: 'wbr',
   webview: 'webview',
@@ -197,5 +197,5 @@ export const tagMap = {
   textPath: 'textPath',
   tspan: 'tspan',
   use: 'use',
-  view: 'view'
+  view: 'view',
 } as const;

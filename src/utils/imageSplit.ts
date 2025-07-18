@@ -2,7 +2,10 @@ import { LLog } from './console';
 
 const selectType = ['SLICE'];
 
-export function* sliceDeepTraverse(node: BaseNode, path = 'select'): IterableIterator<Rect> {
+export function* sliceDeepTraverse(
+  node: BaseNode,
+  path = 'select'
+): IterableIterator<Rect> {
   // 현재 노드 방문
   if (selectType.includes(node.type)) {
     const data = (node as SliceNode).absoluteBoundingBox;

@@ -1,6 +1,5 @@
-export type FigmaNodeType<T extends keyof FigmaNodeTypeMapping> = T extends keyof FigmaNodeTypeMapping
-  ? FigmaNodeTypeMapping[T]
-  : never;
+export type FigmaNodeType<T extends keyof FigmaNodeTypeMapping> =
+  T extends keyof FigmaNodeTypeMapping ? FigmaNodeTypeMapping[T] : never;
 export type FigmaNodeTypeMapping = {
   BOOLEAN_OPERATION: BooleanOperationNode;
   CODE_BLOCK: CodeBlockNode;

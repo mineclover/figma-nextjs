@@ -1,7 +1,9 @@
 import { h } from 'preact';
 export type SvgTypes = { path: '20vDesignSystem_Icon__Sticker_Image_Text_48' };
 export const useKeys = [] as const;
-export const imageKeys = ['20vDesignSystem_Icon__Sticker_Image_Text_48'] as const;
+export const imageKeys = [
+  '20vDesignSystem_Icon__Sticker_Image_Text_48',
+] as const;
 export const objectKeys = [] as const;
 export type SvgPaths = SvgTypes['path']; // Svg들의 path 타입을 추출
 export type SvgPropsType<T extends SvgPaths> = Extract<SvgTypes, { path: T }>;
@@ -35,7 +37,7 @@ const clc = (...classNames: NullableString[]) => {
 const fillStyles = (isFill?: boolean) => {
   if (isFill)
     return {
-      objectFit: 'cover'
+      objectFit: 'cover',
     } as const;
   return {};
 };
@@ -63,7 +65,7 @@ const filterStyle = (options?: FilterOptions) => {
 
   return {
     filter: filter,
-    opacity: opacity
+    opacity: opacity,
   };
 };
 
@@ -109,10 +111,11 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
           ...fillStyles(props.fill),
           ...filterStyle(props.options),
           ...varStyles,
-          ...props.style
+          ...props.style,
         }}
         className={clc(props.className)}
-        aria-label={alt}>
+        aria-label={alt}
+      >
         <use href={src} xlinkHref={src} />
       </svg>
     );
@@ -123,7 +126,9 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
     const path = props.path as (typeof imageKeys)[number];
 
     const fullPath = imagePath + path;
-    const srcset = scales.map((scale) => fullPath + scale + '.png ' + scale).join(', ');
+    const srcset = scales
+      .map((scale) => fullPath + scale + '.png ' + scale)
+      .join(', ');
 
     return (
       <img
@@ -133,7 +138,7 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
         style={{
           ...fillStyles(props.fill),
           ...filterStyle(props.options),
-          ...props.style
+          ...props.style,
         }}
         className={clc(props.className)}
         aria-label={alt}
@@ -158,8 +163,9 @@ const Icon = <T extends SvgPaths>(props: SvgPropsType<T> & IconProps) => {
           ...fillStyles(props.fill),
           ...filterStyle(props.options),
           pointerEvents: 'none',
-          ...props.style
-        }}></object>
+          ...props.style,
+        }}
+      ></object>
     );
   }
 

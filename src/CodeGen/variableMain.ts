@@ -1,4 +1,8 @@
-import { FilterType, FilePathSearch, FilterTypeIndex } from '../FigmaPluginUtils';
+import {
+  FilterType,
+  FilePathSearch,
+  FilterTypeIndex,
+} from '../FigmaPluginUtils';
 import { LLog } from '../utils/console';
 import { typeofNumber } from '../utils/textTools';
 
@@ -41,7 +45,9 @@ export const getVarName = (styleName: string, tokenName: string) => {
   return 'var(--' + styleName + splitUnit + tokenName + ');';
 };
 
-export const getIsVariable = (variable: VariableValue): variable is VariableAlias => {
+export const getIsVariable = (
+  variable: VariableValue
+): variable is VariableAlias => {
   return (
     typeof variable === 'object' &&
     (('type' in variable) as unknown as VariableAlias) &&
@@ -101,7 +107,11 @@ export const toStyleName = (
       errorTokens[parent.name] = [];
     }
 
-    errorTokens[parent.name].push([errorPrefix + count, vari.name, vari.resolvedType]);
+    errorTokens[parent.name].push([
+      errorPrefix + count,
+      vari.name,
+      vari.resolvedType,
+    ]);
     return errorPrefix + count;
   }
 
@@ -147,7 +157,7 @@ export const toNodeName = (
   if (pluginSaveName !== '')
     return {
       resultName: pluginSaveName,
-      alias: true
+      alias: true,
     };
 
   const names = currentNode.name.split(', ');
@@ -174,8 +184,9 @@ export const toNodeName = (
     .join('_');
   const firstName = path ? path + '__' : '';
   return {
-    resultName: firstName + name.replace(/ /g, '').replace(/-/g, '_').replace(/\//g, '_'),
-    alias: false
+    resultName:
+      firstName + name.replace(/ /g, '').replace(/-/g, '_').replace(/\//g, '_'),
+    alias: false,
   };
 };
 
@@ -185,10 +196,13 @@ export const toNodeName = (
  *  스코프 디펜던시 있음
  */
 export const toTokenId = (vari: Variable, modeKey: string) => {
-  const variableCollectionId = vari.variableCollectionId.replace(VCID, 'VCID').replace(':', '_');
+  const variableCollectionId = vari.variableCollectionId
+    .replace(VCID, 'VCID')
+    .replace(':', '_');
   const variableID = vari.id.replace(VID, 'VID').replace(/:/g, '_');
 
-  const isRemote = variableCollectionId.includes('/') && variableID.includes('/');
+  const isRemote =
+    variableCollectionId.includes('/') && variableID.includes('/');
 
   // const modeValue = vari.valuesByMode[modeKey];
   // console.log("mode:", modeValue);
@@ -211,7 +225,9 @@ export const toTokenId = (vari: Variable, modeKey: string) => {
  */
 export const fromTokenId = (tokenId: string) => {
   const [tokenVCID, tokenVID, tokenMode] = tokenId.split('__');
-  const variableCollectionId = tokenVCID.replace('VCID', VCID).replace(/_/g, ':');
+  const variableCollectionId = tokenVCID
+    .replace('VCID', VCID)
+    .replace(/_/g, ':');
   const variableID = tokenVID.replace('VID', VID).replace(/_/g, ':');
   const mode = tokenMode.replace('M', '');
 
@@ -219,6 +235,6 @@ export const fromTokenId = (tokenId: string) => {
   return {
     variableCollectionId,
     variableID,
-    mode
+    mode,
   };
 };

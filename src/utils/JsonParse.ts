@@ -34,10 +34,10 @@ const nullPaths = {
   /** 도큐먼트 용 이름 > 공백 제거 */
   documentPath: {
     path: '',
-    origin: ''
+    origin: '',
   },
   /** 실제 경로 > 공백 변형 */
-  path: ''
+  path: '',
 };
 export type DeepNode = { node: BaseNode; path: DetailPaths };
 /** 오로지 내부 식별용 유니크한 구분자 */
@@ -67,14 +67,17 @@ export const pathJoin = (...args: string[]) => {
 /**
  * 대상 객체 내부 순회 1초 딜레이
  */
-export async function* delayPathDeepTraverse({ node, path }: DeepNode): AsyncIterableIterator<DeepNode> {
+export async function* delayPathDeepTraverse({
+  node,
+  path,
+}: DeepNode): AsyncIterableIterator<DeepNode> {
   // }: DeepNode): IterableIterator<DeepNode> {
   // 현재 노드 방문
   figmaProgress('pathDeepTraverse');
   await sleep(1001);
   yield {
     node,
-    path
+    path,
   };
   // 자식 노드가 존재하는 경우
   if ('children' in node && node.children && node.children.length) {
@@ -82,17 +85,20 @@ export async function* delayPathDeepTraverse({ node, path }: DeepNode): AsyncIte
     for (let i = 0; i < node.children.length; i++) {
       yield* delayPathDeepTraverse({
         node: node.children[i],
-        path: detailPathExtend(node.children[i], path, i)
+        path: detailPathExtend(node.children[i], path, i),
         // path: path + testSymbol + i,
       });
     }
   }
 }
 
-export function* pathDeepTraverse({ node, path }: DeepNode): IterableIterator<DeepNode> {
+export function* pathDeepTraverse({
+  node,
+  path,
+}: DeepNode): IterableIterator<DeepNode> {
   yield {
     node,
-    path
+    path,
   };
   // 자식 노드가 존재하는 경우
   if ('children' in node && node.children && node.children.length) {
@@ -100,7 +106,7 @@ export function* pathDeepTraverse({ node, path }: DeepNode): IterableIterator<De
     for (let i = 0; i < node.children.length; i++) {
       yield* pathDeepTraverse({
         node: node.children[i],
-        path: detailPathExtend(node.children[i], path, i)
+        path: detailPathExtend(node.children[i], path, i),
         // path: path + testSymbol + i,
       });
     }
@@ -202,7 +208,11 @@ const originClear = (path: string) => {
     .join(slashSymbol);
 };
 
-export const detailPathExtend = (node: BaseNode, path?: DetailPaths, index?: number): DetailPaths => {
+export const detailPathExtend = (
+  node: BaseNode,
+  path?: DetailPaths,
+  index?: number
+): DetailPaths => {
   const indexValue = typeof index === 'number' ? String(index) : '0';
 
   const documentPath = documentValid(node);
@@ -222,10 +232,10 @@ export const detailPathExtend = (node: BaseNode, path?: DetailPaths, index?: num
      */
     documentPath: {
       path: pathValid(up),
-      origin: originClear(up)
+      origin: originClear(up),
     },
     /** 실제 경로 > 공백 변형 */
-    path: indexValue
+    path: indexValue,
   };
 
   if (path) {
@@ -240,10 +250,10 @@ export const detailPathExtend = (node: BaseNode, path?: DetailPaths, index?: num
         //TODO: origin은 차후 피그마 경로를 위한 세션 경로 파싱 후 컴포넌트 이름 적용에 쓰여야 됨
         // 섹션 한계층을 무시하는 속성 때문에
         path: pathValid(up),
-        origin: originClear(up)
+        origin: originClear(up),
       },
       /** 실제 상대 경로 > 공백 변형 > 재귀 탐색용 */
-      path: symbolJoin(path.path, indexValue)
+      path: symbolJoin(path.path, indexValue),
     };
   }
   return current;

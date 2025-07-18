@@ -8,7 +8,7 @@ import {
   TextboxNumeric,
   VerticalSpace,
   Code,
-  TextboxMultiline
+  TextboxMultiline,
 } from '@create-figma-plugin/ui';
 import { emit, on } from '@create-figma-plugin/utilities';
 import { h } from 'preact';
@@ -87,7 +87,8 @@ function Plugin() {
             emit<MessageHandler>('POST_MESSAGE', '복사 완료');
           }
         }}
-        value={text}></TextboxMultiline>
+        value={text}
+      ></TextboxMultiline>
     </Container>
   );
 }

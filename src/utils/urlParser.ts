@@ -12,7 +12,8 @@ export function parseGitHubCodeURL(url: string): GitHubURLComponents | null {
   const cleanUrl = urlWithoutSearch.split('?')[0] + (hash ? '#' + hash : '');
 
   // GitHub URL 패턴에 맞는 정규 표현식 (해시 포함)
-  const githubRegex = /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+?)(#L\d+)?$/;
+  const githubRegex =
+    /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+?)(#L\d+)?$/;
   const match = cleanUrl.match(githubRegex);
 
   if (!match) {
@@ -27,6 +28,6 @@ export function parseGitHubCodeURL(url: string): GitHubURLComponents | null {
     projectName,
     branchOrHash,
     filePath,
-    lineNumber: lineNumber ? lineNumber.slice(2) : undefined // '#L' 제거
+    lineNumber: lineNumber ? lineNumber.slice(2) : undefined, // '#L' 제거
   };
 }

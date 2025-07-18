@@ -8,25 +8,42 @@ import {
   TextboxNumeric,
   VerticalSpace,
   Code,
-  TextboxMultiline
+  TextboxMultiline,
 } from '@create-figma-plugin/ui';
 import { emit, on } from '@create-figma-plugin/utilities';
 import { h } from 'preact';
 import { useCallback, useState, useEffect } from 'preact/hooks';
 
-import { CloseHandler, SvgSymbolHandler, MessageHandler, ScanHandler } from '../types';
-import { VariableGetRequestHandler, VariableGetResponseHandler } from './variableHandlerType';
+import {
+  CloseHandler,
+  SvgSymbolHandler,
+  MessageHandler,
+  ScanHandler,
+} from '../types';
+import {
+  VariableGetRequestHandler,
+  VariableGetResponseHandler,
+} from './variableHandlerType';
 import JSZip from 'jszip';
 import saveAs from 'file-saver';
 import TokenErrorCheck from '../../components/TokenErrorCheck';
-import { VariableTokenData, ErrorTokenData, VariableResponseData, StringKeyValue, splitUnit } from '../variableMain';
+import {
+  VariableTokenData,
+  ErrorTokenData,
+  VariableResponseData,
+  StringKeyValue,
+  splitUnit,
+} from '../variableMain';
 
 /**
  * $VCID13336_127831__VID13336_129050__M13336_0 이걸 값으로 스왑해야함
  * @param scssVariableStyles   ["$Primary-Disabled" , "var(--Primary-Disabled, $VCID13336_127831__VID13336_129050__M13336_0);"]
  * @param designTokens  [VCID10683_73113__VID10683_73120__M540_4 , #E0DEFD]
  */
-const scssTypes = (scssVariableStyles: StringKeyValue, designTokens: StringKeyValue) => {
+const scssTypes = (
+  scssVariableStyles: StringKeyValue,
+  designTokens: StringKeyValue
+) => {
   const next1 = Object.entries(scssVariableStyles).map(([key, value]) => {
     const scssKey = value.split(splitUnit)[1].trim().replace(');', '');
 
@@ -38,14 +55,18 @@ const scssTypes = (scssVariableStyles: StringKeyValue, designTokens: StringKeyVa
     return [key.replace(/\-/g, '_'), '"' + nextValue.replace(';', '') + '";'];
     // ["$Primary-Disabled" , "VCID13336_127831__VID13336_129050__M13336_0"]
   });
-  return next1.reduce((prev, cur) => prev + 'export const ' + cur.join(' = ') + '\n', '');
+  return next1.reduce(
+    (prev, cur) => prev + 'export const ' + cur.join(' = ') + '\n',
+    ''
+  );
 };
 
 function Variables() {
   const [text, setText] = useState<VariableTokenData>();
   const [errorData, setError] = useState<ErrorTokenData>();
 
-  const handleButtonClick = () => emit<VariableGetRequestHandler>('VARIABLE_GET_REQUEST');
+  const handleButtonClick = () =>
+    emit<VariableGetRequestHandler>('VARIABLE_GET_REQUEST');
 
   const handleCloseButtonClick = useCallback(function () {
     emit<CloseHandler>('CLOSE');
@@ -57,11 +78,11 @@ function Variables() {
         designTokens: data.designTokens,
         scssModeStyles: data.scssModeStyles,
         defaultScssStyles: data.defaultScssStyles,
-        scssVariableStyles: data.scssVariableStyles
+        scssVariableStyles: data.scssVariableStyles,
       }),
         setError({
           errorTokens: data.errorTokens,
-          sameNamesObject: data.sameNamesObject
+          sameNamesObject: data.sameNamesObject,
         });
     });
   }, []);
@@ -82,7 +103,8 @@ function Variables() {
         fullWidth
         onClick={() => {
           if (text && errorData) scssExporter(text);
-        }}>
+        }}
+      >
         export Variable
       </Button>
       <VerticalSpace space="extraLarge" />
@@ -98,12 +120,17 @@ function Variables() {
 
 export default Variables;
 
-function scssExporter({ designTokens, scssModeStyles, defaultScssStyles, scssVariableStyles }: VariableTokenData) {
+function scssExporter({
+  designTokens,
+  scssModeStyles,
+  defaultScssStyles,
+  scssVariableStyles,
+}: VariableTokenData) {
   const { figmaToken, defaultScss, useToken, constants } = scssObjecttoText({
     designTokens,
     scssModeStyles,
     defaultScssStyles,
-    scssVariableStyles
+    scssVariableStyles,
   });
 
   const zipFile = new JSZip();
@@ -121,7 +148,7 @@ function scssObjecttoText({
   designTokens,
   scssModeStyles,
   defaultScssStyles,
-  scssVariableStyles
+  scssVariableStyles,
 }: Omit<VariableResponseData, 'errorTokens' | 'sameNamesObject'>) {
   let defaultScss = '';
   // let figmaToken = "";
@@ -155,21 +182,31 @@ function scssObjecttoText({
 
   //
   // var 모드 scss 생성
-  defaultScss += Object.entries(scssModeStyles).reduce((prev, [key, tokenArr]) => {
-    // 코드 수정할 때 편하려면 코드 단축 안하는게 맞긴 한 거 같음
-    prev +=
-      '.' +
-      key +
-      '{' +
-      Object.entries(tokenArr).reduce((prev1, [key1, token]) => prev1 + '\n--' + key1 + ': #{' + token + '};', '') +
-      '\n}\n\n';
+  defaultScss += Object.entries(scssModeStyles).reduce(
+    (prev, [key, tokenArr]) => {
+      // 코드 수정할 때 편하려면 코드 단축 안하는게 맞긴 한 거 같음
+      prev +=
+        '.' +
+        key +
+        '{' +
+        Object.entries(tokenArr).reduce(
+          (prev1, [key1, token]) =>
+            prev1 + '\n--' + key1 + ': #{' + token + '};',
+          ''
+        ) +
+        '\n}\n\n';
 
-    return prev;
-  }, '');
+      return prev;
+    },
+    ''
+  );
 
   const useToken =
     "@use './figmaToken' as *;\n\n" +
-    Object.entries(scssVariableStyles).reduce((prev, cur) => prev + '\n' + cur.join(':'), '') +
+    Object.entries(scssVariableStyles).reduce(
+      (prev, cur) => prev + '\n' + cur.join(':'),
+      ''
+    ) +
     '\n';
 
   // 모드와 기본 css
@@ -185,6 +222,6 @@ function scssObjecttoText({
     figmaToken,
     defaultScss,
     useToken,
-    constants
+    constants,
   };
 }

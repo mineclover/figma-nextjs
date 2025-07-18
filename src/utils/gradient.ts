@@ -7,7 +7,17 @@ const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) => {
 };
 
 /** rgbaToHex(255, 153, 51, 1) */
-export const rgbaToHex = ({ r, g, b, a }: { r: number; g: number; b: number; a?: number }) => {
+export const rgbaToHex = ({
+  r,
+  g,
+  b,
+  a,
+}: {
+  r: number;
+  g: number;
+  b: number;
+  a?: number;
+}) => {
   const hex = rgbToHex({ r, g, b });
   if (a == null || a === 1) return hex;
   const alphaHex = Math.round(a * 255)
@@ -21,12 +31,17 @@ export const rgbaToHex = ({ r, g, b, a }: { r: number; g: number; b: number; a?:
 const RGBToRGBA = (color: RGB, alpha: number) => {
   return {
     ...color,
-    a: roundToFourDecimals(alpha)
+    a: roundToFourDecimals(alpha),
   };
 };
 
 export const colorTo255 = (color: RGBA) => {
-  return [(color.r * 255) >> 0, (color.g * 255) >> 0, (color.b * 255) >> 0, roundToFourDecimals(color.a)];
+  return [
+    (color.r * 255) >> 0,
+    (color.g * 255) >> 0,
+    (color.b * 255) >> 0,
+    roundToFourDecimals(color.a),
+  ];
 };
 export const colorTo255Object = (color: RGB | RGBA) => {
   if ('a' in color)
@@ -34,14 +49,14 @@ export const colorTo255Object = (color: RGB | RGBA) => {
       r: (color.r * 255) >> 0,
       g: (color.g * 255) >> 0,
       b: (color.b * 255) >> 0,
-      a: roundToFourDecimals(color.a)
+      a: roundToFourDecimals(color.a),
     };
 
   return {
     r: (color.r * 255) >> 0,
     g: (color.g * 255) >> 0,
     b: (color.b * 255) >> 0,
-    a: 1
+    a: 1,
   };
 };
 
@@ -68,7 +83,7 @@ function calculateGradientDeg(matrix: Transform) {
   const m11 = roundToFourDecimals(matrix[1][1]);
 
   // 회전 각도 계산 (라디안)
-  let angle = Math.atan2(m10, m00);
+  const angle = Math.atan2(m10, m00);
 
   // 라디안을 degree로 변환
   let degrees = angle * (180 / Math.PI);
@@ -104,7 +119,8 @@ export function cssGradient(paint: GradientPaint): string {
   const { gradientTransform, gradientStops } = paint;
 
   if (type === 'GRADIENT_RADIAL') {
-    const a = 'radial-gradient(circle at 100%, #333, #333 50%, #eee 75%, #333 75%);';
+    const a =
+      'radial-gradient(circle at 100%, #333, #333 50%, #eee 75%, #333 75%);';
     return 'radial-gradient';
   }
   if (type === 'GRADIENT_ANGULAR') {
@@ -135,7 +151,7 @@ export const paintCheck = (paint: Paint, zero: boolean) => {
   // 가장 아래에 깔리는 객체는 일반 컬러여도 되고 해당 처리를 zero로 구분
 
   const result = {
-    blend: paint.blendMode ?? '빈 블랜드 발생'
+    blend: paint.blendMode ?? '빈 블랜드 발생',
   };
 
   console.log('paintCheck:', paint, zero);
@@ -147,25 +163,25 @@ export const paintCheck = (paint: Paint, zero: boolean) => {
 
     return {
       ...result,
-      background: colorToCssRGBA(RGBToRGBA(paint.color, opacity))
+      background: colorToCssRGBA(RGBToRGBA(paint.color, opacity)),
     };
   } else if (paint.type === 'SOLID') {
     // 리니어 처리
 
     return {
       ...result,
-      background: fillLinear(colorToCssRGBA(RGBToRGBA(paint.color, opacity)))
+      background: fillLinear(colorToCssRGBA(RGBToRGBA(paint.color, opacity))),
     };
   } else if (paint.type.startsWith('GRADIENT_')) {
     return {
       ...result,
-      background: cssGradient(paint as GradientPaint)
+      background: cssGradient(paint as GradientPaint),
     };
   } else {
     console.log('미구현');
     return {
       ...result,
-      background: '미구현'
+      background: '미구현',
     };
   }
 };

@@ -36,9 +36,15 @@ export function base64ToHex(base64String: string) {
 }
 
 export const base64TokenEncode = (base: string) =>
-  'KEY' + base.replace(/=/g, '').replace(/\//g, '_').replace(/\//g, '_').replace(/\+/g, '-');
+  'KEY' +
+  base
+    .replace(/=/g, '')
+    .replace(/\//g, '_')
+    .replace(/\//g, '_')
+    .replace(/\+/g, '-');
 
-export const base64TokenDecode = (base: string) => base.replace('KEY', '').replace(/_/g, '/').replace(/-/g, '+');
+export const base64TokenDecode = (base: string) =>
+  base.replace('KEY', '').replace(/_/g, '/').replace(/-/g, '+');
 
 function stringToUint8Array(str: string) {
   const arr = new Uint8Array(str.length);

@@ -1,4 +1,9 @@
-import { render, TabsOption, Tabs, useWindowResize } from '@create-figma-plugin/ui';
+import {
+  render,
+  TabsOption,
+  Tabs,
+  useWindowResize,
+} from '@create-figma-plugin/ui';
 import { Fragment, h } from 'preact';
 import { useState } from 'preact/hooks';
 
@@ -30,7 +35,7 @@ function Plugin() {
     maxWidth: 1920,
     minHeight: 120,
     minWidth: 120,
-    resizeBehaviorOnDoubleClick: 'minimize'
+    resizeBehaviorOnDoubleClick: 'minimize',
   });
   const nav = ['SVG 생성기', '변수 추출', 'inspect'];
   // const nav = ["SVG 생성기", "변수 추출", "SVG 정보 자동완성"];
@@ -38,16 +43,16 @@ function Plugin() {
   const options: Array<TabsOption> = [
     {
       children: <Svg />,
-      value: nav[0]
+      value: nav[0],
     },
     {
       children: <Variables></Variables>,
-      value: nav[1]
+      value: nav[1],
     },
     {
       children: <Inspect></Inspect>,
-      value: nav[2]
-    }
+      value: nav[2],
+    },
     // {
     //   children: <Inspect></Inspect>,
     //   value: nav[2],
@@ -57,7 +62,9 @@ function Plugin() {
 
   function handleChange(
     //  event: NonNullableComponentTypeExtract<typeof Tabs, 'onChange'>
-    event: Parameters<NonNullableComponentTypeExtract<typeof Tabs, 'onChange'>>[0]
+    event: Parameters<
+      NonNullableComponentTypeExtract<typeof Tabs, 'onChange'>
+    >[0]
   ) {
     const newValue = event.currentTarget.value;
     setValue(newValue);

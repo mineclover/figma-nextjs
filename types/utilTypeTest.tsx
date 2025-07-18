@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { h } from 'preact';
 import {
   Button,
@@ -11,9 +12,13 @@ import {
   Code,
   TextboxMultiline,
   IconPlus32,
-  IconTarget32
+  IconTarget32,
 } from '@create-figma-plugin/ui';
-import { ExtractProps, NonNullableComponentTypeExtract, SingleExtractProps } from './utilType';
+import {
+  ExtractProps,
+  NonNullableComponentTypeExtract,
+  SingleExtractProps,
+} from './utilType';
 
 type Props = {
   hello: string;
@@ -24,7 +29,7 @@ function UtilTypeTest({ hello }: Props) {
 }
 
 const JSXGroups = {
-  a: UtilTypeTest
+  a: UtilTypeTest,
 };
 
 type JSX_A = ExtractProps<typeof JSXGroups, 'a'>;

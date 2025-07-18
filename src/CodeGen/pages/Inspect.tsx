@@ -1,7 +1,13 @@
 import { emit, on } from '@create-figma-plugin/utilities';
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { AutoCSSData, InspectFilterUpdate, InspectMainData, InspectOff, InspectOn } from './variableHandlerType';
+import {
+  AutoCSSData,
+  InspectFilterUpdate,
+  InspectMainData,
+  InspectOff,
+  InspectOn,
+} from './variableHandlerType';
 import { FilterType, pathNodeType } from '../../FigmaPluginUtils';
 import { Disclosure, Checkbox, Text } from '@create-figma-plugin/ui';
 import styles from './svg.module.css';
@@ -17,7 +23,7 @@ const Inspect = (props: Props) => {
     PAGE: true,
     SECTION: true,
     COMPONENT_SET: true,
-    COMPONENT: true
+    COMPONENT: true,
   });
 
   useEffect(() => {
@@ -47,7 +53,7 @@ const Inspect = (props: Props) => {
 
           return newData;
         });
-      }
+      },
     };
   };
 
@@ -59,7 +65,8 @@ const Inspect = (props: Props) => {
           setFilterOpen(!(filterOpen === true));
         }}
         open={filterOpen}
-        title="Naming Option">
+        title="Naming Option"
+      >
         <div className={styles.svgNameWrap}>
           {pathNodeType
             .filter((t) => t !== 'COMPONENT')

@@ -12,7 +12,12 @@ export interface SvgSymbolHandler extends EventHandler {
 
 export interface ScanHandler extends EventHandler {
   name: 'FULL_SCAN';
-  handler: (result: string, duplicate: string[], unsupportedKeys: string[], id: string[]) => void;
+  handler: (
+    result: string,
+    duplicate: string[],
+    unsupportedKeys: string[],
+    id: string[]
+  ) => void;
 }
 
 export interface MessageHandler extends EventHandler {

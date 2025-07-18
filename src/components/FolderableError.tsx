@@ -16,7 +16,8 @@ const FolderableError = ({ name, children }: Props) => {
         setOpen(!(open === true));
       }}
       open={open}
-      title={name}>
+      title={name}
+    >
       {children}
     </Disclosure>
   );

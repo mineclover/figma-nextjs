@@ -8,7 +8,11 @@ import styles from './test.module.css';
 import { MessageHandler } from '../CodeGen/types';
 import { emit } from '@create-figma-plugin/utilities';
 import { SVGResult } from '../CodeGen/main';
-import { safeNumberConversion, typeofNumber, varToName } from '../utils/textTools';
+import {
+  safeNumberConversion,
+  typeofNumber,
+  varToName,
+} from '../utils/textTools';
 
 type Props = {
   name: string;
@@ -22,10 +26,14 @@ const typeMap = {
   svg: 'SVGProps',
   use: 'SVGProps',
   object: 'ObjectProps',
-  image: 'ImageProps'
+  image: 'ImageProps',
 } as const;
 
-export const attrsToStyle = (name: string, attrs: Props['attrs'], kind: TypeOptions) => {
+export const attrsToStyle = (
+  name: string,
+  attrs: Props['attrs'],
+  kind: TypeOptions
+) => {
   const styles = {} as Record<string, string | number>;
   let css = '.' + name + ' {';
   // 타입 선언은 타입 선언인데 이걸 정확한 위치로 어떻게 이동시키느냐가 문제임
@@ -60,7 +68,11 @@ export const attrsToStyle = (name: string, attrs: Props['attrs'], kind: TypeOpti
   Object.keys(attrs).forEach((key) => {
     type += `\n/** ${attrs[key]} */\n`;
 
-    type += varToName(key) + ' ?: ' + (typeofNumber(attrs[key]) ? 'number' : 'string') + ';';
+    type +=
+      varToName(key) +
+      ' ?: ' +
+      (typeofNumber(attrs[key]) ? 'number' : 'string') +
+      ';';
   });
   type += '}';
   type += '& ' + typeMap[kind as keyof typeof typeMap] + ')';
@@ -72,7 +84,7 @@ export const attrsToStyle = (name: string, attrs: Props['attrs'], kind: TypeOpti
   return {
     css,
     styles,
-    type
+    type,
   };
 };
 
@@ -87,7 +99,8 @@ const FolderableCode = ({ name, attrs }: Props) => {
         setOpen(!(open === true));
       }}
       open={open}
-      title={name}>
+      title={name}
+    >
       {/* 딸칵 이름 .. 그냥 이름만 */}
       <input
         onClick={(e) => {
@@ -96,7 +109,8 @@ const FolderableCode = ({ name, attrs }: Props) => {
             document.execCommand('copy');
           }
         }}
-        value={name}></input>
+        value={name}
+      ></input>
       {/* 딸칵 컴포넌트 > 리엑트 코드 말하는거임 props에 다 넣어야됨 ㅇㅇ.. */}
       <TextboxMultiline
         onClick={(e) => {
@@ -107,7 +121,8 @@ const FolderableCode = ({ name, attrs }: Props) => {
           }
         }}
         // css , styles
-        value={JSON.stringify(attrsToStyle(name, attrs, 'svg'))}></TextboxMultiline>
+        value={JSON.stringify(attrsToStyle(name, attrs, 'svg'))}
+      ></TextboxMultiline>
       {/* 딸칵 스타일  */}
       <TextboxMultiline
         onClick={(e) => {
@@ -117,7 +132,8 @@ const FolderableCode = ({ name, attrs }: Props) => {
             emit<MessageHandler>('POST_MESSAGE', '복사 완료');
           }
         }}
-        value={JSON.stringify(attrs)}></TextboxMultiline>
+        value={JSON.stringify(attrs)}
+      ></TextboxMultiline>
     </Disclosure>
   );
 };

@@ -1,49 +1,60 @@
 {
-	"dependencies": {
-		"@create-figma-plugin/ui": "^3.2.1",
-		"@create-figma-plugin/utilities": "^3.2.1",
-		"@fxts/core": "^1.0.1",
-		"@types/domhandler": "^2.4.5",
-		"@types/lodash": "^4.17.10",
-		"@zip.js/zip.js": "^2.7.52",
-		"dom-serializer": "^2.0.0",
-		"file-saver": "^2.0.5",
-		"htmlparser2": "^9.1.0",
-		"jszip": "^3.10.1",
-		"lodash": "^4.17.21",
-		"parse5": "^7.2.0",
-		"preact": "^10.24.2",
-		"prettier": "^3.3.3"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.1.2",
-		"@create-figma-plugin/build": "^3.2.1",
-		"@create-figma-plugin/tsconfig": "^3.2.1",
-		"@figma/plugin-typings": "1.100.2",
-		"@figma/widget-typings": "^1.9.2",
-		"@svgr/core": "^8.1.0",
-		"@types/file-saver": "^2.0.7",
-		"@types/node": "^20.16.2",
-		"@types/react": "^18.3.11",
-		"typescript": "^5.6.3"
-	},
-	"scripts": {
-		"build": "build-figma-plugin --typecheck --minify",
-		"watch": "build-figma-plugin --typecheck --watch",
-		"types": "npx openapi-typescript https://raw.githubusercontent.com/figma/rest-api-spec/main/openapi/openapi.yaml -o types/restApi.d.ts",
-		"dev": "tsc ./src/Test/index.ts && node ./src/Test/index.js"
-	},
-	"figma-plugin": {
-		"editorType": [
-			"figma",
-			"dev"
-		],
-		"id": "1423215291029369597",
-		"capabilities": [
-			"inspect"
-		],
-		"name": "Svg Sprite",
-		"main": "src/CodeGen/main.ts",
-		"ui": "src/CodeGen/ui.tsx"
-	}
+  "dependencies": {
+    "@create-figma-plugin/ui": "^3.2.1",
+    "@create-figma-plugin/utilities": "^3.2.1",
+    "@fxts/core": "^1.0.1",
+    "@types/domhandler": "^2.4.5",
+    "@types/lodash": "^4.17.10",
+    "@zip.js/zip.js": "^2.7.52",
+    "dom-serializer": "^2.0.0",
+    "file-saver": "^2.0.5",
+    "htmlparser2": "^9.1.0",
+    "jszip": "^3.10.1",
+    "lodash": "^4.17.21",
+    "parse5": "^7.2.0",
+    "preact": "^10.24.2",
+    "prettier": "^3.3.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.1.2",
+    "@create-figma-plugin/build": "^3.2.1",
+    "@create-figma-plugin/tsconfig": "^3.2.1",
+    "@figma/plugin-typings": "1.100.2",
+    "@figma/widget-typings": "^1.9.2",
+    "@svgr/core": "^8.1.0",
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^20.16.2",
+    "@types/react": "^18.3.11",
+    "typescript": "^5.6.3"
+  },
+  "scripts": {
+    "build": "build-figma-plugin --typecheck --minify",
+    "watch": "build-figma-plugin --typecheck --watch",
+    "types": "npx openapi-typescript https://raw.githubusercontent.com/figma/rest-api-spec/main/openapi/openapi.yaml -o types/restApi.d.ts",
+    "dev": "tsc ./src/Test/index.ts && node ./src/Test/index.js",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "code:format": "biome format --write src/",
+    "code:lint": "biome lint src/",
+    "code:lint:fix": "biome lint --write src/",
+    "code:check": "biome check src/",
+    "code:check:fix": "biome check --write src/"
+  },
+  "figma-plugin": {
+    "editorType": [
+      "figma",
+      "dev"
+    ],
+    "id": "1423215291029369597",
+    "capabilities": [
+      "inspect"
+    ],
+    "name": "Svg Sprite",
+    "main": "src/CodeGen/main.ts",
+    "ui": "src/CodeGen/ui.tsx"
+  }
 }

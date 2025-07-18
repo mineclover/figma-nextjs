@@ -1,37 +1,34 @@
 export class VariableProcessingUseCase {
-	constructor() {
-		// 빈 생성자
-	}
+  constructor() {
+    // 빈 생성자
+  }
 
-	async execute(): Promise<{
-		designTokens: Record<string, string>;
-		scssModeStyles: Record<string, Record<string, string>>;
-		defaultScssStyles: Record<string, string>;
-		scssVariableStyles: Record<string, string>;
-		errorTokens: Record<string, any>;
-		sameNamesObject: Record<string, any[]>;
-	}> {
-		// 기존 변수 처리 로직을 여기에 구현
-		const collectionsList =
-			await figma.variables.getLocalVariableCollectionsAsync();
-		const localVariablesList = await figma.variables.getLocalVariablesAsync();
-		const paintStylesList = await figma.getLocalPaintStylesAsync();
+  async execute(): Promise<{
+    designTokens: Record<string, string>;
+    scssModeStyles: Record<string, Record<string, string>>;
+    defaultScssStyles: Record<string, string>;
+    scssVariableStyles: Record<string, string>;
+    errorTokens: Record<string, unknown>;
+    sameNamesObject: Record<string, unknown[]>;
+  }> {
+    // 기존 변수 처리 로직을 여기에 구현
+    // TODO: 실제 변수 처리 로직 구현
 
-		const designTokens: Record<string, string> = {};
-		const scssModeStyles: Record<string, Record<string, string>> = {};
-		const defaultScssStyles: Record<string, string> = {};
-		const scssVariableStyles: Record<string, string> = {};
-		const errorTokens: Record<string, any> = {};
-		const sameNamesObject: Record<string, any[]> = {};
+    const designTokens: Record<string, string> = {};
+    const scssModeStyles: Record<string, Record<string, string>> = {};
+    const defaultScssStyles: Record<string, string> = {};
+    const scssVariableStyles: Record<string, string> = {};
+    const errorTokens: Record<string, unknown> = {};
+    const sameNamesObject: Record<string, unknown[]> = {};
 
-		// 기본 구현 - 나중에 실제 로직으로 교체
-		return {
-			designTokens,
-			scssModeStyles,
-			defaultScssStyles,
-			scssVariableStyles,
-			errorTokens,
-			sameNamesObject,
-		};
-	}
+    // 기본 구현 - 나중에 실제 로직으로 교체
+    return {
+      designTokens,
+      scssModeStyles,
+      defaultScssStyles,
+      scssVariableStyles,
+      errorTokens,
+      sameNamesObject,
+    };
+  }
 }

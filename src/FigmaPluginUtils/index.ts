@@ -32,7 +32,10 @@ export const FileMetaSearch = (
  * @param section
  * @returns
  */
-export const FilePathSearch = (node: BaseNode, pathNode: PathNodeinfo[] = []): PathNodeinfo[] => {
+export const FilePathSearch = (
+  node: BaseNode,
+  pathNode: PathNodeinfo[] = []
+): PathNodeinfo[] => {
   const parent = node.parent;
 
   if (parent != null) {
@@ -40,7 +43,7 @@ export const FilePathSearch = (node: BaseNode, pathNode: PathNodeinfo[] = []): P
       // 맞으면 추가
       pathNode.push({
         type: parent.type as PathNodeinfo['type'],
-        name: parent.name
+        name: parent.name,
       });
       /**
        * 저장 다했으니 순회 종료
@@ -67,8 +70,8 @@ export const notify = (message: string, closeLabel: string, timeout = 2000) => {
       text: closeLabel,
       action: () => {
         NotificationHandler.cancel();
-      }
-    }
+      },
+    },
   });
 };
 
@@ -94,7 +97,8 @@ export async function findMainComponent(instance: InstanceNode) {
 
 type 참조 = Prettify<BaseNodeMixin>;
 
-export interface RecursiveFigmaNode<T extends BaseNode['type']> extends BaseNodeMixin {
+export interface RecursiveFigmaNode<T extends BaseNode['type']>
+  extends BaseNodeMixin {
   type: T;
   children: RecursiveFigmaNode<T>[];
 }
@@ -122,7 +126,7 @@ export interface RecursiveFigmaNode<T extends BaseNode['type']> extends BaseNode
 // setDevResourcePreviewAsync: asdf,
 
 // type TestNode = Prettify<BaseNodeMixin>;
-let temp: TestNode = null as any;
+const temp: TestNode = null as any;
 
 type TestNode = Prettify<BaseNodeMixin>;
 
@@ -136,7 +140,13 @@ type PathNodeinfo = {
   name: string;
 };
 
-export const pathNodeType = ['DOCUMENT', 'PAGE', 'SECTION', 'COMPONENT_SET', 'COMPONENT'] as const;
+export const pathNodeType = [
+  'DOCUMENT',
+  'PAGE',
+  'SECTION',
+  'COMPONENT_SET',
+  'COMPONENT',
+] as const;
 
 export type FilterType = {
   DOCUMENT: boolean;
